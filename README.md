@@ -2,6 +2,8 @@
 
 This repository contains an experimental project dedicated to building and training language models from scratch using PyTorch. The code in this repository covers several aspects—from a simple bigram model to a scaled-down GPT implementation capable of generating coherent text outputs. While the code provided here trains on smaller text files and toy datasets, I also experimented with training the LLM from scratch on the [Open Web Text Corpus](https://blog.openai.com/better-language-models/) (roughly 45 GB in size). Note that the large dataset is not included in this repository due to its size.
 
+Publication of this project on ReadyTensor [Building a Transformer Based LLM from Scratch using PyTorch | ReadyTensor](https://app.readytensor.ai/publications/building-a-transformer-based-llm-from-scratch-using-pytorch-HMEzasyetWey)
+
 ## Project Structure
 
 - **bigram.ipynb**  
