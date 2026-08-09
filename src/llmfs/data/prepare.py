@@ -51,8 +51,29 @@ def _tokenize_document(text: str) -> np.ndarray:
     ids = _TOKENIZER.encode(text, add_eot=True)
     arr = np.array(ids, dtype=np.uint32)
     if (arr >= 2**16).any():
-        raise ValueError("token id exceeds uint16 range; shards assume vocab < 65536")
+        raise ValueError(
+            f"token id {arr.max()} exceeds the uint16 range: shards store ids as uint16, "
+            f"so the tokenizer's vocabulary must be under 65,536. Use a smaller "
+            f"vocabulary (the gpt2 tokenizer is 50,257) or widen the shard dtype."
+        )
     return arr.astype(np.uint16)
+
+
+def check_vocab_fits_shards(tokenizer_spec: str) -> None:
+    """Reject an oversized vocabulary before any tokenisation starts.
+
+    Shards store ids as uint16. The per-document guard in ``_tokenize_document`` is a
+    backstop, but on its own it only fires when a document happens to contain a high
+    id — which for a large-vocabulary tokenizer might be hours into a run over 10B
+    tokens. Checking the vocabulary up front turns that into an immediate error.
+    """
+    tokenizer = load_tokenizer(tokenizer_spec)
+    if tokenizer.vocab_size > 2**16:
+        raise ValueError(
+            f"tokenizer {tokenizer_spec!r} has a vocabulary of {tokenizer.vocab_size:,}, "
+            f"which does not fit the uint16 shard format (max 65,536). Use a smaller "
+            f"vocabulary (the gpt2 tokenizer is 50,257) or widen the shard dtype."
+        )
 
 
 class ShardWriter:
@@ -133,6 +154,7 @@ def prepare_text_file(
     val_fraction: float = 0.05,
 ) -> dict:
     """Tokenise a single local text file into train/val shards."""
+    check_vocab_fits_shards(tokenizer_spec)
     input_path, out_dir = Path(input_path), Path(out_dir)
     text = input_path.read_text(encoding="utf-8", errors="ignore")
 
@@ -164,6 +186,7 @@ def prepare_fineweb_edu(
     num_proc: int | None = None,
 ) -> dict:
     """Stream and tokenise FineWeb-Edu into shards."""
+    check_vocab_fits_shards(tokenizer_spec)
     try:
         from datasets import load_dataset
     except ImportError as exc:  # pragma: no cover - dependency guard

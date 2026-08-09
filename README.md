@@ -1,125 +1,216 @@
-# LLM from Scratch
+# LLMfromScratch
 
-This repository contains an experimental project dedicated to building and training language models from scratch using PyTorch. The code in this repository covers several aspects—from a simple bigram model to a scaled-down GPT implementation capable of generating coherent text outputs. While the code provided here trains on smaller text files and toy datasets, I also experimented with training the LLM from scratch on the [Open Web Text Corpus](https://blog.openai.com/better-language-models/) (roughly 45 GB in size). Note that the large dataset is not included in this repository due to its size.
+A from-scratch decoder-only language model: a GPT-2 124M reproduction, extended with
+modern architecture components, a controlled ablation study, and efficiency
+benchmarks — reproducible from one command.
 
-Publication of this project on ReadyTensor [Building a Transformer Based LLM from Scratch using PyTorch | ReadyTensor](https://app.readytensor.ai/publications/building-a-transformer-based-llm-from-scratch-using-pytorch-HMEzasyetWey)
+[![CI](https://github.com/Padraigobrien08/LLMfromScratch/actions/workflows/ci.yml/badge.svg)](https://github.com/Padraigobrien08/LLMfromScratch/actions/workflows/ci.yml)
 
-## Project Structure
+Every architecture component here — rotary embeddings, RMSNorm, SwiGLU,
+grouped-query attention, the KV cache — is written by hand and covered by tests that
+assert its defining mathematical property, not just its output shape.
 
-- **bigram.ipynb**  
-  A Jupyter Notebook implementing a simple bigram language model. This notebook demonstrates:
-  - Loading text data (in this case, from "wizard_of_oz.txt").
-  - Mapping characters to integers (and vice versa).
-  - Training a basic model using an embedding table that functions as a bigram.
-  - Generating text based on a seed context.
+---
 
-- **chatbot.py**  
-  A Python script that loads a pre-trained GPT-like language model (via a pickle file) and provides an interactive command-line chatbot interface. It:
-  - Accepts a batch size parameter via command-line arguments.
-  - Loads model parameters from `model-01.pkl`.
-  - Utilizes a text generation function with temperature adjustment for sampling completions.
+## Status
 
-- **gpt-v1.ipynb**  
-  A Jupyter Notebook that demonstrates a more complex GPT-like model:
-  - Incorporates self-attention layers, feedforward blocks, and positional embeddings.
-  - Shows how to load and preprocess text data.
-  - Trains the GPT model on the provided data and generates sample outputs.
-  
-- **torch-examples.ipynb**  
-  A collection of PyTorch examples:
-  - Demonstrates creating various tensors (e.g., zeros, ones, random tensors).
-  - Shows basic tensor operations such as matrix multiplications, stacking, transposing, and applying activation functions.
-  - Provides code examples for using functions like `torch.multinomial`, `torch.softmax`, and more.
-  
-- **training.py**  
-  A full training script for a GPT language model:
-  - Uses a subword tokenizer to preprocess text data.
-  - Employs memory-mapped files to efficiently load large text datasets.
-  - Defines a transformer-based GPT model with multiple attention heads and transformer blocks.
-  - Includes training routines with evaluation, TensorBoard logging, and learning rate scheduling.
-  - Saves model checkpoints during training.
+This repository is under active development. The table is the honest state of it:
+what is built and verified, and what is designed but not yet run.
 
-## Requirements
+| Pillar | Status |
+| --- | --- |
+| Package, config system, data pipeline, trainer, CI | **Done** — 160 tests green, end-to-end verified |
+| Modern architecture (RoPE, RMSNorm, SwiGLU, GQA, KV cache) | **Done** — hand-implemented, property-tested |
+| GPT-2 124M reproduction on FineWeb-Edu | Configured; **GPU run pending** |
+| Ablation study (11 arms) | Configs + protocol done; **runs pending** |
+| Inference efficiency (quantization, speculative decoding) | **Not started** |
+| Multi-GPU scaling + fault-tolerance design doc | DDP wired; **scaling run and doc pending** |
+| Interactive attention visualization | Attention export done; **UI not started** |
 
-Make sure you have Python 3.7+ installed and the following packages (you can install them via pip):
+No results are reported below that have not been measured. Sections describing
+pending work say so.
 
-```bash
-pip install torch torchvision torchaudio
-pip install numpy pandas matplotlib pylzma ipykernel jupyter tensorboard tokenizers
+---
+
+## Architecture
+
+One `Transformer` class covers both the GPT-2 baseline and the modern Llama-style
+stack; which one you get is decided entirely by config. That is deliberate — an
+ablation that swaps LayerNorm for RMSNorm differs from its baseline by one line of
+YAML, so the two cannot silently drift apart.
+
+| Component | Baseline (`gpt2-124m`) | Modern (`llama-124m`) |
+| --- | --- | --- |
+| Normalisation | LayerNorm | **RMSNorm** (fp32 reduction) |
+| Position | Learned absolute table | **RoPE** |
+| Feed-forward | GELU, 4×d | **SwiGLU**, parameter-matched via 2/3 width scaling |
+| Attention | 12 query / 12 KV heads | **GQA**, 12 query / 4 KV heads (3× smaller cache) |
+| Bias terms | Yes | No |
+| Inference | — | **Static preallocated KV cache** |
+
+```python
+from llmfs import ModelConfig, Transformer
+
+model = Transformer(ModelConfig(
+    n_layer=12, n_head=12, n_kv_head=4, n_embd=768, block_size=1024,
+    norm="rmsnorm", pos_emb="rope", mlp="swiglu", bias=False,
+))
 ```
 
-For running specific files, check the installation commands in the notebooks (e.g., the pip install commands at the top of `bigram.ipynb`).
+### What the tests actually assert
 
-## Setup & Installation
+Shape checks catch typos; these catch the bugs that would otherwise survive all the
+way into a training run and only show up as a mysteriously worse loss:
 
-1. **Clone the Repository:**
+- **RoPE** — that `⟨R(q, m), R(k, n)⟩` depends only on `m − n`, to 1e-6, which is the
+  entire point of rotary embeddings and is not implied by any shape.
+- **Causality** — perturbing token *t* leaves every position `< t` bitwise unchanged.
+  Run across all 10 architecture variants. An off-by-one mask makes loss look *better*.
+- **KV cache** — incremental decoding reproduces a full forward pass at every
+  position, for every variant. Training never exercises the cache, so nothing else
+  would catch a stale offset or a double-rotated key.
+- **GQA** — with `n_kv_head == n_head`, output is numerically identical to plain MHA.
+- **Eager vs fused** — the attention-weight export path matches the SDPA kernel, so
+  the visualizer cannot show weights the model never used.
+- **Mask alignment** — `build_causal_mask` is bottom-right aligned. PyTorch's
+  `is_causal=True` is top-left aligned and is silently wrong whenever the query block
+  is shorter than the key sequence — i.e. on every decode step.
 
-   ```bash
-   git clone https://github.com/Padraigobrien08/LLMfromScratch.git
-   cd LLMfromScratch
-   ```
+```bash
+pytest tests -q
+```
 
-2. **Set Up a Virtual Environment (Optional but Recommended):**
+---
 
-   ```bash
-   python -m venv .venv
-   source .venv/bin/activate   # On Windows, run: .venv\Scripts\activate
-   pip install --upgrade pip
-   pip install -r requirements.txt  # If you create a requirements file listing the above packages
-   ```
+## Quickstart
 
-3. **Configure Jupyter Kernel:**
+```bash
+git clone https://github.com/Padraigobrien08/LLMfromScratch.git && cd LLMfromScratch
+uv venv && uv pip install -e ".[dev,train]"
+```
 
-   If you plan to use the notebooks, install the kernel from within the virtual environment:
+Train a small model on the included corpus in a couple of minutes, on CPU, MPS or
+CUDA — no download required. This is the smoke test that every code path a real run
+takes is exercised before renting a GPU:
 
-   ```bash
-   python -m ipykernel install --user --name=.venv --display-name="venv-gpt"
-   ```
+```bash
+llmfs-prepare-data --source text --input data/wizard_of_oz.txt --out-dir data/wizard
+```
 
-## Usage
+```bash
+llmfs-train --config debug
+```
 
-### Running the Notebooks
+```bash
+llmfs-generate --checkpoint out/debug/best.pt --prompt "Dorothy lived in the"
+```
 
-- **bigram.ipynb**, **gpt-v1.ipynb**, and **torch-examples.ipynb**  
-  Open these notebooks in Jupyter Notebook or Jupyter Lab:
+The full reproduction, on a rented GPU:
 
-  ```bash
-  jupyter notebook
-  ```
+```bash
+llmfs-prepare-data --source fineweb-edu --out-dir data/fineweb-edu-10B
+```
 
-  Then navigate to and open the desired notebook.
+```bash
+llmfs-train --config gpt2-124m
+```
 
-### Running the Chatbot Script
+Multi-GPU is the same config — gradient accumulation absorbs the world size, so the
+optimisation is unchanged and only throughput moves:
 
-- **chatbot.py**  
-  Run the chatbot script via the command line. It requires a batch size argument:
+```bash
+torchrun --nproc_per_node=8 -m llmfs.train.cli --config gpt2-124m
+```
 
-  ```bash
-  python chatbot.py -batch_size 32
-  ```
+Every run writes its fully-resolved config, `metrics.jsonl`, and atomic checkpoints
+to `out/<run_name>/`. Resume with `--resume auto`.
 
-  Once running, the chatbot will prompt you for input, and it will generate completions using the pre-trained model loaded from `model-01.pkl`.
+---
 
-### Training a GPT Model
+## Reproduction
 
-- **training.py**  
-  This script trains the GPT language model using a subword tokenizer and text data loaded from memory-mapped files. You can adjust training parameters via command-line arguments. For example:
+The trust anchor: a documented target, hit within a stated tolerance, rather than a
+model that merely emits plausible text.
 
-  ```bash
-  python training.py -batch_size 64 -epochs 10 -save_dir checkpoints
-  ```
+- **Target**: GPT-2 124M on FineWeb-Edu (sample-10BT), one epoch, 10B tokens.
+- **Protocol, provenance of the target number, and tolerance**:
+  [docs/reproduction.md](docs/reproduction.md).
+- **Status**: not yet run. The config, data pipeline and trainer are complete and
+  verified end to end at small scale; what remains is the GPU time.
 
-  The script will:
-  - Log training and validation loss to TensorBoard.
-  - Save model checkpoints in the specified directory.
-  - Utilize gradient clipping and a learning rate scheduler for stable training.
+Results, loss curves, wall-clock, hardware and cost will be published here once the
+run completes.
 
-## Experiment with the Open Web Text Corpus
+---
 
-I have also experimented with training this LLM from scratch on the [Open Web Text Corpus](https://openwebtext.com/), which is approximately 45 GB in size. Due to its size, I have not uploaded it to the repository. However, the `training.py` script is designed to handle larger datasets by using memory mapping and batch sampling methods. If you decide to use a large-scale dataset, make sure to adjust paths and potentially tweak hyperparameters (such as `block_size` and `max_iters`) to accommodate the dataset’s scale.
+## Ablation study
 
-## Acknowledgments
+Eleven arms, each varying exactly one design decision against a shared baseline at
+a smaller scale (8 layers, 512-wide, ~1B tokens) so the whole sweep is affordable and
+every arm can share a seed and a token budget.
 
-- Special thanks to the open source community and research papers that have inspired this project.
-- The project was developed by [Padraig O'Brien](https://github.com/Padraigobrien08) as a learning and research tool in building language models from scratch.
-- Project was completed following a tutorial at [Youtube Video](https://youtu.be/UU1WVnMk4E8?si=7SPWXPRwDNepAqKF)
+Axes: LayerNorm vs RMSNorm · learned vs RoPE vs none · GELU vs SwiGLU · tied vs untied
+embeddings · bias vs no bias · MHA vs GQA · cosine vs WSD schedule · weight decay ·
+learning rate (3e-4 / 1e-3 / 3e-3) · all modern components combined.
+
+The discipline this rests on is enforced by a test: every arm is asserted to differ
+from `configs/ablations/_base.yaml` in its own named axis and nothing else. An arm
+that drifted would be measuring something other than what it claims.
+
+```bash
+llmfs-train --config ablations/norm-rmsnorm.yaml
+```
+
+**Status**: configs and protocol complete, runs pending.
+
+---
+
+## Efficiency
+
+The consolidated benchmark — naive → KV cache → quantized → speculative decoding,
+with latency, tokens/sec, memory and cost — is the headline deliverable here and is
+**not yet built**.
+
+One number is measured so far, and only because it falls out of the cache tests: on a
+7M-parameter debug model on MPS, KV-cache decoding runs at 44.5 tok/s against 14.5
+tok/s for the naive re-forward baseline (3.1×), producing bitwise-identical output
+under greedy decoding. That is a toy model on a laptop, reported as a sanity check
+rather than a benchmark.
+
+Already wired and awaiting measurement on real hardware: mixed precision (bf16),
+`torch.compile`, gradient checkpointing, fused AdamW, TF32, and MFU logging.
+
+---
+
+## Repository layout
+
+```
+src/llmfs/
+  model/      RoPE, RMSNorm, SwiGLU, GQA attention, KV cache, transformer
+  data/       tokenizer, FineWeb-Edu preparation, memory-mapped shard loader
+  train/      trainer, optimiser and schedules, checkpointing, distributed setup
+  eval/       evaluation and generation entrypoints
+  bench/      throughput, memory and cost benchmarks
+configs/      gpt2-124m, llama-124m, debug, and 11 single-axis ablation arms
+tests/        160 tests — component correctness, config validation, end-to-end training
+docs/         reproduction protocol
+notebooks/    exploration only; nothing here is the source of truth
+legacy/       the original tutorial scripts, kept for reference
+```
+
+---
+
+## Origin
+
+This began as a tutorial reproduction of a small character-level GPT
+([video](https://youtu.be/UU1WVnMk4E8), [write-up](https://app.readytensor.ai/publications/building-a-transformer-based-llm-from-scratch-using-pytorch-HMEzasyetWey)),
+and the original scripts are preserved unmodified in `legacy/`.
+
+Everything above the `legacy/` directory is a rewrite, not a refactor. The tutorial
+code had hard-coded absolute paths, module-level globals, post-norm blocks,
+generation that re-ran the full prefix for every token, and its model living inside a
+notebook. The current codebase shares no logic with it.
+
+## License
+
+MIT

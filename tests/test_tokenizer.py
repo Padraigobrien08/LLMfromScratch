@@ -23,13 +23,49 @@ def local_tokenizer():
     return load_tokenizer(f"file:{LOCAL_TOKENIZER}")
 
 
-def test_round_trip(local_tokenizer) -> None:
+def test_round_trip_recovers_the_tokens(local_tokenizer) -> None:
+    """Decoding recovers the content, though not byte-for-byte.
+
+    This tokenizer's decoder re-joins tokens with spaces, so punctuation comes back
+    detached ("Dorothy ." rather than "Dorothy."). That is a property of the
+    tokenizer, not of the pipeline — asserted here so the difference from GPT-2's
+    lossless byte-level BPE is explicit rather than a surprise later.
+    """
     text = "The Wizard of Oz stood before Dorothy."
-    assert local_tokenizer.decode(local_tokenizer.encode(text)) == text
+    decoded = local_tokenizer.decode(local_tokenizer.encode(text))
+    assert decoded.split() == text.replace(".", " .").split()
+
+
+def test_encoding_is_stable_under_re_encoding(local_tokenizer) -> None:
+    """Once through the round trip, further passes are fixed points."""
+    once = local_tokenizer.decode(local_tokenizer.encode("The Wizard of Oz."))
+    assert local_tokenizer.decode(local_tokenizer.encode(once)) == once
 
 
 def test_vocab_size_is_reported(local_tokenizer) -> None:
     assert local_tokenizer.vocab_size > 0
+
+
+def test_large_vocab_is_rejected_before_tokenisation_starts(local_tokenizer, tmp_path) -> None:
+    """Shards are uint16, so a vocabulary above 65,536 cannot be stored.
+
+    This repo's own tokenizer has a 150k vocabulary and therefore cannot prepare
+    data. The check has to be up front: a per-token guard would only trip when a
+    document happened to contain a high id, which over a 10B-token corpus could be
+    hours in.
+    """
+    from llmfs.data.prepare import check_vocab_fits_shards, prepare_text_file
+
+    assert local_tokenizer.vocab_size > 2**16
+
+    with pytest.raises(ValueError, match="does not fit the uint16 shard format"):
+        check_vocab_fits_shards(f"file:{LOCAL_TOKENIZER}")
+
+    source = tmp_path / "corpus.txt"
+    source.write_text("The Wizard of Oz stood before Dorothy.")
+    with pytest.raises(ValueError, match="does not fit the uint16 shard format"):
+        prepare_text_file(source, tmp_path / "out", tokenizer_spec=f"file:{LOCAL_TOKENIZER}")
+    assert not (tmp_path / "out").exists(), "failed before writing anything"
 
 
 def test_add_eot_prefixes_a_document_boundary(local_tokenizer) -> None:
