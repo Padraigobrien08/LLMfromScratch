@@ -8,8 +8,15 @@ name: Deploy attention explorer
 # reports its size, step count and validation loss, so a viewer can see exactly what
 # they are looking at.
 #
+# Training dominates this job (measured: 1,248s of a 1,282s run), so the checkpoint is
+# cached against the config and the source that actually determines it. A push that
+# only touches the front end, docs or tests reuses the cached model and the whole job
+# finishes in well under a minute; the training path runs only when the model would
+# genuinely differ.
+#
 # Requires Pages to be enabled for the repository with "GitHub Actions" as the source
-# (Settings -> Pages -> Build and deployment -> Source).
+# (Settings -> Pages -> Build and deployment -> Source). Without it the deploy step
+# fails with "Ensure GitHub Pages has been enabled".
 
 on:
   push:
@@ -25,15 +32,20 @@ concurrency:
   group: pages
   cancel-in-progress: false
 
+env:
+  DEMO_STEPS: "200"
+  DEMO_TOKENS_PER_STEP: "4096"
+
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - uses: astral-sh/setup-uv@v5
+      - uses: astral-sh/setup-uv@v6
         with:
           enable-cache: true
+          cache-dependency-glob: uv.lock
 
       - name: Install
         run: |
@@ -42,15 +54,32 @@ jobs:
             --extra-index-url https://download.pytorch.org/whl/cpu \
             -e ".[dev]"
 
+      - name: Restore the demo checkpoint
+        id: ckpt
+        uses: actions/cache@v4
+        with:
+          path: pages-out
+          # Keyed on everything that determines the trained weights: the config, the
+          # model and training code, the corpus, and the step budget. Anything else
+          # changing cannot alter the checkpoint, so it should not force a retrain.
+          key: >-
+            viz-demo-v1-${{ env.DEMO_STEPS }}x${{ env.DEMO_TOKENS_PER_STEP }}-${{
+            hashFiles('configs/debug.yaml', 'src/llmfs/model/**', 'src/llmfs/train/**',
+                      'src/llmfs/data/**', 'data/wizard_of_oz.txt') }}
+
       - name: Prepare corpus
+        if: steps.ckpt.outputs.cache-hit != 'true'
         run: |
           uv run llmfs-prepare-data --source text \
             --input data/wizard_of_oz.txt --out-dir data/wizard --shard-tokens 40000
 
       - name: Train the demo model
+        if: steps.ckpt.outputs.cache-hit != 'true'
         run: |
           uv run llmfs-train --config debug \
-            --set runtime.device=cpu --set train.max_steps=400 \
+            --set runtime.device=cpu \
+            --set train.max_steps=${{ env.DEMO_STEPS }} \
+            --set train.tokens_per_step=${{ env.DEMO_TOKENS_PER_STEP }} \
             --set log.eval_interval=100 --set log.tensorboard=false \
             --set log.out_dir=pages-out
 

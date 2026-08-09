@@ -14,14 +14,19 @@ jobs:
   lint:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: astral-sh/setup-uv@v5
+      - uses: actions/checkout@v5
+      - uses: astral-sh/setup-uv@v6
         with:
           enable-cache: true
+          cache-dependency-glob: uv.lock
       - name: Lint
         run: uvx ruff@0.16.2 check src tests
       - name: Format check
         run: uvx ruff@0.16.2 format --check src tests
+      - name: Lockfile is in sync with pyproject.toml
+        # Without this the committed lock silently drifts from the declared
+        # dependencies, and "pinned" stops meaning anything.
+        run: uv lock --check
 
   test:
     runs-on: ubuntu-latest
@@ -30,11 +35,12 @@ jobs:
       matrix:
         python-version: ["3.10", "3.11", "3.12"]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - uses: astral-sh/setup-uv@v5
+      - uses: astral-sh/setup-uv@v6
         with:
           enable-cache: true
+          cache-dependency-glob: uv.lock
 
       - name: Install
         # CPU-only torch: the runners have no GPU, and the CUDA wheel is a ~2.5GB
@@ -53,11 +59,12 @@ jobs:
     # prepare a corpus, train, resume, evaluate, generate.
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - uses: astral-sh/setup-uv@v5
+      - uses: astral-sh/setup-uv@v6
         with:
           enable-cache: true
+          cache-dependency-glob: uv.lock
 
       - name: Install
         run: |
