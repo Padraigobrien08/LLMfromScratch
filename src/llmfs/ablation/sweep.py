@@ -148,39 +148,44 @@ def run_sweep(
     out_dir: Path,
     results_path: Path,
     seed: int = 1337,
-    baseline_seeds: int = 3,
+    seeds: int = 3,
     extra: list[str] | None = None,
     resume: bool = True,
 ) -> dict[str, ArmResult]:
-    """Run every arm once, and the baseline ``baseline_seeds`` times.
+    """Run every arm at the same ``seeds`` seeds.
 
-    The repeated baseline is the whole basis for interpreting the results: it is the
-    only way to know how much of a delta is the design change and how much is the
-    seed.
+    Running *every* arm at *the same* seeds, rather than repeating only the baseline,
+    is what makes the comparison paired: each arm can be differenced against the
+    baseline run that saw its data in the same order. Batch ordering is the largest
+    component of seed-to-seed variance, and differencing within a seed cancels it,
+    so an effect much smaller than the raw spread between runs becomes visible.
+
+    The cost is real — ``seeds`` times the compute — but the alternative is a sweep
+    whose every row reads "within noise", which is compute spent to learn nothing.
     """
     extra = extra or []
     existing = _load_existing(results_path) if resume else {}
     results: dict[str, ArmResult] = dict(existing)
 
-    # (config, seed) pairs. The baseline repeats; every other arm runs once, at the
-    # same seed as the baseline's first run so the comparison is like-for-like.
+    seed_list = [seed + i for i in range(seeds)]
     plan: list[tuple[Path, int]] = []
     for arm in arms:
         path = (CONFIG_ROOT / "ablations" / arm).resolve()
         if not path.exists():
             raise FileNotFoundError(f"ablation config not found: {path}")
-        seeds = [seed + i for i in range(baseline_seeds)] if path.stem == "_base" else [seed]
-        plan.extend((path, s) for s in seeds)
+        plan.extend((path, s) for s in seed_list)
 
     meta = {
         "arms": arms,
         "seed": seed,
-        "baseline_seeds": baseline_seeds,
+        "seeds": seeds,
+        "seed_list": seed_list,
+        "paired": seeds > 1,
         "overrides": extra,
         "out_dir": str(out_dir),
     }
 
-    print(f"sweep: {len(plan)} runs ({len(arms)} arms, baseline x{baseline_seeds})")
+    print(f"sweep: {len(plan)} runs ({len(arms)} arms x {seeds} seeds {seed_list})")
     for index, (path, arm_seed) in enumerate(plan, start=1):
         key = f"{_arm_name(path)}@seed{arm_seed}"
         if key in results and results[key].status in ("completed", "diverged"):
@@ -220,12 +225,14 @@ def main(argv: list[str] | None = None) -> None:
     )
     parser.add_argument("--out-dir", type=str, default="out/ablations")
     parser.add_argument("--results", type=str, default="results/ablations.json")
-    parser.add_argument("--seed", type=int, default=1337)
+    parser.add_argument("--seed", type=int, default=1337, help="first seed; the rest follow it")
     parser.add_argument(
-        "--baseline-seeds",
+        "--seeds",
         type=int,
         default=3,
-        help="how many seeds to run the baseline with, to establish the noise floor",
+        help="seeds per arm. Every arm uses the same seeds, so deltas are paired "
+        "against the baseline run that saw the same data order. Below 3 the "
+        "comparison is unpaired and the report says so.",
     )
     parser.add_argument(
         "--set",
@@ -247,7 +254,7 @@ def main(argv: list[str] | None = None) -> None:
         out_dir=Path(args.out_dir),
         results_path=Path(args.results),
         seed=args.seed,
-        baseline_seeds=args.baseline_seeds,
+        seeds=args.seeds,
         extra=args.overrides,
         resume=not args.no_resume,
     )

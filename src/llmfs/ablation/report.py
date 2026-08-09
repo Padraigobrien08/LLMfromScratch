@@ -1,13 +1,19 @@
 """Turn sweep results into a table, plots, and a write-up scaffold.
 
-The one rule this module enforces: **a delta smaller than the seed noise is not a
-result.** Every arm is compared against the spread of the repeated baseline runs,
-and anything inside it is labelled "within noise" rather than being reported as an
-improvement. Ablation tables without that check are how a study ends up confidently
-recommending a change that does nothing.
+The rule this module enforces: **an inconsistent difference is not a result.** Every
+arm runs at the same seeds as the baseline, each is differenced against the baseline
+run that saw its data in the same order, and an arm only counts when those per-seed
+differences all agree in sign. Ablation tables without such a check are how a study
+ends up confidently recommending a change that does nothing.
 
-The seed spread is estimated from a handful of baseline runs, so it is itself a
-rough number — it is used as an order-of-magnitude threshold, not a p-value.
+Pairing is what makes this affordable. Comparing means alone, an effect would have to
+exceed the entire baseline seed spread — larger than most architecture changes
+produce. Differencing within a seed cancels the batch-ordering variance both runs
+share, so a much smaller effect becomes visible without longer runs.
+
+Where an arm cannot be paired (no shared seed), the report falls back to the unpaired
+test against the baseline spread and says so. Neither test is a p-value; with three
+seeds nothing stronger would be honest.
 """
 
 from __future__ import annotations
@@ -16,7 +22,7 @@ import argparse
 import json
 import math
 import statistics
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
@@ -48,11 +54,20 @@ class Comparison:
     val_loss: float | None
     perplexity: float | None
     delta: float | None
-    """Signed change vs the baseline mean. Negative is better (lower loss)."""
+    """Mean signed change vs the baseline. Negative is better (lower loss)."""
     significant: bool
     tokens_per_sec: float
     wall_clock_s: float
     params: int
+    deltas: list[float] = field(default_factory=list)
+    """Per-seed paired differences, when the arm and baseline share seeds."""
+    paired: bool = False
+    n_seeds: int = 0
+
+    @property
+    def half_range(self) -> float:
+        """Half the spread of the paired deltas — the error bar on ``delta``."""
+        return (max(self.deltas) - min(self.deltas)) / 2 if len(self.deltas) > 1 else 0.0
 
     @property
     def verdict(self) -> str:
@@ -93,26 +108,78 @@ def baseline_noise(arms: list[dict]) -> tuple[float | None, float, int]:
     return statistics.fmean(losses), max(losses) - min(losses), len(losses)
 
 
+def _is_significant(delta: float, deltas: list[float], paired: bool, spread: float) -> bool:
+    """Does this arm's difference from the baseline count as a result?
+
+    Paired: yes only if the range of per-seed differences excludes zero — every seed
+    agreed on the direction, and the disagreement between them is smaller than the
+    effect itself.
+
+    Unpaired (a single shared seed, so nothing to pair against): fall back to
+    requiring the difference to clear the baseline's whole seed spread, which is a
+    much higher bar and the reason pairing is worth its compute.
+    """
+    if paired:
+        return min(deltas) > 0 or max(deltas) < 0
+    return abs(delta) > spread
+
+
 def compare(payload: dict[str, Any]) -> tuple[list[Comparison], dict[str, Any]]:
+    """Compare each arm against the baseline, paired by seed where possible.
+
+    When an arm and the baseline share seeds, the comparison is done *within* each
+    seed and the per-seed differences are averaged. That cancels the run-to-run
+    variation both share — principally the order the batches arrived in — and leaves
+    the effect of the design change. An unpaired comparison of means has to clear the
+    entire seed spread before it can claim anything; a paired one only has to produce
+    differences that agree with each other.
+
+    Significance rule, stated plainly because it is a heuristic and not a p-value:
+    **an arm counts only if the range of its per-seed deltas does not straddle zero.**
+    With three seeds that is a weak test in the formal sense, but it is honest, it is
+    what the error bars in the plot show, and it cannot manufacture a result out of
+    an effect whose sign is not even consistent.
+    """
     arms = payload["arms"]
     mean, spread, n_seeds = baseline_noise(arms)
 
-    # One arm per name; for the baseline, aggregate its seeds into a single row.
+    def completed_by_seed(runs: list[dict]) -> dict[int, float]:
+        return {
+            r["seed"]: r["val_loss"]
+            for r in runs
+            if r["status"] == "completed" and r["val_loss"] is not None
+        }
+
     by_name: dict[str, list[dict]] = {}
     for arm in arms:
         by_name.setdefault(arm["name"], []).append(arm)
 
+    baseline_by_seed = completed_by_seed(by_name.get("baseline", []))
+
     rows: list[Comparison] = []
     for name, runs in by_name.items():
+        arm_by_seed = completed_by_seed(runs)
         completed = [r for r in runs if r["status"] == "completed" and r["val_loss"] is not None]
         representative = completed[0] if completed else runs[0]
+        loss = statistics.fmean(arm_by_seed.values()) if arm_by_seed else None
 
-        if name == "baseline":
-            loss = mean
+        deltas: list[float] = []
+        paired = False
+        if name != "baseline" and arm_by_seed and baseline_by_seed:
+            shared = sorted(set(arm_by_seed) & set(baseline_by_seed))
+            if shared:
+                deltas = [arm_by_seed[s] - baseline_by_seed[s] for s in shared]
+                paired = len(shared) > 1
+
+        if deltas:
+            delta = statistics.fmean(deltas)
+            significant = _is_significant(delta, deltas, paired, spread)
+        elif name == "baseline" or loss is None or mean is None:
+            delta, significant = None, False
         else:
-            loss = statistics.fmean(r["val_loss"] for r in completed) if completed else None
+            delta = loss - mean
+            significant = abs(delta) > spread
 
-        delta = None if (loss is None or mean is None or name == "baseline") else loss - mean
         rows.append(
             Comparison(
                 name=name,
@@ -121,11 +188,13 @@ def compare(payload: dict[str, Any]) -> tuple[list[Comparison], dict[str, Any]]:
                 val_loss=loss,
                 perplexity=math.exp(min(loss, 20)) if loss is not None else None,
                 delta=delta,
-                # A delta only counts if it exceeds the whole baseline seed range.
-                significant=delta is not None and abs(delta) > spread,
+                significant=significant,
                 tokens_per_sec=statistics.fmean([r["tokens_per_sec"] for r in runs]),
                 wall_clock_s=statistics.fmean([r["wall_clock_s"] for r in runs]),
                 params=representative.get("params", 0),
+                deltas=deltas,
+                paired=paired,
+                n_seeds=len(arm_by_seed),
             )
         )
 
@@ -134,6 +203,7 @@ def compare(payload: dict[str, Any]) -> tuple[list[Comparison], dict[str, Any]]:
         "baseline_mean": mean,
         "baseline_spread": spread,
         "baseline_seeds": n_seeds,
+        "paired": any(r.paired for r in rows),
         "meta": payload.get("meta", {}),
     }
     return rows, stats
@@ -152,21 +222,36 @@ def render_markdown(rows: list[Comparison], stats: dict[str, Any]) -> str:
         f"Baseline: **{mean:.4f}** validation loss, "
         f"{'over ' + str(n) + ' seeds' if n > 1 else 'single seed'}."
     ]
+    paired = stats.get("paired", False)
+
     if n > 1:
         lines += [
             "",
-            f"**Seed noise floor: {spread:.4f}.** That is the full range across "
-            f"{n} baseline runs differing only in seed. Any arm whose delta is smaller "
-            f"than this has not measured its design change — it has measured the seed. "
-            f"Such arms are marked *within noise* below and no conclusion is drawn "
-            f"from them.",
+            f"**Seed noise floor: {spread:.4f}** — the full range across {n} baseline "
+            f"runs differing only in seed. It is the scale against which any *unpaired* "
+            f"comparison would have to be judged.",
         ]
     else:
         lines += [
             "",
             "**No noise floor was measured** — the baseline ran with a single seed, so "
             "no delta below can be distinguished from run-to-run variation. Re-run with "
-            "`--baseline-seeds 3` before drawing conclusions.",
+            "`--seeds 3` before drawing conclusions.",
+        ]
+
+    if paired:
+        lines += [
+            "",
+            "Comparisons below are **paired**: every arm ran at the same seeds as the "
+            "baseline, and each is differenced against the baseline run that saw its "
+            "data in the same order. That cancels the batch-ordering variance the two "
+            "share, so an effect well below the raw noise floor above can still be "
+            "resolved. The ± is the half-range of the per-seed differences.",
+            "",
+            "An arm counts as a result only when **the range of its per-seed deltas "
+            "does not straddle zero** — every seed agreed on the direction. This is a "
+            "deliberately blunt rule, not a p-value; with three seeds nothing stronger "
+            "would be honest.",
         ]
 
     lines += [
@@ -176,7 +261,12 @@ def render_markdown(rows: list[Comparison], stats: dict[str, Any]) -> str:
     ]
     for r in rows:
         loss = f"{r.val_loss:.4f}" if r.val_loss is not None else "—"
-        delta = "—" if r.delta is None else f"{r.delta:+.4f}"
+        if r.delta is None:
+            delta = "—"
+        elif r.paired:
+            delta = f"{r.delta:+.4f} ± {r.half_range:.4f}"
+        else:
+            delta = f"{r.delta:+.4f}"
         verdict = r.verdict
         if verdict == "better":
             verdict = "**better**"
@@ -192,24 +282,29 @@ def render_markdown(rows: list[Comparison], stats: dict[str, Any]) -> str:
     ]
     diverged = [r for r in rows if r.status == "diverged"]
 
+    # The justification differs between the two designs, and saying "beyond the noise
+    # floor" about a paired result would misdescribe how it was established.
+    basis = "consistently across every seed" if paired else "beyond the seed noise floor"
+
     lines += ["", "## What this shows", ""]
     if significant:
         better = [r for r in significant if r.delta < 0]
         worse = [r for r in significant if r.delta > 0]
         if better:
             lines.append(
-                "Improved beyond the noise floor: "
+                f"Improved {basis}: "
                 + ", ".join(f"`{r.name}` ({r.delta:+.4f})" for r in better)
                 + "."
             )
         if worse:
             lines.append(
-                "Hurt beyond the noise floor: "
-                + ", ".join(f"`{r.name}` ({r.delta:+.4f})" for r in worse)
-                + "."
+                f"Hurt {basis}: " + ", ".join(f"`{r.name}` ({r.delta:+.4f})" for r in worse) + "."
             )
     else:
-        lines.append("No arm moved validation loss beyond the seed noise floor.")
+        lines.append(
+            "No arm changed validation loss "
+            + ("consistently across seeds." if paired else "beyond the seed noise floor.")
+        )
 
     if noise:
         lines += [
@@ -315,15 +410,30 @@ def plot(payload: dict[str, Any], rows: list[Comparison], stats: dict[str, Any],
             ("#2f5fe0" if r.delta < 0 else "#d1425c") if r.significant else "#b9bec9"
             for r in deltas
         ]
-        ax.barh(names, values, color=colours)
+        # Error bars are the half-range of the per-seed paired differences. Whether a
+        # bar crosses zero *is* the significance test, so it has to be visible rather
+        # than only asserted in the table.
+        errors = [r.half_range for r in deltas]
+        ax.barh(
+            names,
+            values,
+            color=colours,
+            xerr=errors if any(errors) else None,
+            error_kw={"ecolor": "#5b6270", "elinewidth": 1.1, "capsize": 3},
+        )
         spread = stats["baseline_spread"]
-        if spread > 0:
-            # The band inside which a bar means nothing.
+        if spread > 0 and not stats.get("paired"):
+            # Only meaningful unpaired; with pairing the error bars are the relevant
+            # scale and this band would overstate the uncertainty.
             ax.axvspan(-spread, spread, color="#b9bec9", alpha=0.28, zorder=0)
             ax.text(0, len(names) - 0.4, f"  seed noise ±{spread:.4f}", fontsize=8, color="#5b6270")
         ax.axvline(0, color="black", linewidth=1)
         ax.set_xlabel("Δ validation loss vs baseline  (negative = better)")
-        ax.set_title("Ablation deltas — grey bars are within seed noise")
+        ax.set_title(
+            "Ablation deltas — paired by seed; grey bars straddle zero"
+            if stats.get("paired")
+            else "Ablation deltas — grey bars are within seed noise"
+        )
         ax.grid(axis="x", alpha=0.25, linewidth=0.6)
         fig.tight_layout()
         path = out_dir / "ablation_deltas.png"

@@ -305,3 +305,29 @@ def test_finite_training_does_not_trip_the_guard(train_config: Config) -> None:
     trainer.train()
     assert trainer.diverged is False
     assert (Path(train_config.log.out_dir) / "test" / "final.pt").exists()
+
+
+def test_prune_keep_zero_removes_all_rolling_checkpoints(tmp_path: Path) -> None:
+    """keep_last_n=0 means keep none — not, as a `<= 0` guard would have it, keep all.
+
+    This matters at sweep scale: 39 run directories at the default of 2 rolling
+    checkpoints each is ~109 GiB, more than the prepared corpus and more than the
+    volume it lives on.
+    """
+    for step in (100, 200, 300):
+        (tmp_path / f"ckpt_step{step:07d}.pt").write_bytes(b"x")
+    (tmp_path / "best.pt").write_bytes(b"x")
+    (tmp_path / "final.pt").write_bytes(b"x")
+
+    prune_checkpoints(tmp_path, keep_last_n=0)
+
+    # Rolling checkpoints gone; the two named ones survive, so the run is still
+    # recoverable and its best model intact.
+    assert sorted(p.name for p in tmp_path.iterdir()) == ["best.pt", "final.pt"]
+
+
+def test_prune_negative_disables_pruning(tmp_path: Path) -> None:
+    for step in (100, 200):
+        (tmp_path / f"ckpt_step{step:07d}.pt").write_bytes(b"x")
+    prune_checkpoints(tmp_path, keep_last_n=-1)
+    assert len(list(tmp_path.iterdir())) == 2

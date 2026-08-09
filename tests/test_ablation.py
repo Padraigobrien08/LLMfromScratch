@@ -143,7 +143,83 @@ def test_markdown_warns_when_no_noise_floor_was_measured() -> None:
     rows, stats = compare(payload([arm("baseline", 1, 2.0), arm("other", 1337, 1.9)]))
     md = render_markdown(rows, stats)
     assert "No noise floor was measured" in md
-    assert "--baseline-seeds" in md
+    assert "--seeds" in md
+
+
+# ------------------------------------------------------------------ paired design
+
+
+def paired(base: list[float], other: list[float], seeds=(1, 2, 3)) -> dict:
+    """Baseline and one arm, run at the same seeds."""
+    arms = [arm("baseline", s, v) for s, v in zip(seeds, base)]
+    arms += [arm("armX", s, v) for s, v in zip(seeds, other)]
+    return payload(arms)
+
+
+def test_pairing_resolves_an_effect_smaller_than_the_raw_noise() -> None:
+    """The entire reason for running every arm at the same seeds.
+
+    The baseline swings 0.20 across seeds, so an unpaired comparison could never
+    claim a 0.03 effect. But the arm is better by ~0.03 *in every seed*, so the
+    paired differences agree and the effect is real.
+    """
+    rows, stats = compare(paired([2.00, 2.10, 2.20], [1.97, 2.07, 2.17]))
+    assert stats["baseline_spread"] == pytest.approx(0.20)
+
+    x = next(r for r in rows if r.name == "armX")
+    assert x.paired is True and x.n_seeds == 3
+    assert x.delta == pytest.approx(-0.03)
+    assert x.half_range == pytest.approx(0.0, abs=1e-9)
+    assert x.significant is True, "consistent per-seed improvement must count"
+    assert x.verdict == "better"
+    # Unpaired, this same data would have been dismissed.
+    assert abs(x.delta) < stats["baseline_spread"]
+
+
+def test_inconsistent_sign_is_not_a_result() -> None:
+    """If the seeds disagree about the direction, there is no effect to report."""
+    rows, _ = compare(paired([2.00, 2.10, 2.20], [1.95, 2.15, 2.18]))
+    x = next(r for r in rows if r.name == "armX")
+    assert sorted(round(d, 2) for d in x.deltas) == [-0.05, -0.02, 0.05]
+    assert x.significant is False
+    assert x.verdict == "within noise"
+
+
+def test_half_range_is_the_reported_error_bar() -> None:
+    rows, _ = compare(paired([2.00, 2.00, 2.00], [1.90, 1.94, 1.98]))
+    x = next(r for r in rows if r.name == "armX")
+    assert x.delta == pytest.approx(-0.06)
+    assert x.half_range == pytest.approx(0.04)
+    assert x.significant is True  # range [-0.10, -0.02] stays below zero
+
+
+def test_markdown_shows_paired_error_bars() -> None:
+    rows, stats = compare(paired([2.00, 2.10, 2.20], [1.97, 2.07, 2.17]))
+    md = render_markdown(rows, stats)
+    assert "paired" in md.lower()
+    assert "±" in md
+    assert "does not straddle zero" in md
+
+
+def test_arm_missing_a_seed_still_pairs_on_what_it_shares() -> None:
+    """A crashed run must not invalidate the arm; it pairs on the seeds it has."""
+    arms = [arm("baseline", s, v) for s, v in zip((1, 2, 3), (2.00, 2.10, 2.20))]
+    arms += [arm("armX", 1, 1.97), arm("armX", 3, 2.17)]
+    rows, _ = compare(payload(arms))
+    x = next(r for r in rows if r.name == "armX")
+    assert x.n_seeds == 2 and x.paired is True
+    assert x.delta == pytest.approx(-0.03)
+
+
+def test_unpaired_falls_back_when_seeds_do_not_overlap() -> None:
+    """Arms run at a different seed than the baseline cannot be paired."""
+    arms = [arm("baseline", s, v) for s, v in zip((1, 2, 3), (2.00, 2.10, 2.20))]
+    arms += [arm("armX", 99, 1.50)]
+    rows, _ = compare(payload(arms))
+    x = next(r for r in rows if r.name == "armX")
+    assert x.paired is False
+    assert x.delta == pytest.approx(1.50 - 2.10)
+    assert x.significant is True  # 0.60 clears the 0.20 unpaired spread
 
 
 def test_markdown_handles_no_baseline_at_all() -> None:

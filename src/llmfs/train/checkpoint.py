@@ -98,10 +98,20 @@ def find_latest_checkpoint(out_dir: str | Path) -> Path | None:
 def prune_checkpoints(out_dir: str | Path, keep_last_n: int) -> None:
     """Delete all but the newest ``keep_last_n`` rolling checkpoints.
 
-    ``best.pt`` and ``final.pt`` do not match the glob and are never pruned.
+    ``best.pt`` and ``final.pt`` do not match the glob and are never pruned, so even
+    ``keep_last_n=0`` leaves a run recoverable and its best model intact.
+
+    Args:
+        keep_last_n: how many rolling checkpoints to retain. ``0`` keeps none — the
+            right setting for a many-armed sweep, where rolling checkpoints across
+            39 runs cost more disk than the corpus. Negative disables pruning
+            entirely.
     """
-    if keep_last_n <= 0:
+    if keep_last_n < 0:
         return
     checkpoints = sorted(Path(out_dir).glob("ckpt_step*.pt"))
-    for stale in checkpoints[:-keep_last_n]:
-        stale.unlink(missing_ok=True)
+    # Note `checkpoints[:-0]` would be empty rather than "all", so 0 is handled
+    # explicitly instead of by slicing.
+    stale = checkpoints[:-keep_last_n] if keep_last_n > 0 else checkpoints
+    for path in stale:
+        path.unlink(missing_ok=True)

@@ -23,7 +23,7 @@ what is built and verified, and what is designed but not yet run.
 
 | Pillar | Status |
 | --- | --- |
-| Package, config system, data pipeline, trainer, CI | **Done** — 206 tests green, end-to-end verified |
+| Package, config system, data pipeline, trainer, CI | **Done** — 214 tests green, end-to-end verified |
 | Modern architecture (RoPE, RMSNorm, SwiGLU, GQA, KV cache) | **Done** — hand-implemented, property-tested |
 | GPT-2 124M reproduction on FineWeb-Edu | Configured; **GPU run pending** |
 | Ablation study (13 arms) | Runner + report built and validated; **GPU runs pending** |
@@ -173,20 +173,26 @@ from `configs/ablations/_base.yaml` in its own named axis and nothing else. An a
 that drifted would be measuring something other than what it claims.
 
 ```bash
-llmfs-ablate --baseline-seeds 3
+llmfs-ablate --seeds 3
 ```
 
 ```bash
 llmfs-ablate-report
 ```
 
-**The baseline runs three times.** That is the point of the sweep design, not a
-detail: two runs differing only in seed do not reach the same loss, so the spread
-between them is the noise floor, and any arm whose delta is smaller than it has
-measured the seed rather than its design change. Those arms are reported as *within
-noise* and no conclusion is drawn from them. An ablation table without that check is
-worse than no table — it reads as authoritative while recommending changes that do
-nothing.
+**Every arm runs at the same three seeds, and comparisons are paired.** That is the
+point of the design, not a detail. Two runs differing only in seed do not reach the
+same loss, so an unpaired comparison has to clear that entire spread before it can
+claim anything — and most architecture effects are smaller than it. Differencing each
+arm against the baseline run that saw its data *in the same order* cancels the
+batch-ordering variance the two share, and resolves effects well below the raw noise
+floor.
+
+An arm counts as a result only when the range of its per-seed deltas does not
+straddle zero: every seed agreed on the direction. A deliberately blunt rule, not a
+p-value — with three seeds nothing stronger would be honest — and it is exactly what
+the error bars in the plot show. An ablation table without that check is worse than
+no table: it reads as authoritative while recommending changes that do nothing.
 
 The runner is built for a multi-hour job on rented hardware: it skips arms that
 already have a result, writes after every arm, and records a diverged arm as a
@@ -300,7 +306,7 @@ src/llmfs/
   ablation/   sweep runner, noise-floor analysis, tables and plots
   bench/      throughput, memory and cost benchmarks
 configs/      gpt2-124m, llama-124m, debug, and 11 single-axis ablation arms
-tests/        206 tests — component correctness, config validation, end-to-end training
+tests/        214 tests — component correctness, config validation, end-to-end training
 docs/         reproduction protocol, fault-tolerance design
 notebooks/    exploration only; nothing here is the source of truth
 legacy/       the original tutorial scripts, kept for reference

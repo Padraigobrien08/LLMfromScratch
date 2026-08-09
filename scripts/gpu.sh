@@ -24,7 +24,8 @@
 # Usage:
 #   ./scripts/gpu.sh preflight          # verify the pod: GPU, disk, CUDA, volume
 #   ./scripts/gpu.sh setup              # clone repo, install deps
-#   ./scripts/gpu.sh data ablation      # prepare the corpus (hours; do this first)
+#   ./scripts/gpu.sh all                # EVERYTHING: data -> sweep -> repro -> eval
+#   ./scripts/gpu.sh data ablation      # just the corpus (hours)
 #   ./scripts/gpu.sh sweep              # launch the ablation sweep, detached
 #   ./scripts/gpu.sh repro              # launch the 124M reproduction, detached
 #   ./scripts/gpu.sh status             # progress + spend so far
@@ -178,13 +179,30 @@ cmd_data() {
   esac
 }
 
+cmd_all() {
+  # The whole job unattended: corpus, sweep, reproduction, final eval, explorer.
+  # Stages are marker-guarded on the pod, so re-running this after any interruption
+  # resumes rather than restarting.
+  bold "launching the full pipeline (data -> sweep -> reproduction -> eval -> explorer)"
+  ssh_run "mkdir -p $GPU_WORKDIR/scripts"
+  scp -q -P "$GPU_PORT" -i "$GPU_KEY" \
+    "$REPO_ROOT/scripts/remote/pipeline.sh" \
+    "$GPU_USER@$GPU_HOST:$GPU_WORKDIR/pipeline.sh"
+  ssh_run "chmod +x $GPU_WORKDIR/pipeline.sh"
+  ssh_detached "pipeline" \
+    "GPU_WORKDIR=$GPU_WORKDIR SEEDS=${SEEDS:-3} \
+     RUN_SWEEP=${RUN_SWEEP:-1} RUN_REPRO=${RUN_REPRO:-1} \
+     SWEEP_EXTRA='${SWEEP_EXTRA:-}' REPRO_EXTRA='${REPRO_EXTRA:-}' \
+     bash $GPU_WORKDIR/pipeline.sh"
+}
+
 cmd_sweep() {
   bold "launching the ablation sweep"
   ssh_detached "ablation-sweep" \
     "$REMOTE_ENV && llmfs-ablate \
        --out-dir $GPU_WORKDIR/out/ablations \
        --results $GPU_WORKDIR/results/ablations.json \
-       --baseline-seeds ${BASELINE_SEEDS:-3} \
+       --seeds ${SEEDS:-3} \
        --set data.data_dir=$GPU_WORKDIR/data/fineweb-edu-10B \
        ${SWEEP_EXTRA:-}"
 }
@@ -305,6 +323,7 @@ usage() {
 main() {
   local cmd="${1:-}"; shift || true
   case "$cmd" in
+    all)               cmd_all "$@" ;;
     preflight)         cmd_preflight "$@" ;;
     setup)             cmd_setup "$@" ;;
     data)              cmd_data "$@" ;;

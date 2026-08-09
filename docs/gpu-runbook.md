@@ -23,7 +23,30 @@ being 124M at 1024 context with a 0.5M-token batch, uses them much better. MFU i
 logged from step one of every run — replace these numbers with the real ones after
 the first hour and re-decide.
 
-### Ablation sweep — 15 runs, 7.6e18 FLOPs
+### Sweep sizing: seeds versus tokens
+
+The sweep runs every arm at the same seeds so comparisons are paired (see
+[the ablation section of the README](../README.md#ablation-study)). Three seeds is
+the default. That triples the compute, and how it is paid for is a real choice:
+
+| | runs | H100 | RTX 5090 |
+| --- | --- | --- | --- |
+| 13 arms × 1 seed, 1B tokens | 13 | 10 h / $34 | 27 h / $26 |
+| **13 arms × 3 seeds, 1B tokens** (default) | 39 | **31 h / $102** | 80 h / $79 |
+| 13 arms × 3 seeds, 500M tokens | 39 | 16 h / $51 | 40 h / $39 |
+
+The last row halves the per-run token budget to pay for the extra seeds:
+
+```bash
+SWEEP_EXTRA="--set train.max_steps=2000"
+```
+
+That takes each arm from 20 tokens/parameter (Chinchilla-optimal) to 10
+(undertrained). For *relative* comparisons between architectures this is usually the
+better trade — replication is what makes an effect visible, and run length mostly is
+not — but it is a trade, and the write-up should say which was used.
+
+### Ablation sweep — per-run cost, 7.6e18 FLOPs for 15 runs
 
 | GPU | $/hr | est. MFU | est. hours | est. cost |
 | --- | --- | --- | --- | --- |
@@ -124,12 +147,15 @@ is terminated, and has to be paid for again. If the storage panel is still offer
 | | |
 | --- | --- |
 | FineWeb-Edu 10B tokens, uint16 | 20 GB exactly |
-| Ablation sweep checkpoints | 13 arms × ~0.6GB × `keep_last_n` |
+| Ablation sweep, 39 runs (13 arms × 3 seeds) | 45 GB at `keep_last_n: 0` |
 | Reproduction checkpoints | 1.4 GB each |
 
-At the default `keep_last_n: 2` the sweep alone is ~24GB, so 20 + 24 leaves almost
-nothing on a 50GB volume. Either size up, or run the sweep with
-`SWEEP_EXTRA="--set log.keep_last_n=1"`.
+Three seeds means **39 run directories, not 13**. At the default `keep_last_n: 2`
+that is ~109 GB of checkpoints — more than the corpus and more than the volume. The
+pipeline therefore runs the sweep with `keep_last_n=0`, which keeps no rolling
+checkpoints; `best.pt` and `final.pt` are never pruned, so every arm stays
+recoverable and its best model intact. That brings the sweep to ~45 GB, and the
+total to ~65 GB.
 
 ---
 
@@ -178,17 +204,34 @@ This is CPU-bound tokenisation — it does not need the GPU, and paying H100 rat
 it is pure waste. If you are cost-sensitive, do this step on a cheap CPU pod attached
 to the same network volume, then start the GPU pod.
 
-**5. Run the job.**
+**5. Run everything.**
 
 ```bash
-./scripts/gpu.sh sweep     # ablation sweep
+./scripts/gpu.sh all
+```
+
+One detached pipeline: corpus → ablation sweep → reproduction → final evaluation over
+the full validation split → attention explorer rebuilt from the real model. Each
+stage is marker-guarded on the pod, so re-running `all` after a crash, a preemption
+or a pod restart resumes at the first unfinished stage rather than redoing hours of
+work. Within a stage recovery is finer still: the sweep skips completed arms and
+training resumes from its last checkpoint.
+
+A failed stage stops the pipeline rather than pressing on — otherwise the
+reproduction would run against a corpus that failed to prepare, and bill for it.
+
+To run just one piece:
+
+```bash
+./scripts/gpu.sh sweep     # ablation sweep only
 ```
 
 ```bash
-./scripts/gpu.sh repro     # 124M reproduction
+./scripts/gpu.sh repro     # 124M reproduction only
 ```
 
-Both launch inside tmux, so closing the laptop does not kill them.
+Or skip a stage of the full pipeline with `RUN_SWEEP=0` / `RUN_REPRO=0` in `.gpu.env`.
+Everything launches inside tmux, so closing the laptop does not kill it.
 
 **6. Watch, then collect.**
 
