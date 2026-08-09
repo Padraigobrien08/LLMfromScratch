@@ -58,6 +58,9 @@ GPU_BRANCH="${GPU_BRANCH:-main}"
 
 REMOTE_REPO="$GPU_WORKDIR/LLMfromScratch"
 RUN_LOG="$GPU_WORKDIR/run.log"
+# bootstrap.sh decides whether to use the pod image's python or a fresh venv and
+# records the answer here, so the driver never has to guess.
+REMOTE_ENV="source $GPU_WORKDIR/env.sh"
 
 bold() { printf '\033[1m%s\033[0m\n' "$*"; }
 warn() { printf '\033[33m[warn]\033[0m %s\n' "$*" >&2; }
@@ -164,11 +167,11 @@ cmd_data() {
       # Both the sweep and the reproduction read the same corpus.
       bold "preparing FineWeb-Edu (this takes hours — it runs detached)"
       ssh_detached "prepare-data" \
-        ".venv/bin/llmfs-prepare-data --source fineweb-edu --out-dir $GPU_WORKDIR/data/fineweb-edu-10B"
+        "$REMOTE_ENV && llmfs-prepare-data --source fineweb-edu --out-dir $GPU_WORKDIR/data/fineweb-edu-10B"
       ;;
     smoke)
       bold "preparing the small local corpus (seconds)"
-      ssh_run "cd $REMOTE_REPO && .venv/bin/llmfs-prepare-data --source text \
+      ssh_run "cd $REMOTE_REPO && $REMOTE_ENV && llmfs-prepare-data --source text \
         --input data/wizard_of_oz.txt --out-dir $GPU_WORKDIR/data/wizard --shard-tokens 40000"
       ;;
     *) die "unknown data target: $which (expected ablation|repro|smoke)" ;;
@@ -178,7 +181,7 @@ cmd_data() {
 cmd_sweep() {
   bold "launching the ablation sweep"
   ssh_detached "ablation-sweep" \
-    ".venv/bin/llmfs-ablate \
+    "$REMOTE_ENV && llmfs-ablate \
        --out-dir $GPU_WORKDIR/out/ablations \
        --results $GPU_WORKDIR/results/ablations.json \
        --baseline-seeds ${BASELINE_SEEDS:-3} \
@@ -189,7 +192,7 @@ cmd_sweep() {
 cmd_repro() {
   bold "launching the 124M reproduction"
   ssh_detached "reproduction" \
-    ".venv/bin/llmfs-train --config gpt2-124m --resume auto \
+    "$REMOTE_ENV && llmfs-train --config gpt2-124m --resume auto \
        --set data.data_dir=$GPU_WORKDIR/data/fineweb-edu-10B \
        --set log.out_dir=$GPU_WORKDIR/out \
        ${REPRO_EXTRA:-}"
@@ -199,7 +202,7 @@ cmd_smoke() {
   # Proves the whole path on the pod in a couple of minutes before committing to a
   # multi-hour job. Cheap insurance against discovering a broken environment at hour six.
   bold "running the end-to-end smoke test on the pod"
-  ssh_run "cd $REMOTE_REPO && .venv/bin/llmfs-train --config debug \
+  ssh_run "cd $REMOTE_REPO && $REMOTE_ENV && llmfs-train --config debug \
     --set data.data_dir=$GPU_WORKDIR/data/wizard \
     --set train.max_steps=30 --set log.eval_interval=15 \
     --set log.tensorboard=false --set log.out_dir=$GPU_WORKDIR/out/smoke"

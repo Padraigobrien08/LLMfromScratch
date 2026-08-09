@@ -55,18 +55,72 @@ Take the 4090 route only if wall-clock genuinely does not matter: 37 hours of sw
 plus 61 hours of reproduction is four days of babysitting a spot instance to save
 roughly $25.
 
+### The RTX 5090 case, and why it hinges on one number
+
+At $0.99/hr the 5090 looks obviously cheaper than an H100 at $3.29. Whether it
+actually is depends entirely on its realised bf16 throughput, and the plausible range
+is a factor of two:
+
+| assumed dense bf16 | sweep | reproduction | total |
+| --- | --- | --- | --- |
+| 105 TFLOP/s (fp32 accumulate — the likely case) | ~58–67 h | ~82–96 h | **~$139–162** |
+| 210 TFLOP/s (fp16 accumulate — best case) | ~29–34 h | ~41–48 h | ~$69–81 |
+| *H100 SXM, for comparison* | ~12 h | ~9 h | *~$68* |
+
+Consumer cards typically halve their bf16 rate when accumulating in fp32, which is
+what PyTorch does by default — so the top row is the one to plan against. On that
+assumption the 5090 is both **more expensive and roughly six days slower** than an
+H100.
+
+**Do not guess at this.** `gpu.sh setup` runs a large bf16 matmul and prints
+`MEASURED bf16 matmul: N TFLOP/s`. Take that number, divide the FLOP counts above by
+it, and decide before starting a multi-day job. The measurement costs ten seconds.
+
+VRAM is not the constraint either way: 32GB comfortably holds the 124M reproduction
+at `micro_batch_size: 16` (the logits tensor is the largest single allocation, at
+1.5 GiB). If it does OOM, halve it to 8 — gradient accumulation doubles automatically
+and the optimisation is unchanged.
+
 ---
 
-## Before anything else: the network volume
+## Pod configuration checklist
 
-**Attach a RunPod network volume mounted at `/workspace`.** The container filesystem
-is destroyed when the pod is terminated, and the prepared corpus is ~20GB that takes
-hours of CPU to tokenise. Losing it means paying for that twice.
+| Setting | Value | Why |
+| --- | --- | --- |
+| Template | **PyTorch 2.8+ with cu128** | Blackwell cards (RTX 5090 = sm_120) have no kernels in older builds. The bootstrap keeps the image's torch rather than replacing it, precisely so this stays matched. |
+| **Network volume** | **required, ≥100GB at `/workspace`** | See below — this is the one that costs real money to get wrong. |
+| Container disk | 50GB | Only holds the image and the venv; nothing durable. |
+| SSH terminal access | **on** | Everything here runs over SSH. |
+| Jupyter notebook | off | Nothing uses it. |
+| Instance pricing | On-Demand | Interruptible is cheaper, and both jobs resume cleanly — but on-demand removes preemption from the list of things to think about. |
 
-`gpu.sh preflight` checks this explicitly and warns if `/workspace` is not a separate
-mount. Do not skip it.
+### The network volume is not optional
 
-Size it for roughly 60GB: ~20GB corpus, plus checkpoints at 1.4GB each.
+RunPod offers two kinds of persistent storage at `/workspace`, and they are easy to
+confuse:
+
+- **Volume disk** — persistent, but *"will be deleted when Pod is terminated"*.
+- **Network volume** — independent of the pod's lifecycle, survives termination,
+  and can be mounted by a later pod.
+
+Only the second one protects the corpus. Preparing FineWeb-Edu is ~20GB written after
+hours of CPU tokenisation; on a volume disk that work is destroyed the moment the pod
+is terminated, and has to be paid for again. If the storage panel is still offering
+**"+ Create a network volume"**, one has not been attached yet.
+
+`gpu.sh preflight` checks whether `/workspace` is a real mount and says so plainly.
+
+**Size it for at least 100GB**, not the 50GB that a default volume disk gives:
+
+| | |
+| --- | --- |
+| FineWeb-Edu 10B tokens, uint16 | 20 GB exactly |
+| Ablation sweep checkpoints | 13 arms × ~0.6GB × `keep_last_n` |
+| Reproduction checkpoints | 1.4 GB each |
+
+At the default `keep_last_n: 2` the sweep alone is ~24GB, so 20 + 24 leaves almost
+nothing on a 50GB volume. Either size up, or run the sweep with
+`SWEEP_EXTRA="--set log.keep_last_n=1"`.
 
 ---
 
