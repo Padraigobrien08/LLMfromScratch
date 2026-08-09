@@ -67,9 +67,7 @@ class ModelConfig:
         if self.n_embd % self.n_head != 0:
             raise ValueError(f"n_embd ({self.n_embd}) must be divisible by n_head ({self.n_head})")
         if self.n_kv_head > self.n_head:
-            raise ValueError(
-                f"n_kv_head ({self.n_kv_head}) cannot exceed n_head ({self.n_head})"
-            )
+            raise ValueError(f"n_kv_head ({self.n_kv_head}) cannot exceed n_head ({self.n_head})")
         if self.n_head % self.n_kv_head != 0:
             raise ValueError(
                 f"n_head ({self.n_head}) must be divisible by n_kv_head ({self.n_kv_head})"

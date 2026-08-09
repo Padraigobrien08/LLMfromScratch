@@ -1,0 +1,56 @@
+# Shared baseline for the ablation study.
+#
+# Deliberately smaller than the 124M reproduction. A single 124M run costs roughly
+# an order of magnitude more than this, and the study needs ~10 of them; at this
+# scale the whole sweep is affordable, which is what makes it possible to run every
+# arm with the same seed and the same token budget instead of comparing one
+# carefully-tuned run against several rushed ones.
+#
+# Every arm holds these fixed and varies exactly one field. Conclusions therefore
+# transfer in *direction*, not in magnitude — a caveat that belongs in the write-up.
+
+model:
+  vocab_size: 50304
+  n_layer: 8
+  n_head: 8
+  n_embd: 512
+  block_size: 512
+  norm: layernorm
+  pos_emb: learned
+  mlp: gelu
+  tie_embeddings: true
+  bias: true
+  dropout: 0.0
+
+data:
+  data_dir: data/fineweb-edu-10B
+  tokenizer: gpt2
+  micro_batch_size: 16
+  block_size: 512
+
+optim:
+  lr: 1.0e-3
+  min_lr_ratio: 0.1
+  weight_decay: 0.1
+  beta1: 0.9
+  beta2: 0.95
+  grad_clip: 1.0
+  warmup_steps: 200
+  schedule: cosine
+
+train:
+  max_steps: 4000 # ~1B tokens at 262,144 tokens/step
+  tokens_per_step: 262144
+
+runtime:
+  device: auto
+  dtype: auto
+  compile: true
+  seed: 1337 # identical across arms: the architecture is the only thing that varies
+
+log:
+  out_dir: out/ablations
+  run_name: baseline
+  eval_interval: 200
+  eval_steps: 40
+  checkpoint_interval: 2000

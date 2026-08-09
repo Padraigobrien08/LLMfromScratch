@@ -1,0 +1,58 @@
+# GPT-2 124M reproduction on FineWeb-Edu (sample-10BT).
+#
+# This is the trust anchor: the architecture, token budget and optimiser settings
+# are the published GPT-2 small recipe, so the validation loss it reaches is
+# directly comparable to a number someone else can look up.
+#
+# Target: val loss <= 3.29 on the FineWeb-Edu held-out split after one epoch
+# (10B tokens). See docs/reproduction.md for the provenance of that number and
+# the tolerance we hold ourselves to.
+
+model:
+  vocab_size: 50304 # 50257 padded to a multiple of 64; the extra rows train to -inf
+  n_layer: 12
+  n_head: 12
+  n_embd: 768
+  block_size: 1024
+  norm: layernorm
+  pos_emb: learned
+  mlp: gelu
+  tie_embeddings: true
+  bias: true
+  dropout: 0.0 # single epoch over 10B tokens: no repetition to regularise against
+
+data:
+  data_dir: data/fineweb-edu-10B
+  tokenizer: gpt2
+  # Fits ~40GB at bf16; raise to 32 on an 80GB card. Must divide tokens_per_step
+  # exactly, so keep it a power of two: 16 * 1024 * 32 accumulation = 524,288.
+  micro_batch_size: 16
+  block_size: 1024
+
+optim:
+  lr: 6.0e-4
+  min_lr_ratio: 0.1
+  weight_decay: 0.1
+  beta1: 0.9
+  beta2: 0.95
+  grad_clip: 1.0
+  warmup_steps: 700
+  schedule: cosine
+
+train:
+  max_steps: 19073 # 10B tokens / 524,288 tokens per step
+  tokens_per_step: 524288 # GPT-2's 0.5M-token batch, reached by accumulation
+
+runtime:
+  device: auto
+  dtype: auto # bf16 on Ampere+
+  compile: true
+  tf32: true
+  seed: 1337
+
+log:
+  out_dir: out
+  run_name: gpt2-124m-repro
+  eval_interval: 250
+  eval_steps: 50
+  checkpoint_interval: 1000

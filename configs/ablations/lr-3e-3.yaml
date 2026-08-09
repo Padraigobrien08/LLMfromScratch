@@ -1,0 +1,7 @@
+# Axis: peak learning rate, high arm. Expected to be unstable; an arm that diverges
+# is a result worth reporting, not a run to quietly drop.
+_base_: _base.yaml
+optim:
+  lr: 3.0e-3
+log:
+  run_name: lr-3e-3

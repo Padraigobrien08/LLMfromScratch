@@ -43,8 +43,7 @@ class RotaryEmbedding(torch.nn.Module):
     def _build_tables(self, seq_len: int) -> tuple[torch.Tensor, torch.Tensor]:
         # inv_freq[i] = 1 / theta^(2i/head_dim) for i in [0, head_dim/2)
         inv_freq = 1.0 / (
-            self.theta
-            ** (torch.arange(0, self.head_dim, 2, dtype=torch.float32) / self.head_dim)
+            self.theta ** (torch.arange(0, self.head_dim, 2, dtype=torch.float32) / self.head_dim)
         )
         pos = torch.arange(seq_len, dtype=torch.float32)
         freqs = torch.outer(pos, inv_freq)  # (seq_len, head_dim/2)

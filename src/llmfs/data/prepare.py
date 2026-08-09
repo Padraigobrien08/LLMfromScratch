@@ -1,0 +1,239 @@
+"""Turn a corpus into tokenised ``uint16`` shards.
+
+Two sources:
+
+``fineweb-edu``
+    The reproduction corpus. Streams ``HuggingFaceFW/fineweb-edu`` sample-10BT and
+    tokenises it across all cores. Shard 0 of the train split is held out as
+    validation, matching the convention the target number was measured under.
+``text``
+    Any local text file. This exists so the pipeline is runnable — and the debug
+    config trainable — without a 10B-token download, which keeps the smoke test
+    honest rather than skipped.
+
+Output layout::
+
+    data_dir/
+      meta.json          tokenizer, vocab size, shard sizes, token total
+      train_000000.bin   raw uint16 token ids
+      train_000001.bin
+      val_000000.bin
+"""
+
+from __future__ import annotations
+
+import argparse
+import json
+import multiprocessing as mp
+from pathlib import Path
+
+import numpy as np
+from tqdm import tqdm
+
+from .tokenizer import load_tokenizer
+
+_TOKENIZER_SPEC: str | None = None
+_TOKENIZER = None
+
+
+def _init_worker(spec: str) -> None:
+    """Load the tokenizer once per worker process rather than once per document."""
+    global _TOKENIZER_SPEC, _TOKENIZER
+    _TOKENIZER_SPEC = spec
+    _TOKENIZER = load_tokenizer(spec)
+
+
+def _tokenize_document(text: str) -> np.ndarray:
+    assert _TOKENIZER is not None
+    # Every document is prefixed with the end-of-text token, so the model gets an
+    # explicit document boundary and never learns to continue one document into
+    # the next across a shard join.
+    ids = _TOKENIZER.encode(text, add_eot=True)
+    arr = np.array(ids, dtype=np.uint32)
+    if (arr >= 2**16).any():
+        raise ValueError("token id exceeds uint16 range; shards assume vocab < 65536")
+    return arr.astype(np.uint16)
+
+
+class ShardWriter:
+    """Accumulates tokens and flushes fixed-size shards to disk."""
+
+    def __init__(self, out_dir: Path, shard_tokens: int, val_shards: int = 1) -> None:
+        self.out_dir = out_dir
+        self.shard_tokens = shard_tokens
+        self.val_shards = val_shards
+        self.out_dir.mkdir(parents=True, exist_ok=True)
+
+        self.buffer = np.empty(shard_tokens, dtype=np.uint16)
+        self.fill = 0
+        self.shard_index = 0
+        self.manifest: list[dict] = []
+
+    def _split_for(self, index: int) -> str:
+        return "val" if index < self.val_shards else "train"
+
+    def _flush(self, size: int) -> None:
+        if size == 0:
+            return
+        split = self._split_for(self.shard_index)
+        # Index within the split, so filenames stay contiguous per split.
+        within = sum(1 for m in self.manifest if m["split"] == split)
+        path = self.out_dir / f"{split}_{within:06d}.bin"
+        self.buffer[:size].tofile(path)
+        self.manifest.append({"path": path.name, "split": split, "tokens": int(size)})
+        self.shard_index += 1
+        self.fill = 0
+
+    def add(self, tokens: np.ndarray) -> None:
+        offset = 0
+        while offset < len(tokens):
+            space = self.shard_tokens - self.fill
+            take = min(space, len(tokens) - offset)
+            self.buffer[self.fill : self.fill + take] = tokens[offset : offset + take]
+            self.fill += take
+            offset += take
+            if self.fill == self.shard_tokens:
+                self._flush(self.shard_tokens)
+
+    def flush_partial(self) -> None:
+        """Close the current shard early, even if it is not full.
+
+        Used to force a split boundary — the val shard must not spill over into
+        train tokens.
+        """
+        self._flush(self.fill)
+
+    def close(self) -> None:
+        self._flush(self.fill)
+
+
+def _write_meta(out_dir: Path, writer: ShardWriter, tokenizer_spec: str, source: str) -> dict:
+    tok = load_tokenizer(tokenizer_spec)
+    totals = {"train": 0, "val": 0}
+    for entry in writer.manifest:
+        totals[entry["split"]] += entry["tokens"]
+    meta = {
+        "source": source,
+        "tokenizer": tokenizer_spec,
+        "vocab_size": tok.vocab_size,
+        "eot_token": tok.eot_token,
+        "dtype": "uint16",
+        "shards": writer.manifest,
+        "tokens": totals,
+    }
+    (out_dir / "meta.json").write_text(json.dumps(meta, indent=2))
+    return meta
+
+
+def prepare_text_file(
+    input_path: str | Path,
+    out_dir: str | Path,
+    tokenizer_spec: str = "gpt2",
+    shard_tokens: int = 1_000_000,
+    val_fraction: float = 0.05,
+) -> dict:
+    """Tokenise a single local text file into train/val shards."""
+    input_path, out_dir = Path(input_path), Path(out_dir)
+    text = input_path.read_text(encoding="utf-8", errors="ignore")
+
+    _init_worker(tokenizer_spec)
+    tokens = _tokenize_document(text)
+
+    n_val = max(int(len(tokens) * val_fraction), 1)
+    # A contiguous tail, not a random sample: interleaving would put text adjacent
+    # to its own validation targets and report a loss that is partly memorisation.
+    val_tokens, train_tokens = tokens[:n_val], tokens[n_val:]
+
+    writer = ShardWriter(out_dir, shard_tokens=max(shard_tokens, n_val), val_shards=1)
+    writer.add(val_tokens)
+    writer.flush_partial()  # close the val shard before any train tokens land in it
+    writer.add(train_tokens)
+    writer.close()
+
+    meta = _write_meta(out_dir, writer, tokenizer_spec, source=str(input_path))
+    print(f"wrote {meta['tokens']['train']:,} train / {meta['tokens']['val']:,} val tokens")
+    return meta
+
+
+def prepare_fineweb_edu(
+    out_dir: str | Path,
+    tokenizer_spec: str = "gpt2",
+    subset: str = "sample-10BT",
+    shard_tokens: int = 100_000_000,
+    limit_docs: int | None = None,
+    num_proc: int | None = None,
+) -> dict:
+    """Stream and tokenise FineWeb-Edu into shards."""
+    try:
+        from datasets import load_dataset
+    except ImportError as exc:  # pragma: no cover - dependency guard
+        raise ImportError(
+            "preparing FineWeb-Edu needs the `datasets` package: pip install -e '.[train]'"
+        ) from exc
+
+    out_dir = Path(out_dir)
+    dataset = load_dataset("HuggingFaceFW/fineweb-edu", name=subset, split="train", streaming=True)
+    if limit_docs is not None:
+        dataset = dataset.take(limit_docs)
+
+    num_proc = num_proc or max(1, (mp.cpu_count() or 2) - 1)
+    writer = ShardWriter(out_dir, shard_tokens=shard_tokens, val_shards=1)
+
+    with mp.Pool(num_proc, initializer=_init_worker, initargs=(tokenizer_spec,)) as pool:
+        texts = (record["text"] for record in dataset)
+        progress = tqdm(unit="tok", unit_scale=True, desc="tokenising")
+        for tokens in pool.imap(_tokenize_document, texts, chunksize=16):
+            writer.add(tokens)
+            progress.update(len(tokens))
+        progress.close()
+    writer.close()
+
+    meta = _write_meta(out_dir, writer, tokenizer_spec, source=f"fineweb-edu/{subset}")
+    print(f"wrote {meta['tokens']['train']:,} train / {meta['tokens']['val']:,} val tokens")
+    return meta
+
+
+def main(argv: list[str] | None = None) -> None:
+    parser = argparse.ArgumentParser(description="Tokenise a corpus into uint16 shards.")
+    parser.add_argument(
+        "--source",
+        choices=["fineweb-edu", "text"],
+        default="fineweb-edu",
+        help="fineweb-edu streams the reproduction corpus; text tokenises a local file",
+    )
+    parser.add_argument("--input", type=str, help="input file, for --source text")
+    parser.add_argument("--out-dir", type=str, required=True)
+    parser.add_argument("--tokenizer", type=str, default="gpt2")
+    parser.add_argument("--subset", type=str, default="sample-10BT")
+    parser.add_argument("--shard-tokens", type=int, default=None)
+    parser.add_argument(
+        "--limit-docs",
+        type=int,
+        default=None,
+        help="stop after N documents — useful for a quick end-to-end check",
+    )
+    parser.add_argument("--num-proc", type=int, default=None)
+    args = parser.parse_args(argv)
+
+    if args.source == "text":
+        if not args.input:
+            parser.error("--source text requires --input")
+        prepare_text_file(
+            args.input,
+            args.out_dir,
+            tokenizer_spec=args.tokenizer,
+            shard_tokens=args.shard_tokens or 1_000_000,
+        )
+    else:
+        prepare_fineweb_edu(
+            args.out_dir,
+            tokenizer_spec=args.tokenizer,
+            subset=args.subset,
+            shard_tokens=args.shard_tokens or 100_000_000,
+            limit_docs=args.limit_docs,
+            num_proc=args.num_proc,
+        )
+
+
+if __name__ == "__main__":
+    main()

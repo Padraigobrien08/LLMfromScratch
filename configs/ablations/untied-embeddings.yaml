@@ -1,0 +1,8 @@
+# Axis: input/output embedding tying. Untying adds vocab_size * n_embd parameters
+# (~26M here, a third of the model), so the arm is deliberately NOT parameter-matched
+# — the question is whether those parameters are better spent here than anywhere else.
+_base_: _base.yaml
+model:
+  tie_embeddings: false
+log:
+  run_name: untied-embeddings

@@ -1,0 +1,48 @@
+# A model small enough to train on a laptop in a couple of minutes.
+#
+# Its only job is to prove the whole pipeline runs end to end — data, training,
+# eval, checkpointing, resumption, generation — before renting a GPU. Every code
+# path a real run takes is exercised here first.
+
+model:
+  vocab_size: 50304
+  n_layer: 4
+  n_head: 4
+  n_embd: 128
+  block_size: 128
+  norm: rmsnorm
+  pos_emb: rope
+  mlp: swiglu
+  n_kv_head: 2
+  bias: false
+  dropout: 0.0
+
+data:
+  data_dir: data/wizard
+  tokenizer: gpt2
+  micro_batch_size: 8
+  block_size: 128
+
+optim:
+  lr: 1.0e-3
+  warmup_steps: 20
+  schedule: cosine
+  weight_decay: 0.1
+
+train:
+  max_steps: 200
+  tokens_per_step: 8192 # 8 sequences x 128 tokens x 8 accumulation steps
+
+runtime:
+  device: auto
+  dtype: auto
+  compile: false # compilation costs more than the whole run at this size
+  seed: 1337
+
+log:
+  out_dir: out
+  run_name: debug
+  log_interval: 10
+  eval_interval: 50
+  eval_steps: 10
+  checkpoint_interval: 100

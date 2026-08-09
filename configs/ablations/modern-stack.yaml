@@ -1,0 +1,12 @@
+# All the individually-tested modern components at once.
+# Component ablations are additive only if they do not interact; this arm measures
+# whether the sum of the individual deltas actually predicts the combined one.
+_base_: _base.yaml
+model:
+  norm: rmsnorm
+  pos_emb: rope
+  mlp: swiglu
+  n_kv_head: 2
+  bias: false
+log:
+  run_name: modern-stack

@@ -1,0 +1,28 @@
+{
+  "source": "data/wizard_of_oz.txt",
+  "tokenizer": "gpt2",
+  "vocab_size": 50257,
+  "eot_token": 50256,
+  "dtype": "uint16",
+  "shards": [
+    {
+      "path": "val_000000.bin",
+      "split": "val",
+      "tokens": 3048
+    },
+    {
+      "path": "train_000000.bin",
+      "split": "train",
+      "tokens": 40000
+    },
+    {
+      "path": "train_000001.bin",
+      "split": "train",
+      "tokens": 17915
+    }
+  ],
+  "tokens": {
+    "train": 57915,
+    "val": 3048
+  }
+}

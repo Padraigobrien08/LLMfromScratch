@@ -1,0 +1,6 @@
+# Axis: weight decay. The control for the 0.1 default.
+_base_: _base.yaml
+optim:
+  weight_decay: 0.0
+log:
+  run_name: wd-zero

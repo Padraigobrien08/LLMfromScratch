@@ -1,0 +1,6 @@
+# Axis: positional encoding. Learned absolute table vs rotary.
+_base_: _base.yaml
+model:
+  pos_emb: rope
+log:
+  run_name: pos-rope

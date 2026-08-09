@@ -1,0 +1,8 @@
+# Axis: KV heads. 8 query heads sharing 2 KV heads — a 4x smaller KV cache.
+# The interesting result is the quality/inference-memory trade-off, so this arm is
+# read alongside the inference benchmarks rather than on loss alone.
+_base_: _base.yaml
+model:
+  n_kv_head: 2
+log:
+  run_name: gqa-2

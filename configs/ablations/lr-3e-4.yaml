@@ -1,0 +1,6 @@
+# Axis: peak learning rate, low arm.
+_base_: _base.yaml
+optim:
+  lr: 3.0e-4
+log:
+  run_name: lr-3e-4

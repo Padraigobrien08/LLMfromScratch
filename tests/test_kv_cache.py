@@ -15,9 +15,8 @@ from __future__ import annotations
 import pytest
 import torch
 
-from llmfs.model import GenerationConfig, KVCache
-
 from conftest import ARCH_VARIANTS, tiny_model
+from llmfs.model import GenerationConfig, KVCache
 
 
 @pytest.mark.parametrize("overrides", ARCH_VARIANTS)

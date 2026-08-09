@@ -1,0 +1,6 @@
+# Axis: bias terms. Modern decoders drop them; this checks the cost.
+_base_: _base.yaml
+model:
+  bias: false
+log:
+  run_name: no-bias

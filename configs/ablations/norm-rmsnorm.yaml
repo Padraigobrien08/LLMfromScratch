@@ -1,0 +1,6 @@
+# Axis: normalisation. Does RMSNorm cost quality for its lower cost?
+_base_: _base.yaml
+model:
+  norm: rmsnorm
+log:
+  run_name: norm-rmsnorm

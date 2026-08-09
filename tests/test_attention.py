@@ -5,10 +5,9 @@ from __future__ import annotations
 import pytest
 import torch
 
+from conftest import ARCH_VARIANTS, tiny_model
 from llmfs.model import ModelConfig, Transformer
 from llmfs.model.attention import CausalSelfAttention, build_causal_mask, repeat_kv
-
-from conftest import ARCH_VARIANTS, tiny_model
 
 
 @pytest.mark.parametrize("overrides", ARCH_VARIANTS)

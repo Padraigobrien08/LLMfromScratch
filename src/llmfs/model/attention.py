@@ -20,6 +20,7 @@ from .cache import KVCache
 from .config import ModelConfig
 from .rope import apply_rotary_emb
 
+
 def _detect_enable_gqa() -> bool:
     """torch >= 2.5 can broadcast KV heads inside the fused kernel.
 

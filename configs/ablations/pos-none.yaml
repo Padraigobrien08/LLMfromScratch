@@ -1,0 +1,8 @@
+# Axis: positional encoding, control arm. A decoder with no positional signal at
+# all is not as broken as it sounds — causal masking alone leaks position — so this
+# arm sets the floor the other two must beat to have earned their parameters.
+_base_: _base.yaml
+model:
+  pos_emb: none
+log:
+  run_name: pos-none

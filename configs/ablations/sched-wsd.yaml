@@ -1,0 +1,9 @@
+# Axis: learning-rate schedule. Warmup-stable-decay against cosine.
+# WSD does not need the run length known in advance, so if it matches cosine it is
+# strictly more practical.
+_base_: _base.yaml
+optim:
+  schedule: wsd
+  wsd_decay_frac: 0.1
+log:
+  run_name: sched-wsd

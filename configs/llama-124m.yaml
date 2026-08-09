@@ -1,0 +1,24 @@
+# The same parameter budget and token budget as the GPT-2 baseline, with the
+# modern architecture stack. Held at 124M deliberately: the point of this config is
+# to isolate the effect of the architecture, so anything that would also change the
+# compute budget stays fixed.
+#
+# Differences from configs/gpt2-124m.yaml, and only these:
+#   RoPE instead of a learned position table
+#   RMSNorm instead of LayerNorm
+#   SwiGLU instead of GELU (width-scaled to stay parameter-matched)
+#   4 KV heads instead of 12 (grouped-query attention, 3x smaller KV cache)
+#   no bias terms
+
+_base_: gpt2-124m.yaml
+
+model:
+  norm: rmsnorm
+  pos_emb: rope
+  mlp: swiglu
+  n_kv_head: 4
+  bias: false
+  rope_theta: 10000.0
+
+log:
+  run_name: llama-124m

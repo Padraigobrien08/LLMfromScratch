@@ -1,0 +1,7 @@
+# Axis: feed-forward activation. Parameter-matched against GELU by the 2/3 width
+# scaling in ModelConfig.mlp_hidden, so this measures the gating, not the size.
+_base_: _base.yaml
+model:
+  mlp: swiglu
+log:
+  run_name: mlp-swiglu

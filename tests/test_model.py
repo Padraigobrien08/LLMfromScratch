@@ -7,9 +7,8 @@ import math
 import pytest
 import torch
 
-from llmfs.model import GenerationConfig, ModelConfig, Transformer
-
 from conftest import ARCH_VARIANTS, tiny_config, tiny_model
+from llmfs.model import GenerationConfig, ModelConfig, Transformer
 
 
 @pytest.mark.parametrize("overrides", ARCH_VARIANTS)
