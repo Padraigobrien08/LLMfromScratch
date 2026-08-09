@@ -130,9 +130,13 @@ budgeted against, and the gap between it and reality is itself worth reporting.
 | | |
 | --- | --- |
 | Compute | 1.09e19 FLOPs (forward+backward), from `Transformer.flops_per_token` |
-| At 40% MFU on one A100-80GB (312 TFLOP/s bf16) | ≈ 24 GPU-hours |
-| At ~$1.50/hr spot | ≈ $36 |
-| On 8× A100 | ≈ 3 GPU-hours wall-clock |
+| At 35% MFU on one H100 SXM (989 TFLOP/s bf16) | ≈ 8.7 GPU-hours |
+| At $3.29/hr | ≈ $29 |
+
+No A100 is available from the provider being used, so this is quoted against an
+H100 SXM. [gpu-runbook.md](gpu-runbook.md) has the full table across the pods on
+offer, and the MFU figure above is an estimate to be replaced with the measured
+value from the run itself.
 
 The naive `6N` rule gives 7.4e18 and would put this at 16 GPU-hours — a 1.5×
 underestimate. Two terms it omits: the tied output head is a real 50,304 × 768 matmul

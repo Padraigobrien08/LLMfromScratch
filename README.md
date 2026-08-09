@@ -127,6 +127,15 @@ optimisation is unchanged and only throughput moves:
 torchrun --nproc_per_node=8 -m llmfs.train.cli --config gpt2-124m
 ```
 
+On a rented pod, [`scripts/gpu.sh`](scripts/gpu.sh) drives the whole thing over SSH —
+setup, data, detached run, monitoring, and fetching results back. Jobs run inside
+tmux so a dropped connection cannot kill something you are paying for.
+[docs/gpu-runbook.md](docs/gpu-runbook.md) is the operational guide.
+
+```bash
+./scripts/gpu.sh setup && ./scripts/gpu.sh sweep && ./scripts/gpu.sh watch
+```
+
 Every run writes its fully-resolved config, `metrics.jsonl`, and atomic checkpoints
 to `out/<run_name>/`. Resume with `--resume auto`.
 
@@ -184,8 +193,9 @@ already have a result, writes after every arm, and records a diverged arm as a
 finding rather than dying on it — the `lr-3e-3` arm is *expected* to blow up.
 
 **Status**: infrastructure complete and validated end to end; the real runs need a
-GPU. Estimated 12.5 hours and roughly $19 on a spot A100 for all 13 arms plus the
-repeated baseline.
+GPU. Estimated ~12 hours and roughly $39 on an H100 SXM for all 13 arms plus the
+repeated baseline — see [docs/gpu-runbook.md](docs/gpu-runbook.md) for the cost table
+across available hardware, and for the one-command path to running it on a rented pod.
 
 ---
 

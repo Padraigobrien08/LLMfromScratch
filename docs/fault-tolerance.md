@@ -161,6 +161,13 @@ FLOP accounting at 40% MFU; `C` is estimated at 5 s, dominated by the GPU→host
 rather than the disk write, and **should be replaced with a measurement** on the first
 real run.
 
+The step times below assume an A100, which turned out not to be available from the
+provider in use — see [gpu-runbook.md](gpu-runbook.md) for the hardware actually on
+offer. Nothing about the method changes, and neither does the conclusion: an H100 is
+roughly 3× faster per step, which moves the optimal interval in *steps* by 3× while
+leaving it unchanged in *seconds*. That is precisely the argument for denominating it
+in time.
+
 | Scenario | Step time | Assumed MTBF | `τ*` | Optimal waste | Waste at the configured 1000 steps |
 | --- | --- | --- | --- | --- | --- |
 | 1× A100, spot | 4.6 s | 4 h | ~83 steps | 2.6% | **16.0%** |

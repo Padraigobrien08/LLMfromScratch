@@ -35,3 +35,7 @@ bench/scratch/
 site/
 
 .DS_Store
+
+# GPU pod connection details and run state (never committed)
+.gpu.env
+.gpu-state/
