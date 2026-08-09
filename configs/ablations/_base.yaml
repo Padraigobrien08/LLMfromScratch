@@ -39,7 +39,12 @@ optim:
   schedule: cosine
 
 train:
-  max_steps: 4000 # ~1B tokens at 262,144 tokens/step
+  # ~500M tokens per arm at 262,144 tokens/step, i.e. 10 tokens/parameter rather than
+  # the 20 that would be Chinchilla-optimal. The budget buys three seeds per arm
+  # instead of a longer single run: for *relative* comparisons between architectures,
+  # replication is what makes an effect visible and run length mostly is not. Each
+  # arm is therefore undertrained in absolute terms, which the write-up states.
+  max_steps: 2000
   tokens_per_step: 262144
 
 runtime:

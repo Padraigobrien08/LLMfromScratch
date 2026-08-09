@@ -302,6 +302,8 @@ class Trainer:
 
                 elif self.state.step % cfg.log.checkpoint_interval == 0:
                     self._save(f"ckpt_step{self.state.step:07d}.pt")
+
+                self._maybe_save_milestone()
         except TrainingDiverged:
             # Do not write a final checkpoint: the weights are already poisoned, and
             # overwriting `final.pt` would destroy the last good state. `best.pt` and
@@ -454,6 +456,20 @@ class Trainer:
         else:
             self._save(f"ckpt_step{self.state.step:07d}.pt", val_loss=val_loss)
             prune_checkpoints(self.run_dir, self.cfg.log.keep_last_n)
+
+    def _maybe_save_milestone(self) -> None:
+        """Write a permanent checkpoint the first time the run crosses each milestone.
+
+        Named ``milestone_*.pt`` so it does not match the ``ckpt_step*`` glob that
+        pruning uses, and therefore survives for the life of the run directory.
+        """
+        if not self.dist.is_main or not self.cfg.log.milestone_fracs:
+            return
+        for frac in self.cfg.log.milestone_fracs:
+            target = max(1, int(self.cfg.train.max_steps * frac))
+            # Fires once, on the exact step, so a resumed run does not rewrite them.
+            if self.state.step == target:
+                self._save(f"milestone_{int(frac * 100):03d}pct_step{target:07d}.pt")
 
     def _save(self, name: str, val_loss: float | None = None) -> None:
         save_checkpoint(

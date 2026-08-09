@@ -43,11 +43,13 @@ dev = [
 llmfs-train = "llmfs.train.cli:main"
 llmfs-generate = "llmfs.eval.generate:main"
 llmfs-eval = "llmfs.eval.evaluate:main"
+llmfs-eval-hellaswag = "llmfs.eval.hellaswag:main"
 llmfs-prepare-data = "llmfs.data.prepare:main"
 llmfs-viz = "llmfs.viz.export:main"
 llmfs-viz-serve = "llmfs.viz.server:main"
 llmfs-ablate = "llmfs.ablation.sweep:main"
 llmfs-ablate-report = "llmfs.ablation.report:main"
+llmfs-bench = "llmfs.bench.throughput:main"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/llmfs"]

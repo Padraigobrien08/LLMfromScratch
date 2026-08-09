@@ -39,3 +39,6 @@ site/
 # GPU pod connection details and run state (never committed)
 .gpu.env
 .gpu-state/
+
+# Downloadable eval data (fetched on demand by llmfs-eval-hellaswag)
+data/hellaswag/

@@ -102,6 +102,35 @@ do_repro_eval() {
     --out "$RESULTS/reproduction.json"
 }
 
+do_repro_hellaswag() {
+  # The downstream check. Validation loss can look right while a tokenizer or split
+  # mismatch quietly invalidates the comparison to GPT-2; accuracy near the 25% floor
+  # would expose that, and loss alone never would.
+  llmfs-eval-hellaswag \
+    --checkpoint "$OUT_DIR/gpt2-124m-repro/best.pt" \
+    --data-dir "$WORKDIR/data/hellaswag" \
+    --out "$RESULTS/hellaswag.json"
+}
+
+do_bench() {
+  # Minutes of GPU, and an entire pillar of the project. Skipping it here means
+  # renting a second pod later purely to measure what this one could have.
+  llmfs-bench --suite both \
+    --config gpt2-124m \
+    --checkpoint "$OUT_DIR/gpt2-124m-repro/best.pt" \
+    --out "$RESULTS/benchmarks.json"
+}
+
+do_samples() {
+  # Free, and the README needs them. Fixed seeds so they are reproducible.
+  for prompt in "The capital of France is" "In a distant galaxy," "def fibonacci(n):"; do
+    echo "=== prompt: $prompt ==="
+    llmfs-generate \
+      --checkpoint "$OUT_DIR/gpt2-124m-repro/best.pt" \
+      --prompt "$prompt" --max-new-tokens 128 --seed 0 --num-samples 2
+  done | tee "$RESULTS/samples.txt"
+}
+
 do_viz() {
   # Rebuild the attention explorer from the real model. This is the point at which
   # the hosted page stops showing a toy trained on one book.
@@ -127,8 +156,16 @@ fi
 if [[ "$RUN_REPRO" == "1" ]]; then
   stage repro do_repro || exit 1
   stage repro_eval do_repro_eval || exit 1
+  # Everything past this point is cheap, and none of it can fail the run that
+  # matters — the checkpoint and its loss are already on disk.
+  stage repro_hellaswag do_repro_hellaswag || say "hellaswag failed; not fatal"
+  stage samples do_samples || say "sample generation failed; not fatal"
   stage viz do_viz || say "explorer build failed; not fatal"
 fi
+
+# Benchmarks last: they need the GPU but not the corpus, so if anything above went
+# wrong there is still a reason to have paid for the pod.
+stage bench do_bench || say "benchmarks failed; not fatal"
 
 say "pipeline complete"
 echo "--- artifacts ---"

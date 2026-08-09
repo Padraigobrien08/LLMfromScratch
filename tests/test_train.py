@@ -331,3 +331,33 @@ def test_prune_negative_disables_pruning(tmp_path: Path) -> None:
         (tmp_path / f"ckpt_step{step:07d}.pt").write_bytes(b"x")
     prune_checkpoints(tmp_path, keep_last_n=-1)
     assert len(list(tmp_path.iterdir())) == 2
+
+
+def test_milestone_checkpoints_are_written_and_never_pruned(train_config: Config) -> None:
+    """Intermediate training states are the one artifact that cannot be recovered.
+
+    Reconstructing step N of a finished run means paying for the run again, so
+    milestones are written at fixed fractions and deliberately named outside the
+    ``ckpt_step*`` glob that pruning uses.
+    """
+    train_config.log.milestone_fracs = [0.25, 0.5]
+    train_config.log.keep_last_n = 0  # aggressive pruning must not touch them
+    train_config.log.checkpoint_interval = 5
+
+    Trainer(train_config).train()
+
+    run_dir = Path(train_config.log.out_dir) / "test"
+    milestones = sorted(p.name for p in run_dir.glob("milestone_*.pt"))
+    assert len(milestones) == 2, milestones
+    # 25% and 50% of 30 steps.
+    assert "milestone_025pct_step0000007.pt" in milestones
+    assert "milestone_050pct_step0000015.pt" in milestones
+    # Pruning cleared the rolling checkpoints but left the milestones alone.
+    assert not list(run_dir.glob("ckpt_step*.pt"))
+
+
+def test_milestones_can_be_disabled(train_config: Config) -> None:
+    train_config.log.milestone_fracs = []
+    Trainer(train_config).train()
+    run_dir = Path(train_config.log.out_dir) / "test"
+    assert not list(run_dir.glob("milestone_*.pt"))

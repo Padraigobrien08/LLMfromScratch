@@ -23,11 +23,12 @@ what is built and verified, and what is designed but not yet run.
 
 | Pillar | Status |
 | --- | --- |
-| Package, config system, data pipeline, trainer, CI | **Done** — 214 tests green, end-to-end verified |
+| Package, config system, data pipeline, trainer, CI | **Done** — 221 tests green, end-to-end verified |
 | Modern architecture (RoPE, RMSNorm, SwiGLU, GQA, KV cache) | **Done** — hand-implemented, property-tested |
 | GPT-2 124M reproduction on FineWeb-Edu | Configured; **GPU run pending** |
 | Ablation study (13 arms) | Runner + report built and validated; **GPU runs pending** |
-| Inference efficiency (quantization, speculative decoding) | **Not started** |
+| Efficiency benchmarks (throughput, memory, KV cache) | **Built** — `llmfs-bench`; **GPU run pending** |
+| Quantization + speculative decoding | **Not started** |
 | Fault-tolerance design doc | **Done** — [docs/fault-tolerance.md](docs/fault-tolerance.md) |
 | Multi-GPU scaling report | DDP wired; **scaling run pending** |
 | Interactive attention visualization | **Done** — [live](https://padraigobrien08.github.io/LLMfromScratch/), auto-deployed from CI |
@@ -303,10 +304,11 @@ src/llmfs/
   train/      trainer, optimiser and schedules, checkpointing, distributed setup
   eval/       evaluation and generation entrypoints
   viz/        attention extraction, head statistics, static export, live server
-  ablation/   sweep runner, noise-floor analysis, tables and plots
+  ablation/   sweep runner, paired-seed analysis, tables and plots
+  bench/      training + inference throughput, memory, provenance
   bench/      throughput, memory and cost benchmarks
 configs/      gpt2-124m, llama-124m, debug, and 11 single-axis ablation arms
-tests/        214 tests — component correctness, config validation, end-to-end training
+tests/        221 tests — component correctness, config validation, end-to-end training
 docs/         reproduction protocol, fault-tolerance design
 notebooks/    exploration only; nothing here is the source of truth
 legacy/       the original tutorial scripts, kept for reference

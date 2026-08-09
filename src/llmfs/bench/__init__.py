@@ -1,6 +1,11 @@
 """Throughput, memory and cost benchmarks.
 
-Populated in the efficiency phase: the consolidated naive -> KV cache -> quantized
--> speculative-decoding comparison, plus training-side throughput measurements for
-torch.compile, gradient checkpointing and mixed precision.
+``throughput`` covers the training-side knobs (compile, gradient checkpointing,
+micro-batch size) and the inference baseline (naive re-forward vs KV cache, across
+batch sizes). Quantization and speculative decoding will be measured against the
+inference numbers established here.
 """
+
+from .throughput import BenchResult, bench_inference, bench_training, write_results
+
+__all__ = ["BenchResult", "bench_inference", "bench_training", "write_results"]

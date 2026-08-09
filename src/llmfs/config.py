@@ -84,7 +84,16 @@ class LogConfig:
     eval_steps: int = 50
     checkpoint_interval: int = 1000
     keep_last_n: int = 2
-    """Rolling checkpoints to retain, in addition to the best-by-val-loss one."""
+    """Rolling checkpoints to retain, in addition to the best-by-val-loss one.
+    ``0`` keeps none; ``best.pt`` and ``final.pt`` are never pruned either way."""
+    milestone_fracs: list[float] = field(default_factory=lambda: [0.1, 0.25, 0.5, 0.75])
+    """Fractions of the run at which to save a permanent, never-pruned checkpoint.
+
+    Intermediate training states are the one artifact that cannot be recovered after
+    the fact — reconstructing step 5,000 of a finished run means paying for the run
+    again. They cost a few GB and make anything that studies training *dynamics*
+    possible later: how attention heads specialise, when capabilities appear, how the
+    loss curve decomposes. Set to ``[]`` to disable."""
     tensorboard: bool = True
     wandb: bool = False
     wandb_project: str = "llmfs"

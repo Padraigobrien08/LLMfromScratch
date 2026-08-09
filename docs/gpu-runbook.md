@@ -210,8 +210,22 @@ to the same network volume, then start the GPU pod.
 ./scripts/gpu.sh all
 ```
 
-One detached pipeline: corpus → ablation sweep → reproduction → final evaluation over
-the full validation split → attention explorer rebuilt from the real model. Each
+One detached pipeline, capturing everything this pod session can:
+
+| stage | why it is in the same session |
+| --- | --- |
+| corpus | the expensive prerequisite; cached on the volume |
+| ablation sweep | 39 runs, paired across 3 seeds |
+| reproduction | the headline 124M result |
+| full-split evaluation | the number that gets reported |
+| **HellaSwag** | the downstream check loss alone cannot provide |
+| **throughput + memory benchmarks** | minutes of GPU, an entire pillar; otherwise a second pod |
+| **sample generations** | free, and the README needs them |
+| attention explorer | rebuilt from the real model |
+
+Training also writes **milestone checkpoints** at 10/25/50/75% of the run. Those are
+the one artifact that cannot be recovered afterwards — reconstructing step 5,000 of a
+finished run means paying for the run again — and they cost a few GB. Each
 stage is marker-guarded on the pod, so re-running `all` after a crash, a preemption
 or a pod restart resumes at the first unfinished stage rather than redoing hours of
 work. Within a stage recovery is finer still: the sweep skips completed arms and
