@@ -84,13 +84,37 @@ ssh_run() {
 }
 
 # Launch a command inside tmux so it outlives this SSH connection.
+#
+# The job is written to a file on the pod and tmux is asked to run *that*, rather
+# than having the command embedded in tmux's own quoted argument. Embedding cannot
+# work in general: the command carries config overrides like
+# `SWEEP_EXTRA='--set data.micro_batch_size=64'`, and those single quotes terminate
+# the outer single-quoted string, so tmux receives a fragment and the session dies
+# instantly leaving no log. A file has no quoting to nest.
 ssh_detached() {
   local name="$1" cmd="$2"
   ssh_run "tmux has-session -t $SESSION 2>/dev/null && tmux kill-session -t $SESSION || true"
-  ssh_run "cd $REMOTE_REPO && tmux new-session -d -s $SESSION \
-    'echo \"[$name] started \$(date -u +%FT%TZ)\" | tee -a $RUN_LOG; \
-     { $cmd ; } 2>&1 | tee -a $RUN_LOG; \
-     echo \"[$name] exited \$(date -u +%FT%TZ) rc=\$?\" | tee -a $RUN_LOG'"
+
+  # Unquoted heredoc: $name/$cmd/$REMOTE_REPO expand here, \$(date) and \$? do not.
+  ssh_run "cat > $GPU_WORKDIR/job.sh && chmod +x $GPU_WORKDIR/job.sh" <<EOF
+#!/usr/bin/env bash
+cd $REMOTE_REPO || exit 1
+echo "[$name] started \$(date -u +%FT%TZ)"
+$cmd
+rc=\$?
+echo "[$name] exited \$(date -u +%FT%TZ) rc=\$rc"
+EOF
+
+  ssh_run "tmux new-session -d -s $SESSION 'bash $GPU_WORKDIR/job.sh 2>&1 | tee -a $RUN_LOG'"
+
+  # Confirm it is actually alive: a session that dies on launch is the failure this
+  # function exists to make impossible, and silence looks identical to success.
+  sleep 3
+  if [[ "$(ssh_run "tmux has-session -t $SESSION 2>/dev/null && echo yes || echo no")" != "yes" ]]; then
+    ssh_run "tail -n 20 $RUN_LOG 2>/dev/null" || true
+    die "the '$name' session exited immediately — see the log above"
+  fi
+
   mkdir -p "$STATE_DIR"
   date -u +%s > "$STATE_DIR/started_at"
   echo "$name" > "$STATE_DIR/job"
@@ -237,8 +261,10 @@ cmd_status() {
   running=$(ssh_run "tmux has-session -t $SESSION 2>/dev/null && echo yes || echo no")
   echo "tmux session '$SESSION': $running"
   echo
-  echo "--- last 25 log lines ---"
-  ssh_run "tail -n 25 $RUN_LOG 2>/dev/null || echo '(no log yet)'"
+  echo "--- recent progress ---"
+  # tqdm redraws with carriage returns, so a progress bar is one enormous "line".
+  # Translate CR to LF before tailing, or `tail` returns tens of KB of redraws.
+  ssh_run "tail -c 200000 $RUN_LOG 2>/dev/null | tr '\\r' '\\n' | grep -v '^\\s*$' | tail -n 20 || echo '(no log yet)'"
   echo
   echo "--- gpu ---"
   ssh_run "nvidia-smi --query-gpu=utilization.gpu,memory.used,memory.total,temperature.gpu \
@@ -255,7 +281,8 @@ cmd_watch() {
       cmd_fetch
       return 0
     fi
-    printf '\033[2K\r%s  %s' "$(date +%H:%M:%S)" "$(ssh_run "tail -n 1 $RUN_LOG 2>/dev/null | tr -d '\n'" || true)"
+    printf '\033[2K\r%s  %s' "$(date +%H:%M:%S)" \
+      "$(ssh_run "tail -c 4000 $RUN_LOG 2>/dev/null | tr '\\r' '\\n' | grep -v '^\\s*\$' | tail -n 1" || true)"
     sleep "$interval"
   done
 }
