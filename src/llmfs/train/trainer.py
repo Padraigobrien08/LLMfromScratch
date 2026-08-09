@@ -42,6 +42,14 @@ from .distributed import all_reduce_mean, resolve_device, setup_distributed
 from .optim import build_optimizer, lr_at_step, set_lr
 
 
+class TrainingDiverged(RuntimeError):
+    """Raised when the loss or gradient norm stops being finite.
+
+    A distinct exception type so an ablation sweep can tell "this arm's learning
+    rate was too high" — a result worth reporting — from "the code is broken".
+    """
+
+
 @dataclass
 class TrainState:
     step: int = 0
@@ -135,6 +143,7 @@ class Trainer:
         self.optimizer = build_optimizer(unwrap_model(self.model), cfg.optim, self.device)
         self.train_loader, self.val_loader = self._build_loaders()
         self.state = TrainState()
+        self.diverged = False
         self.logger = MetricsLogger(cfg, self.run_dir, enabled=self.dist.is_main)
 
         if cfg.train.resume:
@@ -277,6 +286,7 @@ class Trainer:
                 loss_accum = self._accumulate_gradients()
 
                 grad_norm = torch.nn.utils.clip_grad_norm_(model.parameters(), cfg.optim.grad_clip)
+                self._assert_finite(loss_accum, float(grad_norm))
                 self.optimizer.step()
                 self.optimizer.zero_grad(set_to_none=True)
 
@@ -292,12 +302,39 @@ class Trainer:
 
                 elif self.state.step % cfg.log.checkpoint_interval == 0:
                     self._save(f"ckpt_step{self.state.step:07d}.pt")
-        finally:
+        except TrainingDiverged:
+            # Do not write a final checkpoint: the weights are already poisoned, and
+            # overwriting `final.pt` would destroy the last good state. `best.pt` and
+            # the rolling checkpoints from before the divergence are left intact.
+            self.diverged = True
+            if self.dist.is_main:
+                self.logger.log(self.state.step, {"train/diverged": 1})
+                self.logger.close()
+            raise
+        else:
             if self.dist.is_main:
                 self._evaluate_and_checkpoint(final=True)
                 self.logger.close()
 
         return self.state
+
+    def _assert_finite(self, loss: float, grad_norm: float) -> None:
+        """Stop the moment the loss or gradient stops being a number.
+
+        Without this a single NaN propagates into the weights and every checkpoint
+        written afterwards is poisoned, so the last recoverable state can be
+        thousands of steps back by the time anyone notices. Failing on the first bad
+        step keeps the blast radius to one step, and gives the ablation sweep a
+        divergence it can record as a result rather than a crash.
+        """
+        if math.isfinite(loss) and math.isfinite(grad_norm):
+            return
+        raise TrainingDiverged(
+            f"non-finite value at step {self.state.step:,}: "
+            f"loss={loss}, grad_norm={grad_norm}. "
+            f"Most often too high a learning rate (lr={self.cfg.optim.lr:g}) "
+            f"or a bad batch."
+        )
 
     def _accumulate_gradients(self) -> float:
         """Run ``grad_accum_steps`` micro-batches and return the mean loss."""

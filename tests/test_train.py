@@ -276,3 +276,32 @@ def test_gradient_checkpointing_matches_ordinary_training(train_config: Config) 
     grads = {n: p.grad.clone() for n, p in trainer.model.named_parameters() if p.grad is not None}
     assert grads and all(torch.isfinite(g).all() for g in grads.values())
     assert loss > 0
+
+
+def test_divergence_stops_immediately_and_spares_the_last_checkpoint(train_config: Config) -> None:
+    """A NaN must halt the run rather than propagate into every later checkpoint.
+
+    Without the guard the weights are poisoned from the first bad step onward and
+    `final.pt` is overwritten with them, so the newest recoverable state can be
+    thousands of steps behind by the time anyone notices.
+    """
+    from llmfs.train.trainer import TrainingDiverged
+
+    train_config.optim.lr = 50.0  # guaranteed to blow up
+    train_config.optim.grad_clip = 1e9  # clipping would otherwise mask it
+    trainer = Trainer(train_config)
+
+    with pytest.raises(TrainingDiverged, match="non-finite"):
+        trainer.train()
+
+    assert trainer.diverged is True
+    assert trainer.state.step < train_config.train.max_steps, "should stop early"
+    # No final checkpoint: writing one would destroy the last good state.
+    assert not (Path(train_config.log.out_dir) / "test" / "final.pt").exists()
+
+
+def test_finite_training_does_not_trip_the_guard(train_config: Config) -> None:
+    trainer = Trainer(train_config)
+    trainer.train()
+    assert trainer.diverged is False
+    assert (Path(train_config.log.out_dir) / "test" / "final.pt").exists()

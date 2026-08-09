@@ -23,10 +23,10 @@ what is built and verified, and what is designed but not yet run.
 
 | Pillar | Status |
 | --- | --- |
-| Package, config system, data pipeline, trainer, CI | **Done** — 186 tests green, end-to-end verified |
+| Package, config system, data pipeline, trainer, CI | **Done** — 206 tests green, end-to-end verified |
 | Modern architecture (RoPE, RMSNorm, SwiGLU, GQA, KV cache) | **Done** — hand-implemented, property-tested |
 | GPT-2 124M reproduction on FineWeb-Edu | Configured; **GPU run pending** |
-| Ablation study (11 arms) | Configs + protocol done; **runs pending** |
+| Ablation study (13 arms) | Runner + report built and validated; **GPU runs pending** |
 | Inference efficiency (quantization, speculative decoding) | **Not started** |
 | Fault-tolerance design doc | **Done** — [docs/fault-tolerance.md](docs/fault-tolerance.md) |
 | Multi-GPU scaling report | DDP wired; **scaling run pending** |
@@ -150,9 +150,10 @@ run completes.
 
 ## Ablation study
 
-Eleven arms, each varying exactly one design decision against a shared baseline at
-a smaller scale (8 layers, 512-wide, ~1B tokens) so the whole sweep is affordable and
-every arm can share a seed and a token budget.
+Twelve arms against a shared baseline: eleven vary exactly one design decision, and
+`modern-stack` combines them to test whether the individual deltas actually add up.
+Run at a smaller scale than the reproduction (8 layers, 512-wide, ~1B tokens) so the
+whole sweep is affordable and every arm can share a seed and a token budget.
 
 Axes: LayerNorm vs RMSNorm · learned vs RoPE vs none · GELU vs SwiGLU · tied vs untied
 embeddings · bias vs no bias · MHA vs GQA · cosine vs WSD schedule · weight decay ·
@@ -163,10 +164,28 @@ from `configs/ablations/_base.yaml` in its own named axis and nothing else. An a
 that drifted would be measuring something other than what it claims.
 
 ```bash
-llmfs-train --config ablations/norm-rmsnorm.yaml
+llmfs-ablate --baseline-seeds 3
 ```
 
-**Status**: configs and protocol complete, runs pending.
+```bash
+llmfs-ablate-report
+```
+
+**The baseline runs three times.** That is the point of the sweep design, not a
+detail: two runs differing only in seed do not reach the same loss, so the spread
+between them is the noise floor, and any arm whose delta is smaller than it has
+measured the seed rather than its design change. Those arms are reported as *within
+noise* and no conclusion is drawn from them. An ablation table without that check is
+worse than no table — it reads as authoritative while recommending changes that do
+nothing.
+
+The runner is built for a multi-hour job on rented hardware: it skips arms that
+already have a result, writes after every arm, and records a diverged arm as a
+finding rather than dying on it — the `lr-3e-3` arm is *expected* to blow up.
+
+**Status**: infrastructure complete and validated end to end; the real runs need a
+GPU. Estimated 12.5 hours and roughly $19 on a spot A100 for all 13 arms plus the
+repeated baseline.
 
 ---
 
@@ -268,9 +287,10 @@ src/llmfs/
   train/      trainer, optimiser and schedules, checkpointing, distributed setup
   eval/       evaluation and generation entrypoints
   viz/        attention extraction, head statistics, static export, live server
+  ablation/   sweep runner, noise-floor analysis, tables and plots
   bench/      throughput, memory and cost benchmarks
 configs/      gpt2-124m, llama-124m, debug, and 11 single-axis ablation arms
-tests/        186 tests — component correctness, config validation, end-to-end training
+tests/        206 tests — component correctness, config validation, end-to-end training
 docs/         reproduction protocol, fault-tolerance design
 notebooks/    exploration only; nothing here is the source of truth
 legacy/       the original tutorial scripts, kept for reference

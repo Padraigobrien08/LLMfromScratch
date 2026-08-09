@@ -46,6 +46,8 @@ llmfs-eval = "llmfs.eval.evaluate:main"
 llmfs-prepare-data = "llmfs.data.prepare:main"
 llmfs-viz = "llmfs.viz.export:main"
 llmfs-viz-serve = "llmfs.viz.server:main"
+llmfs-ablate = "llmfs.ablation.sweep:main"
+llmfs-ablate-report = "llmfs.ablation.report:main"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/llmfs"]
