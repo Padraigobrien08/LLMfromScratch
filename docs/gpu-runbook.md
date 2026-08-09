@@ -28,7 +28,7 @@ the first hour and re-decide.
 | GPU | $/hr | est. MFU | est. hours | est. cost |
 | --- | --- | --- | --- | --- |
 | **RTX 4090** | 0.74 | 35% | 36.7 | **$27** |
-| RTX 5090 | 0.99 | 33% | 30.6 | $30 |
+| **RTX 5090** | 0.99 | 33% | 30.6 | $30 |
 | L40S | 0.99 | 32% | 36.6 | $36 |
 | **H100 SXM** | 3.29 | 18% | **11.9** | $39 |
 | H100 PCIe | 2.89 | 20% | 14.0 | $41 |
@@ -55,29 +55,38 @@ Take the 4090 route only if wall-clock genuinely does not matter: 37 hours of sw
 plus 61 hours of reproduction is four days of babysitting a spot instance to save
 roughly $25.
 
-### The RTX 5090 case, and why it hinges on one number
+### RTX 5090 vs H100: the argument is wall-clock, not cost
 
-At $0.99/hr the 5090 looks obviously cheaper than an H100 at $3.29. Whether it
-actually is depends entirely on its realised bf16 throughput, and the plausible range
-is a factor of two:
+At $0.99/hr against $3.29 the 5090 looks obviously cheaper. It is not, quite — but
+the gap is smaller than a first pass suggests.
 
-| assumed dense bf16 | sweep | reproduction | total |
-| --- | --- | --- | --- |
-| 105 TFLOP/s (fp32 accumulate — the likely case) | ~58–67 h | ~82–96 h | **~$139–162** |
-| 210 TFLOP/s (fp16 accumulate — best case) | ~29–34 h | ~41–48 h | ~$69–81 |
-| *H100 SXM, for comparison* | ~12 h | ~9 h | *~$68* |
+The planning figure for a 5090 is **~210 TFLOP/s dense bf16**. Consumer NVIDIA quotes
+Tensor FP16/BF16 throughput *already assuming FP32 accumulation*, at roughly twice the
+FP32 shader rate: the RTX 4090's 165 TFLOP/s comes from 82.6 FP32, and the 5090's
+104.8 FP32 implies ~210. There is no further halving to apply for PyTorch's default
+accumulation mode.
 
-Consumer cards typically halve their bf16 rate when accumulating in fp32, which is
-what PyTorch does by default — so the top row is the one to plan against. On that
-assumption the 5090 is both **more expensive and roughly six days slower** than an
-H100.
+| | sweep | reproduction | total time | total cost |
+| --- | --- | --- | --- | --- |
+| RTX 5090 @ $0.99 | ~31 h | ~48 h | **78 h (3.3 days)** | ~$78 |
+| H100 SXM @ $3.29 | ~12 h | ~9 h | **21 h** | ~$68 |
 
-**Do not guess at this.** `gpu.sh setup` runs a large bf16 matmul and prints
-`MEASURED bf16 matmul: N TFLOP/s`. Take that number, divide the FLOP counts above by
-it, and decide before starting a multi-day job. The measurement costs ten seconds.
+**The costs are within the error bars of these estimates; the wall-clock is not.**
+Depending on how well a 51M-parameter model fills an H100, its total lands anywhere
+between $57 and $99 — so "the H100 is cheaper" is not a claim worth defending. "The
+H100 finishes in a day instead of three and a half" is.
 
-VRAM is not the constraint either way: 32GB comfortably holds the 124M reproduction
-at `micro_batch_size: 16` (the logits tensor is the largest single allocation, at
+Pick the H100 if you want results tomorrow. Pick the 5090 if the runs can sit in the
+background for a long weekend and you would rather not think about the hourly rate.
+Either is defensible; they are not far apart on money.
+
+**Either way, check the measurement.** `gpu.sh setup` prints
+`MEASURED bf16 matmul: N TFLOP/s`. If a 5090 reports far below ~200, or an H100 far
+below ~800, something is wrong with the build or the card before any paid work
+starts.
+
+VRAM is not the constraint on either: 32GB comfortably holds the 124M reproduction at
+`micro_batch_size: 16` (the logits tensor is the largest single allocation, at
 1.5 GiB). If it does OOM, halve it to 8 — gradient accumulation doubles automatically
 and the optimisation is unchanged.
 
