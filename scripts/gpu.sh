@@ -56,6 +56,9 @@ GPU_RATE="${GPU_RATE:-0}"                      # $/hour, for the spend estimate
 GPU_WORKDIR="${GPU_WORKDIR:-/workspace}"       # a network volume, ideally
 GPU_REPO="${GPU_REPO:-https://github.com/Padraigobrien08/LLMfromScratch.git}"
 GPU_BRANCH="${GPU_BRANCH:-main}"
+# Where results and the kept checkpoint land. Defaults inside GPU_WORKDIR, but on a
+# pod whose bulk disk is ephemeral this should point at persistent storage.
+GPU_RESULTS="${GPU_RESULTS:-$GPU_WORKDIR/results}"
 
 REMOTE_REPO="$GPU_WORKDIR/LLMfromScratch"
 RUN_LOG="$GPU_WORKDIR/run.log"
@@ -192,6 +195,7 @@ cmd_all() {
   ssh_detached "pipeline" \
     "GPU_WORKDIR=$GPU_WORKDIR SEEDS=${SEEDS:-3} \
      RUN_SWEEP=${RUN_SWEEP:-1} RUN_REPRO=${RUN_REPRO:-1} \
+     RESULTS_DIR=$GPU_RESULTS \
      SWEEP_EXTRA='${SWEEP_EXTRA:-}' REPRO_EXTRA='${REPRO_EXTRA:-}' \
      bash $GPU_WORKDIR/pipeline.sh"
 }
@@ -266,7 +270,7 @@ cmd_fetch() {
     --include '*/' --include '*.json' --include '*.jsonl' --include 'config.yaml' \
     --exclude '*' \
     -e "ssh -p $GPU_PORT -i $GPU_KEY" \
-    "$GPU_USER@$GPU_HOST:$GPU_WORKDIR/results/" "$REPO_ROOT/results/" 2>/dev/null || true
+    "$GPU_USER@$GPU_HOST:$GPU_RESULTS/" "$REPO_ROOT/results/" 2>/dev/null || true
 
   rsync -az --prune-empty-dirs \
     --include '*/' --include 'metrics.jsonl' --include 'config.yaml' --exclude '*' \

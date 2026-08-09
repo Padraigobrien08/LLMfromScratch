@@ -19,8 +19,14 @@ WORKDIR="${GPU_WORKDIR:-/workspace}"
 REPO="$WORKDIR/LLMfromScratch"
 DATA_DIR="$WORKDIR/data/fineweb-edu-10B"
 OUT_DIR="$WORKDIR/out"
-RESULTS="$WORKDIR/results"
 MARKERS="$WORKDIR/.stages"
+
+# Results live apart from the bulk. On RunPod the container disk is large and fast
+# but is erased when the pod stops, while the network volume persists and is small.
+# So the regenerable bulk — corpus, 39 sweeps' worth of checkpoints — goes on the
+# fast disk, and the artifacts that would actually hurt to lose go on the volume.
+RESULTS="${RESULTS_DIR:-$WORKDIR/results}"
+KEEP_DIR="${KEEP_DIR:-$RESULTS/../checkpoints}"
 
 SEEDS="${SEEDS:-3}"
 RUN_SWEEP="${RUN_SWEEP:-1}"
@@ -28,7 +34,7 @@ RUN_REPRO="${RUN_REPRO:-1}"
 SWEEP_EXTRA="${SWEEP_EXTRA:-}"
 REPRO_EXTRA="${REPRO_EXTRA:-}"
 
-mkdir -p "$MARKERS" "$RESULTS"
+mkdir -p "$MARKERS" "$RESULTS" "$KEEP_DIR"
 cd "$REPO" || exit 1
 # shellcheck disable=SC1091
 source "$WORKDIR/env.sh"
@@ -131,6 +137,14 @@ do_samples() {
   done | tee "$RESULTS/samples.txt"
 }
 
+do_preserve() {
+  # The reproduction checkpoint is the deliverable, and the container disk it was
+  # written to does not survive the pod being stopped. Copy it somewhere that does.
+  cp -f "$OUT_DIR/gpt2-124m-repro/best.pt" "$KEEP_DIR/gpt2-124m-best.pt"
+  cp -f "$OUT_DIR/gpt2-124m-repro/config.yaml" "$KEEP_DIR/" 2>/dev/null || true
+  say "preserved $(du -h "$KEEP_DIR/gpt2-124m-best.pt" | cut -f1) to $KEEP_DIR"
+}
+
 do_viz() {
   # Rebuild the attention explorer from the real model. This is the point at which
   # the hosted page stops showing a toy trained on one book.
@@ -158,6 +172,7 @@ if [[ "$RUN_REPRO" == "1" ]]; then
   stage repro_eval do_repro_eval || exit 1
   # Everything past this point is cheap, and none of it can fail the run that
   # matters — the checkpoint and its loss are already on disk.
+  stage preserve do_preserve || say "could not preserve the checkpoint; not fatal"
   stage repro_hellaswag do_repro_hellaswag || say "hellaswag failed; not fatal"
   stage samples do_samples || say "sample generation failed; not fatal"
   stage viz do_viz || say "explorer build failed; not fatal"
