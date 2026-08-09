@@ -5,6 +5,10 @@ modern architecture components, a controlled ablation study, and efficiency
 benchmarks — reproducible from one command.
 
 [![CI](https://github.com/Padraigobrien08/LLMfromScratch/actions/workflows/ci.yml/badge.svg)](https://github.com/Padraigobrien08/LLMfromScratch/actions/workflows/ci.yml)
+[![Attention explorer](https://github.com/Padraigobrien08/LLMfromScratch/actions/workflows/pages.yml/badge.svg)](https://padraigobrien08.github.io/LLMfromScratch/)
+
+**→ [Explore the model's attention, live](https://padraigobrien08.github.io/LLMfromScratch/)** —
+every attention weight, per layer and per head, in a page you can click through.
 
 Every architecture component here — rotary embeddings, RMSNorm, SwiGLU,
 grouped-query attention, the KV cache — is written by hand and covered by tests that
@@ -26,7 +30,7 @@ what is built and verified, and what is designed but not yet run.
 | Inference efficiency (quantization, speculative decoding) | **Not started** |
 | Fault-tolerance design doc | **Done** — [docs/fault-tolerance.md](docs/fault-tolerance.md) |
 | Multi-GPU scaling report | DDP wired; **scaling run pending** |
-| Interactive attention visualization | **Done** — self-contained page + live server, auto-deployed |
+| Interactive attention visualization | **Done** — [live](https://padraigobrien08.github.io/LLMfromScratch/), auto-deployed from CI |
 
 No results are reported below that have not been measured. Sections describing
 pending work say so.
@@ -185,9 +189,12 @@ Already wired and awaiting measurement on real hardware: mixed precision (bf16),
 
 ## Attention explorer
 
+**[padraigobrien08.github.io/LLMfromScratch](https://padraigobrien08.github.io/LLMfromScratch/)**
+
 Every attention weight in the model, per layer and per head, in a page you can click
 through. Built by CI from a model CI trains, and deployed to GitHub Pages on every
-push to `main`.
+push to `main` — so the hosted page always reflects the current code rather than a
+stale artifact.
 
 ```bash
 llmfs-viz --checkpoint out/debug/best.pt --out site/attention.html
