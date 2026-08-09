@@ -1,0 +1,74 @@
+name: Deploy attention explorer
+
+# Builds the attention explorer and publishes it to GitHub Pages.
+#
+# The page is generated from a checkpoint this workflow trains itself, so what is
+# hosted is always a real model produced by the current code — never a stale artifact
+# committed months ago. The model is deliberately tiny and the page's own header
+# reports its size, step count and validation loss, so a viewer can see exactly what
+# they are looking at.
+#
+# Requires Pages to be enabled for the repository with "GitHub Actions" as the source
+# (Settings -> Pages -> Build and deployment -> Source).
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      - name: Install
+        run: |
+          uv venv --python 3.11
+          uv pip install --index-strategy unsafe-best-match \
+            --extra-index-url https://download.pytorch.org/whl/cpu \
+            -e ".[dev]"
+
+      - name: Prepare corpus
+        run: |
+          uv run llmfs-prepare-data --source text \
+            --input data/wizard_of_oz.txt --out-dir data/wizard --shard-tokens 40000
+
+      - name: Train the demo model
+        run: |
+          uv run llmfs-train --config debug \
+            --set runtime.device=cpu --set train.max_steps=400 \
+            --set log.eval_interval=100 --set log.tensorboard=false \
+            --set log.out_dir=pages-out
+
+      - name: Build the explorer
+        run: |
+          uv run llmfs-viz --checkpoint pages-out/debug/best.pt \
+            --out site/index.html --device cpu
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

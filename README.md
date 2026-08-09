@@ -19,14 +19,14 @@ what is built and verified, and what is designed but not yet run.
 
 | Pillar | Status |
 | --- | --- |
-| Package, config system, data pipeline, trainer, CI | **Done** — 160 tests green, end-to-end verified |
+| Package, config system, data pipeline, trainer, CI | **Done** — 186 tests green, end-to-end verified |
 | Modern architecture (RoPE, RMSNorm, SwiGLU, GQA, KV cache) | **Done** — hand-implemented, property-tested |
 | GPT-2 124M reproduction on FineWeb-Edu | Configured; **GPU run pending** |
 | Ablation study (11 arms) | Configs + protocol done; **runs pending** |
 | Inference efficiency (quantization, speculative decoding) | **Not started** |
 | Fault-tolerance design doc | **Done** — [docs/fault-tolerance.md](docs/fault-tolerance.md) |
 | Multi-GPU scaling report | DDP wired; **scaling run pending** |
-| Interactive attention visualization | Attention export done; **UI not started** |
+| Interactive attention visualization | **Done** — self-contained page + live server, auto-deployed |
 
 No results are reported below that have not been measured. Sections describing
 pending work say so.
@@ -183,6 +183,50 @@ Already wired and awaiting measurement on real hardware: mixed precision (bf16),
 
 ---
 
+## Attention explorer
+
+Every attention weight in the model, per layer and per head, in a page you can click
+through. Built by CI from a model CI trains, and deployed to GitHub Pages on every
+push to `main`.
+
+```bash
+llmfs-viz --checkpoint out/debug/best.pt --out site/attention.html
+```
+
+```bash
+llmfs-viz-serve --checkpoint out/debug/best.pt   # type your own text
+```
+
+Four views, each answering a different question:
+
+- **Which tokens attend to which** — click a token to make it the query; every other
+  token is shaded by the attention it received. This is the view the whole tool exists
+  for, and it reads as a sentence rather than a matrix.
+- **All heads** — one thumbnail per head, so structure (diagonals, sinks, stripes) is
+  visible across the whole model at a glance instead of one head at a time.
+- **Focused head** — the full token × token heatmap, hover for exact weights. Masked
+  cells are left as page background, so "structurally impossible" looks different from
+  "attended with weight zero".
+- **Head statistics** — entropy, mean attention distance, previous-token fraction and
+  sink fraction, per head. These turn a grid of 144 heads into something searchable:
+  sort by previous-token fraction and the induction-circuit building blocks come to
+  the top.
+
+Two engineering notes. The export is a **single self-contained HTML file** — no build
+step, no CDN, no backend — because a visualisation with a server attached is a URL
+that will be down the day someone looks at it; a test asserts no external resource is
+ever referenced. And the weights are quantised to uint8 and base64-encoded rather than
+written as JSON numbers: for a 12×12-head model over 64 tokens that is 590k values,
+several megabytes as text, for cells a few pixels wide. Statistics are computed at
+full precision *before* quantisation.
+
+The hosted demo runs a deliberately small model, and the page header states its
+parameter count, step and validation loss so nobody has to guess. It gets more
+interesting the moment the 124M checkpoint exists — pointing `llmfs-viz` at it is the
+only change needed.
+
+---
+
 ## Reliability
 
 [**docs/fault-tolerance.md**](docs/fault-tolerance.md) — the design doc for running a
@@ -216,9 +260,10 @@ src/llmfs/
   data/       tokenizer, FineWeb-Edu preparation, memory-mapped shard loader
   train/      trainer, optimiser and schedules, checkpointing, distributed setup
   eval/       evaluation and generation entrypoints
+  viz/        attention extraction, head statistics, static export, live server
   bench/      throughput, memory and cost benchmarks
 configs/      gpt2-124m, llama-124m, debug, and 11 single-axis ablation arms
-tests/        184 tests — component correctness, config validation, end-to-end training
+tests/        186 tests — component correctness, config validation, end-to-end training
 docs/         reproduction protocol, fault-tolerance design
 notebooks/    exploration only; nothing here is the source of truth
 legacy/       the original tutorial scripts, kept for reference

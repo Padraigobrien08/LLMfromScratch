@@ -44,9 +44,13 @@ llmfs-train = "llmfs.train.cli:main"
 llmfs-generate = "llmfs.eval.generate:main"
 llmfs-eval = "llmfs.eval.evaluate:main"
 llmfs-prepare-data = "llmfs.data.prepare:main"
+llmfs-viz = "llmfs.viz.export:main"
+llmfs-viz-serve = "llmfs.viz.server:main"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/llmfs"]
+# The front-end template is loaded at runtime, so it has to travel with the wheel.
+artifacts = ["src/llmfs/viz/template.html"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

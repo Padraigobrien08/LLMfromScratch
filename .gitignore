@@ -31,4 +31,7 @@ data/**/*.npy
 # Benchmark scratch output (committed results live in results/)
 bench/scratch/
 
+# Generated attention explorer (rebuilt by `llmfs-viz`, deployed by CI)
+site/
+
 .DS_Store

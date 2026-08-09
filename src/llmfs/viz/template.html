@@ -1,0 +1,530 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Attention explorer — llmfs</title>
+<style>
+  :root {
+    color-scheme: light dark;
+    --bg: #fbfbfd;
+    --panel: #ffffff;
+    --border: #e2e5ec;
+    --text: #14161c;
+    --muted: #6a7180;
+    --accent: #2f5fe0;
+    --grid-line: #eef0f5;
+    --shadow: 0 1px 2px rgba(16, 20, 30, .05), 0 8px 24px rgba(16, 20, 30, .05);
+    --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0c0e13;
+      --panel: #14171f;
+      --border: #262b36;
+      --text: #e8eaf0;
+      --muted: #939bab;
+      --accent: #6f95ff;
+      --grid-line: #1c212b;
+      --shadow: 0 1px 2px rgba(0, 0, 0, .4), 0 8px 24px rgba(0, 0, 0, .3);
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font: 15px/1.55 ui-sans-serif, system-ui, -apple-system, "Segoe UI", Inter, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 1360px; margin: 0 auto; padding: 32px 24px 72px; }
+
+  header { margin-bottom: 24px; }
+  h1 { font-size: 22px; font-weight: 640; margin: 0 0 6px; letter-spacing: -.01em; }
+  .sub { color: var(--muted); font-size: 14px; margin: 0; }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 14px; }
+  .chip {
+    font: 12px/1 var(--mono); padding: 6px 9px; border-radius: 6px;
+    background: var(--panel); border: 1px solid var(--border); color: var(--muted);
+  }
+  .chip b { color: var(--text); font-weight: 600; }
+
+  .panel {
+    background: var(--panel); border: 1px solid var(--border);
+    border-radius: 12px; box-shadow: var(--shadow); padding: 18px;
+  }
+  .panel + .panel { margin-top: 18px; }
+  h2 {
+    font-size: 12px; text-transform: uppercase; letter-spacing: .07em;
+    color: var(--muted); margin: 0 0 4px; font-weight: 600;
+  }
+  .hint { color: var(--muted); font-size: 13px; margin: 0 0 14px; }
+
+  .controls { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+  select, input[type=text], button {
+    font: inherit; font-size: 14px; padding: 8px 11px; color: var(--text);
+    background: var(--bg); border: 1px solid var(--border); border-radius: 8px;
+  }
+  input[type=text] { flex: 1; min-width: 260px; font-family: var(--mono); font-size: 13px; }
+  button { cursor: pointer; font-weight: 550; }
+  button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+  button:disabled { opacity: .5; cursor: not-allowed; }
+
+  .cols { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 18px; }
+  @media (max-width: 1080px) { .cols { grid-template-columns: minmax(0, 1fr); } }
+
+  /* ---- token strip ---- */
+  .strip { display: flex; flex-wrap: wrap; gap: 3px; font-family: var(--mono); font-size: 13px; }
+  .tok {
+    padding: 4px 6px; border-radius: 5px; cursor: pointer;
+    border: 1px solid transparent; white-space: pre; position: relative;
+    transition: border-color .1s;
+  }
+  .tok:hover { border-color: var(--accent); }
+  .tok.query { outline: 2px solid var(--accent); outline-offset: 1px; }
+  .tok .amt {
+    position: absolute; bottom: -13px; left: 0; right: 0; text-align: center;
+    font-size: 9px; color: var(--muted); opacity: 0; transition: opacity .1s;
+  }
+  .strip.showAmounts .tok .amt { opacity: 1; }
+  .strip.showAmounts { row-gap: 18px; }
+
+  /* ---- head grid ---- */
+  .grid-scroll { overflow-x: auto; padding-bottom: 4px; }
+  table.heads { border-collapse: separate; border-spacing: 3px; }
+  table.heads th {
+    font: 10px/1 var(--mono); color: var(--muted); font-weight: 500; padding: 2px;
+  }
+  table.heads td { padding: 0; }
+  .head-cell {
+    display: block; padding: 0; border: 1px solid var(--border); border-radius: 4px;
+    background: none; cursor: pointer; line-height: 0; overflow: hidden;
+  }
+  .head-cell:hover { border-color: var(--accent); }
+  .head-cell.sel { outline: 2px solid var(--accent); outline-offset: 1px; }
+
+  /* ---- focus heatmap ---- */
+  .heat-wrap { position: relative; overflow: auto; max-height: 560px; }
+  #focusCanvas { image-rendering: pixelated; display: block; }
+  .axis-note { color: var(--muted); font-size: 12px; margin-top: 8px; }
+  #tooltip {
+    position: fixed; pointer-events: none; z-index: 20; opacity: 0;
+    background: var(--panel); border: 1px solid var(--border); border-radius: 7px;
+    box-shadow: var(--shadow); padding: 7px 9px; font: 12px/1.45 var(--mono);
+    max-width: 320px; transition: opacity .08s;
+  }
+
+  /* ---- stats ---- */
+  table.stats { width: 100%; border-collapse: collapse; font-size: 13px; }
+  table.stats th {
+    text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: .05em;
+    color: var(--muted); font-weight: 600; padding: 6px 8px; border-bottom: 1px solid var(--border);
+    cursor: pointer; white-space: nowrap;
+  }
+  table.stats th:hover { color: var(--text); }
+  table.stats td { padding: 5px 8px; border-bottom: 1px solid var(--grid-line); font-family: var(--mono); font-size: 12px; }
+  table.stats tr { cursor: pointer; }
+  table.stats tr:hover td { background: var(--grid-line); }
+  table.stats tr.sel td { background: color-mix(in srgb, var(--accent) 14%, transparent); }
+  .bar { height: 5px; border-radius: 3px; background: var(--accent); min-width: 1px; }
+  .stats-scroll { max-height: 340px; overflow-y: auto; }
+
+  .legend { display: flex; align-items: center; gap: 8px; margin-top: 12px; font-size: 12px; color: var(--muted); }
+  .ramp { height: 9px; width: 130px; border-radius: 3px; border: 1px solid var(--border); }
+  .err { color: #d1425c; font-size: 13px; margin-top: 8px; }
+  footer { margin-top: 28px; color: var(--muted); font-size: 12px; }
+  a { color: var(--accent); }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <h1>Attention explorer</h1>
+    <p class="sub">Every attention weight in a from-scratch decoder, per layer and per head.</p>
+    <div class="chips" id="chips"></div>
+  </header>
+
+  <div class="panel">
+    <h2>Prompt</h2>
+    <p class="hint" id="promptHint">Choose a prompt to inspect.</p>
+    <div class="controls" id="controls"></div>
+    <div class="err" id="err" hidden></div>
+  </div>
+
+  <div class="panel">
+    <h2>Which tokens attend to which</h2>
+    <p class="hint">
+      Click a token to make it the <b>query</b> — the position the model is predicting from.
+      Every token is then shaded by how much attention that query sent to it, in the
+      selected head. Causal masking means a query can only see itself and what came before.
+    </p>
+    <div class="strip showAmounts" id="strip"></div>
+    <div class="legend">
+      <span>0</span><div class="ramp" id="ramp"></div><span id="rampMax">max</span>
+      <span style="margin-left:10px" id="stripCaption"></span>
+    </div>
+  </div>
+
+  <div class="cols">
+    <div class="panel">
+      <h2>All heads</h2>
+      <p class="hint">
+        One thumbnail per head: rows are queries, columns are keys, so the lower triangle
+        is all a causal model can use. Click to focus.
+      </p>
+      <div class="grid-scroll"><table class="heads" id="headGrid"></table></div>
+    </div>
+
+    <div class="panel">
+      <h2>Focused head</h2>
+      <p class="hint" id="focusHint"></p>
+      <div class="heat-wrap"><canvas id="focusCanvas"></canvas></div>
+      <p class="axis-note">Row <i>i</i> = query token <i>i</i>. Column <i>j</i> = key token <i>j</i>. Hover for values.</p>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2>Head statistics</h2>
+    <p class="hint">
+      Computed from full-precision weights before display quantisation. Click a column to
+      sort, a row to focus that head. These are summary statistics, not claims about a
+      head's role — they exist to make an interesting head easy to find among many.
+    </p>
+    <div class="stats-scroll">
+      <table class="stats" id="statsTable"></table>
+    </div>
+  </div>
+
+  <footer>
+    Generated by <code>llmfs-viz</code> ·
+    <a href="https://github.com/Padraigobrien08/LLMfromScratch">LLMfromScratch</a>
+  </footer>
+</div>
+
+<div id="tooltip"></div>
+
+<script id="payload" type="application/json">/*__LLMFS_DATA__*/</script>
+<script>
+(() => {
+  "use strict";
+
+  const BOOT = JSON.parse(document.getElementById("payload").textContent);
+  const LIVE = BOOT.mode === "live";
+  const views = BOOT.views || {};
+  let current = null;              // decoded view
+  let sel = { layer: 0, head: 0 }; // focused head
+  let query = null;                // selected query token index
+  let sortKey = "layer", sortDir = 1;
+
+  const $ = id => document.getElementById(id);
+  const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+
+  // ---- colour ramp -------------------------------------------------------
+  // Sequential single-hue, chosen so ordering survives greyscale printing and
+  // colour-vision deficiency. Rebuilt on theme change so it reads on both.
+  function stops() {
+    const dark = matchMedia("(prefers-color-scheme: dark)").matches;
+    return dark
+      ? [[12,14,19],[26,45,94],[36,86,180],[74,150,232],[186,225,255]]
+      : [[250,250,253],[204,222,248],[122,168,235],[47,95,224],[22,44,110]];
+  }
+  let RAMP = stops();
+  function colour(t) {
+    t = Math.max(0, Math.min(1, t));
+    const s = RAMP, x = t * (s.length - 1), i = Math.min(Math.floor(x), s.length - 2), f = x - i;
+    const a = s[i], b = s[i + 1];
+    return [a[0] + (b[0] - a[0]) * f, a[1] + (b[1] - a[1]) * f, a[2] + (b[2] - a[2]) * f];
+  }
+  function rgb(t) { const c = colour(t).map(Math.round); return `rgb(${c[0]},${c[1]},${c[2]})`; }
+
+  // Attention is dominated by a few large weights, so a linear ramp renders almost
+  // everything as background. sqrt keeps the mid-range legible without implying the
+  // small values are larger than they are.
+  const shape = v => Math.sqrt(v);
+
+  // ---- payload decoding --------------------------------------------------
+  function decode(view) {
+    const raw = atob(view.weights_b64);
+    const bytes = new Uint8Array(raw.length);
+    for (let i = 0; i < raw.length; i++) bytes[i] = raw.charCodeAt(i);
+    const [L, H, T] = view.weights_shape;
+    return Object.assign({}, view, {
+      W: bytes, L, H, T,
+      at: (l, h, q, k) => bytes[((l * H + h) * T + q) * T + k] / 255,
+    });
+  }
+
+  // ---- header chips ------------------------------------------------------
+  function chips() {
+    const m = BOOT.model || {};
+    const items = [
+      ["run", m.run_name], ["step", m.step != null ? m.step.toLocaleString() : null],
+      ["val loss", m.val_loss != null ? m.val_loss.toFixed(4) : null],
+      ["params", m.params != null ? (m.params / 1e6).toFixed(1) + "M" : null],
+      ["layers", m.n_layer], ["heads", m.n_head], ["kv heads", m.n_kv_head],
+      ["norm", m.norm], ["pos", m.pos_emb], ["mlp", m.mlp],
+    ].filter(([, v]) => v != null && v !== "");
+    $("chips").innerHTML = items
+      .map(([k, v]) => `<span class="chip">${k} <b>${v}</b></span>`).join("");
+  }
+
+  // ---- controls ----------------------------------------------------------
+  function controls() {
+    const box = $("controls");
+    if (LIVE) {
+      box.innerHTML = `
+        <input type="text" id="promptInput" placeholder="Type any text…"
+               value="${(BOOT.default_prompt || "").replace(/"/g, "&quot;")}" />
+        <button class="primary" id="runBtn">Run</button>`;
+      $("runBtn").onclick = runLive;
+      $("promptInput").onkeydown = e => { if (e.key === "Enter") runLive(); };
+      $("promptHint").textContent =
+        "Type any text and the model runs a forward pass over it.";
+    } else {
+      const keys = Object.keys(views);
+      box.innerHTML = `<select id="promptSelect">` +
+        keys.map((k, i) => `<option value="${i}">${k.replace(/</g, "&lt;")}</option>`).join("") +
+        `</select>`;
+      $("promptSelect").onchange = e => show(decode(views[keys[+e.target.value]]));
+      $("promptHint").textContent =
+        "Precomputed prompts. Run the live server to enter your own text.";
+    }
+  }
+
+  async function runLive() {
+    const btn = $("runBtn"), input = $("promptInput");
+    const prompt = input.value.trim();
+    if (!prompt) return;
+    btn.disabled = true; btn.textContent = "Running…"; $("err").hidden = true;
+    try {
+      const res = await fetch("./api/attention", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ prompt }),
+      });
+      if (!res.ok) throw new Error((await res.json()).detail || res.statusText);
+      show(decode(await res.json()));
+    } catch (e) {
+      $("err").textContent = "Failed: " + e.message;
+      $("err").hidden = false;
+    } finally {
+      btn.disabled = false; btn.textContent = "Run";
+    }
+  }
+
+  // ---- head grid ---------------------------------------------------------
+  const THUMB = 46;
+  function headGrid() {
+    const { L, H, T } = current;
+    const tbl = $("headGrid");
+    let html = "<tr><th></th>" +
+      Array.from({ length: H }, (_, h) => `<th>H${h}</th>`).join("") + "</tr>";
+    for (let l = 0; l < L; l++) {
+      html += `<tr><th>L${l}</th>` + Array.from({ length: H }, (_, h) =>
+        `<td><button class="head-cell" data-l="${l}" data-h="${h}" title="Layer ${l}, head ${h}">
+           <canvas width="${THUMB}" height="${THUMB}"></canvas></button></td>`).join("") + "</tr>";
+    }
+    tbl.innerHTML = html;
+
+    tbl.querySelectorAll(".head-cell").forEach(btn => {
+      const l = +btn.dataset.l, h = +btn.dataset.h;
+      drawThumb(btn.querySelector("canvas"), l, h, T);
+      btn.onclick = () => focus(l, h);
+    });
+    markSelected();
+  }
+
+  function drawThumb(canvas, l, h, T) {
+    const ctx = canvas.getContext("2d");
+    const img = ctx.createImageData(THUMB, THUMB);
+    for (let y = 0; y < THUMB; y++) {
+      // Nearest-neighbour downsample. Averaging would blur a single sharp diagonal —
+      // exactly the structure these thumbnails exist to reveal — into nothing.
+      const q = Math.min(T - 1, Math.floor(y * T / THUMB));
+      for (let x = 0; x < THUMB; x++) {
+        const k = Math.min(T - 1, Math.floor(x * T / THUMB));
+        const c = colour(shape(current.at(l, h, q, k)));
+        const o = (y * THUMB + x) * 4;
+        img.data[o] = c[0]; img.data[o + 1] = c[1]; img.data[o + 2] = c[2]; img.data[o + 3] = 255;
+      }
+    }
+    ctx.putImageData(img, 0, 0);
+  }
+
+  function markSelected() {
+    document.querySelectorAll(".head-cell").forEach(b => {
+      b.classList.toggle("sel", +b.dataset.l === sel.layer && +b.dataset.h === sel.head);
+    });
+    document.querySelectorAll("table.stats tr[data-l]").forEach(r => {
+      r.classList.toggle("sel", +r.dataset.l === sel.layer && +r.dataset.h === sel.head);
+    });
+  }
+
+  // ---- focused heatmap ---------------------------------------------------
+  function drawFocus() {
+    const { T } = current;
+    const canvas = $("focusCanvas");
+    const cell = Math.max(4, Math.min(22, Math.floor(520 / T)));
+    const dpr = devicePixelRatio || 1;
+    canvas.width = T * cell * dpr; canvas.height = T * cell * dpr;
+    canvas.style.width = (T * cell) + "px"; canvas.style.height = (T * cell) + "px";
+
+    const ctx = canvas.getContext("2d");
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    for (let q = 0; q < T; q++) {
+      for (let k = 0; k <= q; k++) {
+        ctx.fillStyle = rgb(shape(current.at(sel.layer, sel.head, q, k)));
+        ctx.fillRect(k * cell, q * cell, cell, cell);
+      }
+      // Masked (future) cells are left as page background rather than drawn dark, so
+      // "structurally impossible" reads differently from "attended with weight zero".
+    }
+    canvas.onmousemove = e => {
+      const r = canvas.getBoundingClientRect();
+      const k = Math.floor((e.clientX - r.left) / cell), q = Math.floor((e.clientY - r.top) / cell);
+      if (q < 0 || q >= T || k < 0 || k >= T || k > q) return hideTip();
+      showTip(e,
+        `q ${q} <b>${esc(current.tokens[q])}</b><br>` +
+        `k ${k} <b>${esc(current.tokens[k])}</b><br>` +
+        `weight <b>${current.at(sel.layer, sel.head, q, k).toFixed(3)}</b>`);
+    };
+    canvas.onmouseleave = hideTip;
+    canvas.onclick = e => {
+      const r = canvas.getBoundingClientRect();
+      const q = Math.floor((e.clientY - r.top) / cell);
+      if (q >= 0 && q < T) { query = q; strip(); }
+    };
+
+    const s = current.stats.find(x => x.layer === sel.layer && x.head === sel.head) || {};
+    $("focusHint").innerHTML =
+      `<b>Layer ${sel.layer}, head ${sel.head}</b> — entropy ${fmt(s.entropy)}, ` +
+      `mean distance ${fmt(s.mean_distance)}, prev-token ${fmt(s.prev_token_fraction)}, ` +
+      `sink ${fmt(s.sink_fraction)}. Click a row to set the query token.`;
+  }
+
+  const fmt = v => v == null ? "–" : (+v).toFixed(3);
+  const esc = s => String(s).replace(/[&<>]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c]));
+
+  // ---- token strip -------------------------------------------------------
+  function strip() {
+    const { T, tokens } = current;
+    if (query == null || query >= T) query = T - 1;
+
+    let max = 0;
+    for (let k = 0; k <= query; k++) max = Math.max(max, current.at(sel.layer, sel.head, query, k));
+    max = max || 1;
+
+    $("strip").innerHTML = tokens.map((t, k) => {
+      const masked = k > query;
+      const w = masked ? 0 : current.at(sel.layer, sel.head, query, k);
+      // Normalised against the row max so the strongest key in the row is always
+      // fully saturated; absolute weights shrink with sequence length and would
+      // otherwise make every long prompt look uniformly blank.
+      const c = masked ? "transparent" : rgb(shape(w / max));
+      const dark = !masked && shape(w / max) > 0.55;
+      return `<span class="tok ${k === query ? "query" : ""}" data-k="${k}"
+        style="background:${c};color:${dark ? "#fff" : "var(--text)"};
+               ${masked ? "opacity:.3;" : ""}"
+        >${esc(t)}<span class="amt">${masked ? "" : w.toFixed(2)}</span></span>`;
+    }).join("");
+
+    $("strip").querySelectorAll(".tok").forEach(el => {
+      el.onclick = () => { query = +el.dataset.k; strip(); };
+    });
+    $("rampMax").textContent = max.toFixed(2);
+    $("stripCaption").textContent =
+      `query = token ${query} · layer ${sel.layer}, head ${sel.head}` +
+      (max < 0.999 ? "" : " · fully concentrated");
+  }
+
+  // ---- statistics table --------------------------------------------------
+  const COLS = [
+    ["layer", "Layer"], ["head", "Head"], ["entropy", "Entropy"],
+    ["mean_distance", "Mean dist"], ["prev_token_fraction", "Prev-token"],
+    ["sink_fraction", "Sink"],
+  ];
+  function statsTable() {
+    const rows = current.stats.slice().sort((a, b) => {
+      const d = a[sortKey] - b[sortKey];
+      return (d || (a.layer - b.layer) || (a.head - b.head)) * sortDir;
+    });
+    const maxima = {};
+    for (const [k] of COLS) maxima[k] = Math.max(...current.stats.map(s => s[k])) || 1;
+
+    $("statsTable").innerHTML =
+      "<thead><tr>" + COLS.map(([k, label]) =>
+        `<th data-k="${k}">${label}${sortKey === k ? (sortDir > 0 ? " ↑" : " ↓") : ""}</th>`
+      ).join("") + "</tr></thead><tbody>" +
+      rows.map(s => "<tr data-l=" + s.layer + " data-h=" + s.head + ">" +
+        COLS.map(([k]) => {
+          if (k === "layer" || k === "head") return `<td>${s[k]}</td>`;
+          const frac = s[k] / maxima[k];
+          return `<td>${(+s[k]).toFixed(3)}
+            <div class="bar" style="width:${(frac * 46).toFixed(1)}px;opacity:${(0.35 + frac * 0.65).toFixed(2)}"></div></td>`;
+        }).join("") + "</tr>").join("") + "</tbody>";
+
+    $("statsTable").querySelectorAll("th").forEach(th => {
+      th.onclick = () => {
+        const k = th.dataset.k;
+        sortDir = sortKey === k ? -sortDir : (k === "layer" || k === "head" ? 1 : -1);
+        sortKey = k; statsTable(); markSelected();
+      };
+    });
+    $("statsTable").querySelectorAll("tr[data-l]").forEach(tr => {
+      tr.onclick = () => focus(+tr.dataset.l, +tr.dataset.h);
+    });
+    markSelected();
+  }
+
+  // ---- tooltip -----------------------------------------------------------
+  function showTip(e, html) {
+    const t = $("tooltip");
+    t.innerHTML = html; t.style.opacity = 1;
+    const pad = 14;
+    let x = e.clientX + pad, y = e.clientY + pad;
+    const r = t.getBoundingClientRect();
+    if (x + r.width > innerWidth - 8) x = e.clientX - r.width - pad;
+    if (y + r.height > innerHeight - 8) y = e.clientY - r.height - pad;
+    t.style.left = x + "px"; t.style.top = y + "px";
+  }
+  const hideTip = () => { $("tooltip").style.opacity = 0; };
+
+  // ---- orchestration -----------------------------------------------------
+  function focus(l, h) { sel = { layer: l, head: h }; drawFocus(); strip(); markSelected(); }
+
+  function show(view) {
+    current = view;
+    if (sel.layer >= view.L) sel.layer = 0;
+    if (sel.head >= view.H) sel.head = 0;
+    query = view.T - 1;
+    if (view.meta && view.meta.truncated) {
+      $("err").textContent =
+        "Prompt was truncated to the most recent " + view.T + " tokens for display.";
+      $("err").hidden = false;
+    }
+    headGrid(); drawFocus(); strip(); statsTable();
+  }
+
+  function paintRamp() {
+    const c = document.createElement("canvas");
+    c.width = 130; c.height = 9;
+    const ctx = c.getContext("2d");
+    for (let x = 0; x < 130; x++) { ctx.fillStyle = rgb(x / 129); ctx.fillRect(x, 0, 1, 9); }
+    $("ramp").style.background = `url(${c.toDataURL()}) center/cover`;
+  }
+
+  matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => {
+    RAMP = stops(); paintRamp();
+    if (current) { headGrid(); drawFocus(); strip(); }
+  });
+
+  chips();
+  controls();
+  paintRamp();
+  const first = Object.keys(views)[0];
+  if (first) show(decode(views[first]));
+})();
+</script>
+</body>
+</html>

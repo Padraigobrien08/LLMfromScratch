@@ -90,3 +90,9 @@ jobs:
           uv run llmfs-eval --checkpoint ci-out/debug/final.pt --device cpu --max-batches 4
           uv run llmfs-generate --checkpoint ci-out/debug/final.pt \
             --prompt "Dorothy" --max-new-tokens 16 --seed 0 --device cpu
+
+      - name: Build the attention explorer
+        run: |
+          uv run llmfs-viz --checkpoint ci-out/debug/final.pt \
+            --out ci-out/attention.html --device cpu
+          test -s ci-out/attention.html
