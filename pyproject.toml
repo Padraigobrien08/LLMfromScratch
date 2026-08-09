@@ -1,0 +1,65 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "llmfs"
+version = "0.1.0"
+description = "A from-scratch decoder-only language model: GPT-2 reproduction, modern architecture, ablations, and efficiency benchmarks."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [{ name = "Padraig O'Brien" }]
+
+dependencies = [
+    "torch>=2.4",
+    "numpy>=1.26,<3",
+    "tokenizers>=0.20",
+    "pyyaml>=6.0",
+    "tqdm>=4.66",
+]
+
+[project.optional-dependencies]
+# Everything needed to prepare data and run a real training job.
+train = [
+    "datasets>=3.0",
+    "tensorboard>=2.17",
+    "wandb>=0.18",
+]
+# Benchmarking, plotting and the ablation write-up.
+bench = [
+    "matplotlib>=3.9",
+    "pandas>=2.2",
+    "psutil>=6.0",
+]
+dev = [
+    "pytest>=8.0",
+    "pytest-xdist>=3.6",
+    "ruff>=0.6",
+]
+
+[project.scripts]
+llmfs-train = "llmfs.train.cli:main"
+llmfs-generate = "llmfs.eval.generate:main"
+llmfs-eval = "llmfs.eval.evaluate:main"
+llmfs-prepare-data = "llmfs.data.prepare:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/llmfs"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
+filterwarnings = ["ignore::DeprecationWarning"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM"]
+ignore = [
+    "E741", # single-char names are idiomatic in tensor code (q, k, v, B, T, C)
+    "B905", # zip(strict=) noise
+]
