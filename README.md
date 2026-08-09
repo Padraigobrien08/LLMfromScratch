@@ -24,7 +24,8 @@ what is built and verified, and what is designed but not yet run.
 | GPT-2 124M reproduction on FineWeb-Edu | Configured; **GPU run pending** |
 | Ablation study (11 arms) | Configs + protocol done; **runs pending** |
 | Inference efficiency (quantization, speculative decoding) | **Not started** |
-| Multi-GPU scaling + fault-tolerance design doc | DDP wired; **scaling run and doc pending** |
+| Fault-tolerance design doc | **Done** — [docs/fault-tolerance.md](docs/fault-tolerance.md) |
+| Multi-GPU scaling report | DDP wired; **scaling run pending** |
 | Interactive attention visualization | Attention export done; **UI not started** |
 
 No results are reported below that have not been measured. Sections describing
@@ -182,6 +183,31 @@ Already wired and awaiting measurement on real hardware: mixed precision (bf16),
 
 ---
 
+## Reliability
+
+[**docs/fault-tolerance.md**](docs/fault-tolerance.md) — the design doc for running a
+24-hour job on hardware that fails: failure taxonomy, checkpointing strategy,
+resumption semantics, silent-corruption and straggler detection, and what breaks at
+1,000+ GPUs.
+
+Two things it produced that changed the code's direction rather than just describing
+it:
+
+- **The checkpoint interval is denominated in the wrong unit.** Applying the
+  Young/Daly optimum to this run's real step times shows the configured 1000-step
+  default wastes ~16% of a single-GPU spot run — about 3.9 hours — because a *step* is
+  not a fixed amount of wall-clock, and the failure rate it guards against is.
+- **"Atomic write" was over-claimed.** `os.replace` is atomic against interruption but
+  not against power loss, since POSIX does not guarantee the data reached disk before
+  the rename became visible. Documented as a gap with the fix, rather than left as a
+  claim that sounds stronger than it is.
+
+The doc marks every claim **[implemented]**, with the test that pins it, or
+**[proposed]**, with an effort estimate — and ends with a prioritised gap list where
+the top five items total under a hundred lines.
+
+---
+
 ## Repository layout
 
 ```
@@ -192,8 +218,8 @@ src/llmfs/
   eval/       evaluation and generation entrypoints
   bench/      throughput, memory and cost benchmarks
 configs/      gpt2-124m, llama-124m, debug, and 11 single-axis ablation arms
-tests/        160 tests — component correctness, config validation, end-to-end training
-docs/         reproduction protocol
+tests/        184 tests — component correctness, config validation, end-to-end training
+docs/         reproduction protocol, fault-tolerance design
 notebooks/    exploration only; nothing here is the source of truth
 legacy/       the original tutorial scripts, kept for reference
 ```

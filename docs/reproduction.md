@@ -129,12 +129,25 @@ budgeted against, and the gap between it and reality is itself worth reporting.
 
 | | |
 | --- | --- |
-| Compute | 6 × 124e6 × 10e9 ≈ 7.4e18 FLOPs (forward+backward, 6N rule) |
-| At 40% MFU on one A100-80GB (312 TFLOP/s bf16) | ≈ 16 GPU-hours |
-| At ~$1.50/hr spot | ≈ $25 |
+| Compute | 1.09e19 FLOPs (forward+backward), from `Transformer.flops_per_token` |
+| At 40% MFU on one A100-80GB (312 TFLOP/s bf16) | ≈ 24 GPU-hours |
+| At ~$1.50/hr spot | ≈ $36 |
+| On 8× A100 | ≈ 3 GPU-hours wall-clock |
+
+The naive `6N` rule gives 7.4e18 and would put this at 16 GPU-hours — a 1.5×
+underestimate. Two terms it omits: the tied output head is a real 50,304 × 768 matmul
+even though weight tying counts the matrix only once in the parameter total, and
+attention contributes a sequence-length-dependent `12 · n_layer · n_embd · block_size`
+term that `6N` ignores entirely. The figure above uses the model's own accounting so
+that MFU and cost are computed against the same number.
 
 MFU is logged every `log_interval` steps from the first step, so the assumption
 behind this estimate is visible while the run is in progress rather than after it.
+
+Checkpointing overhead and expected work lost to spot preemption are analysed
+separately in [fault-tolerance.md](fault-tolerance.md) §3.2 — on a single spot
+instance the currently-configured checkpoint interval adds roughly 16% on top of the
+figures above, which is a larger effect than most of the training-efficiency work.
 
 ---
 
