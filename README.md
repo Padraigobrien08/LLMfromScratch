@@ -30,12 +30,12 @@ what is built and verified, and what is designed but not yet run.
 
 | Pillar | Status |
 | --- | --- |
-| Package, config system, data pipeline, trainer, CI | **Done** — 223 tests green, end-to-end verified |
+| Package, config system, data pipeline, trainer, CI | **Done** — 274 tests green, end-to-end verified |
 | Modern architecture (RoPE, RMSNorm, SwiGLU, GQA, KV cache) | **Done** — hand-implemented, property-tested |
 | GPT-2 124M reproduction on FineWeb-Edu | **Done** — 3.0503 val loss, [docs/reproduction.md](docs/reproduction.md) |
 | Ablation study (12 arms × 3 seeds) | **Done** — [docs/ablations.md](docs/ablations.md), 39 runs, 7.6 GPU-h |
-| Efficiency benchmarks (throughput, memory, KV cache) | **Done** — measured on H100, below |
-| Quantization + speculative decoding | **Done** — [docs/efficiency.md](docs/efficiency.md); GPU throughput pending |
+| Efficiency benchmarks (throughput, memory, KV cache) | **Done** — H100 training, 4090 inference; the cache sweep found a 30% bug, below |
+| Quantization + speculative decoding | **Done** — [docs/efficiency.md](docs/efficiency.md), measured on CUDA |
 | Fault-tolerance design doc | **Done** — [docs/fault-tolerance.md](docs/fault-tolerance.md) |
 | Multi-GPU scaling report | DDP wired; **scaling run pending** |
 | Interactive attention visualization | **Done** — [live](https://padraigobrien08.github.io/LLMfromScratch/attention/), auto-deployed from CI |
@@ -89,6 +89,11 @@ way into a training run and only show up as a mysteriously worse loss:
 - **Mask alignment** — `build_causal_mask` is bottom-right aligned. PyTorch's
   `is_causal=True` is top-left aligned and is silently wrong whenever the query block
   is shorter than the key sequence — i.e. on every decode step.
+- **That the decode step takes the *fast* path**, not merely the correct one: a test
+  records what reaches SDPA and asserts no mask arrives on a single-token step, because
+  passing one forfeits the fused kernel. Every other test here checks the cache's
+  answer; this is the one that checks its speed, and its absence hid a 30% regression
+  behind a green suite.
 
 ```bash
 pytest tests -q
@@ -256,9 +261,11 @@ largest caveat and is stated as such in the write-up.
 
 ## Efficiency
 
-Measured on the H100 that trained the model, at the 124M configuration. Every result
-carries its provenance — GPU, driver, torch build, measured 808 TFLOP/s dense bf16,
-and the commit that produced it.
+All at the 124M configuration. Training figures are from the H100 that trained the model
+(measured 808 TFLOP/s dense bf16); inference, quantization and speculative decoding are
+from a rented RTX 4090 (measured 167.9 TFLOP/s, ~$0.06 for the whole benchmark run). Every
+result carries its provenance — GPU, arch, driver, torch build, measured TFLOP/s, and the
+commit that produced it.
 
 ### Training throughput
 
@@ -278,27 +285,73 @@ checkpointing with a 4× batch losing to compile with a 2× batch. Checkpointing
 when memory is the binding constraint, and here it is not. Reporting it as a win
 because it saves memory would have been the easy mistake.
 
-### Inference
+The same sweep on the 24 GiB 4090 shows the other side of that, and the contrast is the
+point of running it twice:
 
-| Variant | tokens/sec | time to first token | KV cache |
+| Variant | tokens/sec | peak memory | MFU |
 | --- | --- | --- | --- |
-| naive (no cache), batch 1 | 388.4 | 2.2 ms | — |
-| kv-cache, batch 1 | 384.3 | 27.0 ms | 13.5 MiB |
-| kv-cache, batch 4 | 1,547.0 | 4.2 ms | 54 MiB |
-| kv-cache, batch 16 | **5,844.1** | 7.8 ms | 216 MiB |
+| baseline | 104,260 | 14.5 GiB | 68.7% |
+| **`torch.compile`** | **118,250** | 14.5 GiB | **77.9%** |
+| gradient checkpointing | 92,095 | 10.3 GiB | 60.7% |
+| compile + checkpointing | 107,855 | **9.9 GiB** | 71.1% |
+| micro-batch ×2 | **OOM** | — | — |
+| checkpoint + batch ×4 | **OOM** | — | — |
 
-**The KV cache gives no speedup here, and that is a real result rather than a bug.**
-At a 64-token prompt and 128 generated tokens, decoding a 124M model on an H100 is
-bound by streaming weights from memory, not by attention over the prefix — so
-re-running 192 tokens costs almost the same as running one. The cache's advantage
-grows with sequence length, and this benchmark is too short to show it. On a 7M model
-on MPS the same comparison gave 3.1×, because there the weights are small enough that
-attention dominates.
+Two things invert. **MFU nearly doubles** — 77.9% against 41.5% for the same code and the
+same compile speedup (+13.4%) — because a 124M model cannot keep an H100 busy; the H100's
+low MFU was a statement about the model being too small for the GPU, not about the code.
+And the memory ceiling that "never pays" on 80 GiB binds immediately on 24 GiB: the ×2
+micro-batch that was the *fastest* H100 configuration simply does not fit, while
+checkpointing holds peak memory to 9.9 GiB for 9% throughput. So checkpointing is worth
+exactly what the card makes it worth.
 
-Two honest limitations: the batch-1 `ttft` includes allocating the cache, which is why
-it reads worse than the naive path, and the benchmark should sweep sequence length —
-that is the axis the cache exists for. Batching is where the measured win is: **15×
-throughput from batch 1 to 16** for 216 MiB of cache.
+One gap, since it is the obvious question: the variant that would settle it — checkpointing
+*plus* the ×2 batch, the config that might fit only with checkpointing — is not in the
+sweep. The list was written for an 80 GiB card, where nothing needed rescuing.
+
+### Inference, and a bug the benchmark found
+
+An earlier version of this README reported that the KV cache gave no speedup, and
+explained it as a property rather than a defect: decode is bound by streaming weights
+from memory, not by attention over the prefix. It also admitted the benchmark ought to
+sweep sequence length, since that is the axis a cache exists for.
+
+The sweep got written. It showed the cache **34% slower** than recomputing from scratch,
+losing at every length — and its throughput flat at ~170 tok/s regardless of length,
+which is the signature of a fixed per-step cost, not of attention. A cache that does
+strictly less arithmetic cannot lose on work; it can only lose on overhead.
+
+The cause was three lines. A decode step has `q_len == 1`, so it took the branch that
+builds an explicit causal mask — and **passing `attn_mask` to SDPA disqualifies it from
+the fused flash kernels**, dropping it onto the math backend, while the naive path kept
+`is_causal=True` and stayed fused. For a single query every cached key precedes it, so
+that mask was all-`True`: pure cost, no information. Removing it (RTX 4090, 128→1024
+generated tokens):
+
+| Generated tokens | naive | KV cache | advantage | gain from the fix |
+| --- | --- | --- | --- | --- |
+| 128 | 247 tok/s | 218 | 0.88× | **1.30×** |
+| 512 | 247 | 223 | 0.90× | **1.30×** |
+| 1024 | 197 | 222 | **1.12×** | **1.38×** |
+
+The naive column moved 0.97–1.01× — the untouched control that makes this a measurement
+rather than a coincidence. The original explanation was directionally right and
+quantitatively wrong: decode at this scale *is* overhead-bound, which is why the cache
+curve is flat, but the crossover is real and lands at **1024 tokens**, exactly this
+model's `block_size`.
+
+I wrote "a real result rather than a bug" about a number that was both, and the
+plausibility of the explanation is what stopped me looking. **A plausible story for a
+disappointing measurement is the most expensive kind of mistake** — it converts a bug
+into a finding and closes the investigation. What broke it open was the shape of the
+data, not the headline: an explanation that fits one number but not the curve is not yet
+an explanation. The gap was in the tests too — every test asserted the cache produced
+the right *answer*, none that it took the fast *path*, so a 30% regression passed a green
+suite. Two now do, both mutation-checked.
+
+Batching is where the cache is unambiguously worth it, because it is what makes a batch
+affordable at all: **16.5× throughput from batch 1 to 16** (219 → 3,622 tok/s) for
+216 MiB of cache.
 
 ### Quantization and speculative decoding
 
@@ -306,17 +359,17 @@ Both hand-implemented and measured. **[Full results: docs/efficiency.md](docs/ef
 
 | Quantization | Memory | Perplexity | Δ ppl | Decode |
 | --- | --- | --- | --- | --- |
-| fp32 baseline | 475 MiB | 19.083 | — | 154.3 tok/s |
-| **int8 g128** | 237 MiB (2.00×) | 19.089 | **+0.007** | 28.1 |
-| **int4 g128** | 196 MiB (2.42×) | 20.431 | **+1.348** | 22.3 |
-| int4 per-tensor | 192 MiB (2.47×) | 22.648 | +3.566 | 22.4 |
+| fp32 baseline | 475 MiB | 19.091 | — | 191.8 tok/s |
+| **int8 g128** | 237 MiB (2.00×) | 19.103 | **+0.013** | 139.8 (0.73×) |
+| **int4 g128** | 196 MiB (2.42×) | 20.442 | **+1.351** | 94.1 (0.49×) |
+| int4 per-tensor | 192 MiB (2.47×) | 22.664 | +3.574 | 94.4 (0.49×) |
 
 | Speculative decoding | Speedup | Acceptance | Tokens/target fwd |
 | --- | --- | --- | --- |
-| **prompt-lookup, code-like text** | **3.00×** | 96.5% | 6.40 |
-| prompt-lookup, repetitive text | 1.59× | 100% | 3.05 |
-| prompt-lookup, prose | 0.76× | 53.6% | 1.88 |
-| model-draft, code-like text | 0.64× | **100%** | **8.00** |
+| **prompt-lookup, code-like text** | **5.35×** | 97.4% | 7.53 |
+| prompt-lookup, prose | 2.73× | 66.7% | 3.28 |
+| prompt-lookup, repetitive text | 2.39× | 100% | 2.98 |
+| model-draft, code-like text | 1.08× | 95.8% | **8.53** |
 
 Four findings, each reported against the flattering framing:
 
@@ -325,19 +378,23 @@ Four findings, each reported against the flattering framing:
   including adversarial ones. An implementation that were merely *close* would not be a
   faster decoder, it would be a different model.
 - **Acceptance rate and speedup are different questions.** The last row is the lesson:
-  100% acceptance and 8 tokens per target forward pass — the algorithmic ideal — still
-  running at 0.64×, because the draft model is the same size as the target. A drafter
-  must be cheap first and accurate second.
+  95.8% acceptance and 8.53 tokens per target forward pass — essentially the algorithmic
+  ideal — returning 1.08×, level after overhead, because the draft model is the same size
+  as the target. A drafter must be cheap first and accurate second.
 - **Grouping is worth 2.2 perplexity points at 4 bits.** One scale per tensor is set by
   its largest outlier; per-128-feature groups confine the damage. And **HellaSwag could
   not measure any of this** — a 1.5-point standard error at n=1000 swallowed every
   scheme, which is why the quality column is perplexity.
-- **Every quantized scheme is 74–85% slower.** Dequantize-then-matmul materialises a
-  full-size weight, so bytes moved go *up*. The memory saving is in what is stored; a
-  fused kernel is what would make it a speed saving. Compression also caps at 2.42×,
-  not 8×, because the tied token embedding is a third of this model.
+- **Every quantized scheme is slower**: −27% at int8, −51% at int4. Dequantize-then-matmul
+  materialises a full-size weight, so bytes moved go *up*. The memory saving is in what is
+  stored; a fused kernel is what would make it a speed saving. Compression also caps at
+  2.42×, not 8×, because the tied token embedding is a third of this model.
 
-Throughput figures are MPS and directional; memory and quality are device-independent.
+Memory and quality are device-independent; throughput is not, and this section is the
+evidence for that. Moving from MPS to CUDA flipped the sign of the prose speculative
+result (0.76× → 2.73×), so the earlier claim that prompt-lookup "loses on prose" was a
+statement about MPS rather than about the method. Single-device throughput measures a
+device-algorithm pair.
 
 ---
 
@@ -483,7 +540,7 @@ src/llmfs/
   ablation/   sweep runner, paired-seed analysis, tables and plots
   bench/      training + inference throughput, memory, cost, provenance
 configs/      gpt2-124m, llama-124m, debug, and 11 single-axis ablation arms
-tests/        223 tests — component correctness, config validation, end-to-end training
+tests/        274 tests — component correctness, config validation, end-to-end training
 web/          the interactive site: explainer, RoPE explorer, ablations (69 tests)
 scripts/      GPU pod automation, and the exporters that pin the site to the model
 docs/         reproduction protocol, fault-tolerance design

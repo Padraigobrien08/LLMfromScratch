@@ -1,12 +1,12 @@
 {
   "provenance": {
-    "timestamp_utc": "2026-08-10T20:29:06Z",
+    "timestamp_utc": "2026-08-10T20:43:42Z",
     "hostname": "4be4c7ed24a5",
     "platform": "Linux-6.8.0-134-generic-x86_64-with-glibc2.35",
     "python": "3.11.10",
     "torch": "2.4.1+cu124",
     "device": "cuda",
-    "git_commit": "6c13dcb1f434eec6ade8cb5804cd38529e428743",
+    "git_commit": "42ed0a66ed7e90712750e4871b7d6efc96fe6ae1",
     "git_branch": "main",
     "git_dirty": false,
     "gpu": "NVIDIA GeForce RTX 4090",
@@ -24,7 +24,7 @@
     ],
     "bf16_supported": true,
     "driver": "580.173.02",
-    "measured_bf16_tflops": 168.1,
+    "measured_bf16_tflops": 167.9,
     "cpu_count": 48
   },
   "meta": {
@@ -42,10 +42,10 @@
         "block_size": 1024,
         "dtype": "bfloat16"
       },
-      "tokens_per_sec": 104274.42650274148,
-      "ms_per_step": 157.1238562464714,
-      "peak_memory_gib": 14.46469259262085,
-      "mfu": 0.6870634833686661,
+      "tokens_per_sec": 104259.58792105697,
+      "ms_per_step": 157.14621865190566,
+      "peak_memory_gib": 14.46334981918335,
+      "mfu": 0.6869657120553887,
       "extra": {},
       "error": null
     },
@@ -59,10 +59,10 @@
         "block_size": 1024,
         "dtype": "bfloat16"
       },
-      "tokens_per_sec": 118530.96285015701,
-      "ms_per_step": 138.22548645548522,
-      "peak_memory_gib": 14.4736647605896,
-      "mfu": 0.7809997038989204,
+      "tokens_per_sec": 118250.38820533582,
+      "ms_per_step": 138.5534563451074,
+      "peak_memory_gib": 14.47091817855835,
+      "mfu": 0.7791509994823039,
       "extra": {},
       "error": null
     },
@@ -76,10 +76,10 @@
         "block_size": 1024,
         "dtype": "bfloat16"
       },
-      "tokens_per_sec": 91989.63554223538,
-      "ms_per_step": 178.10702155111358,
+      "tokens_per_sec": 92095.46439189548,
+      "ms_per_step": 177.90235499851406,
       "peak_memory_gib": 10.257441997528076,
-      "mfu": 0.6061190797131896,
+      "mfu": 0.6068163852801155,
       "extra": {},
       "error": null
     },
@@ -93,10 +93,10 @@
         "block_size": 1024,
         "dtype": "bfloat16"
       },
-      "tokens_per_sec": 107795.03452174152,
-      "ms_per_step": 151.99215875472873,
+      "tokens_per_sec": 107855.05037169768,
+      "ms_per_step": 151.90758284879848,
       "peak_memory_gib": 9.911791801452637,
-      "mfu": 0.7102607455377007,
+      "mfu": 0.7106561895627717,
       "extra": {},
       "error": null
     },
@@ -115,7 +115,7 @@
       "peak_memory_gib": 0.0,
       "mfu": null,
       "extra": {},
-      "error": "OOM: CUDA out of memory. Tried to allocate 6.14 GiB. GPU 0 has a total capacity of 23.52 GiB of which 5.36 GiB is free. Including non-PyTorch memory, this process has 18.14 GiB memory in use. Of the allocated memory 17.62 GiB is allocated by PyTorch, and 59.63 MiB is reserved by PyTorch but unallocated. If reserved but unallocated memory is large try setting PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True to avoid fragmentation.  See documentation for Memory Management  (https://pytorch.org/docs/stable/notes/cuda.html#environment-variables)"
+      "error": "OOM: CUDA out of memory. Tried to allocate 6.14 GiB. GPU 0 has a total capacity of 23.52 GiB of which 5.37 GiB is free. Including non-PyTorch memory, this process has 18.14 GiB memory in use. Of the allocated memory 17.62 GiB is allocated by PyTorch, and 52.75 MiB is reserved by PyTorch but unallocated. If reserved but unallocated memory is large try setting PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True to avoid fragmentation.  See documentation for Memory Management  (https://pytorch.org/docs/stable/notes/cuda.html#environment-variables)"
     },
     {
       "suite": "training",
@@ -132,7 +132,7 @@
       "peak_memory_gib": 0.0,
       "mfu": null,
       "extra": {},
-      "error": "OOM: CUDA out of memory. Tried to allocate 12.28 GiB. GPU 0 has a total capacity of 23.52 GiB of which 7.04 GiB is free. Including non-PyTorch memory, this process has 16.47 GiB memory in use. Of the allocated memory 15.82 GiB is allocated by PyTorch, and 192.36 MiB is reserved by PyTorch but unallocated. If reserved but unallocated memory is large try setting PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True to avoid fragmentation.  See documentation for Memory Management  (https://pytorch.org/docs/stable/notes/cuda.html#environment-variables)"
+      "error": "OOM: CUDA out of memory. Tried to allocate 12.28 GiB. GPU 0 has a total capacity of 23.52 GiB of which 7.08 GiB is free. Including non-PyTorch memory, this process has 16.42 GiB memory in use. Of the allocated memory 15.82 GiB is allocated by PyTorch, and 148.36 MiB is reserved by PyTorch but unallocated. If reserved but unallocated memory is large try setting PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True to avoid fragmentation.  See documentation for Memory Management  (https://pytorch.org/docs/stable/notes/cuda.html#environment-variables)"
     },
     {
       "suite": "inference",
@@ -144,13 +144,13 @@
         "gen_len": 128,
         "n_kv_head": 12
       },
-      "tokens_per_sec": 169.77684019472863,
-      "ms_per_step": 5.890084883503732,
-      "peak_memory_gib": 1.9039182662963867,
+      "tokens_per_sec": 218.9737609279512,
+      "ms_per_step": 4.566757203065208,
+      "peak_memory_gib": 2.83255672454834,
       "mfu": null,
       "extra": {
-        "time_to_first_token_ms": 6.379909114912152,
-        "total_seconds": 0.7539308650884777,
+        "time_to_first_token_ms": 6.560164969414473,
+        "total_seconds": 0.5845449219923466,
         "kv_cache_mib": 13.5
       },
       "error": null
@@ -165,13 +165,13 @@
         "gen_len": 128,
         "n_kv_head": 12
       },
-      "tokens_per_sec": 249.9926970336394,
-      "ms_per_step": 4.000116850875202,
-      "peak_memory_gib": 1.8881096839904785,
+      "tokens_per_sec": 256.0511840377609,
+      "ms_per_step": 3.905469149685814,
+      "peak_memory_gib": 2.8167481422424316,
       "mfu": null,
       "extra": {
-        "time_to_first_token_ms": 4.373942036181688,
-        "total_seconds": 0.5120149569120258,
+        "time_to_first_token_ms": 3.9178039878606796,
+        "total_seconds": 0.4999000511597842,
         "kv_cache_mib": 0.0
       },
       "error": null
@@ -186,13 +186,13 @@
         "gen_len": 128,
         "n_kv_head": 12
       },
-      "tokens_per_sec": 702.2036394219826,
-      "ms_per_step": 5.696353273378918,
-      "peak_memory_gib": 1.9891858100891113,
+      "tokens_per_sec": 916.8362594857908,
+      "ms_per_step": 4.362829195088125,
+      "peak_memory_gib": 2.9178242683410645,
       "mfu": null,
       "extra": {
-        "time_to_first_token_ms": 5.553025985136628,
-        "total_seconds": 0.7291332189925015,
+        "time_to_first_token_ms": 5.883706966415048,
+        "total_seconds": 0.55844213697128,
         "kv_cache_mib": 54.0
       },
       "error": null
@@ -207,13 +207,13 @@
         "gen_len": 128,
         "n_kv_head": 12
       },
-      "tokens_per_sec": 2765.8250714858937,
-      "ms_per_step": 5.784892242445494,
-      "peak_memory_gib": 2.3324532508850098,
+      "tokens_per_sec": 3622.226457345152,
+      "ms_per_step": 4.417172749526799,
+      "peak_memory_gib": 3.260603427886963,
       "mfu": null,
       "extra": {
-        "time_to_first_token_ms": 8.546450175344944,
-        "total_seconds": 0.7404662070330232,
+        "time_to_first_token_ms": 8.327991934493184,
+        "total_seconds": 0.5653981119394302,
         "kv_cache_mib": 216.0
       },
       "error": null
@@ -227,12 +227,12 @@
         "prompt_len": 32,
         "gen_len": 96
       },
-      "tokens_per_sec": 168.19965026583182,
-      "ms_per_step": 5.945315572413771,
-      "peak_memory_gib": 1.8787665367126465,
+      "tokens_per_sec": 217.91850185850905,
+      "ms_per_step": 4.588871488522273,
+      "peak_memory_gib": 2.8091139793395996,
       "mfu": null,
       "extra": {
-        "cache_speedup_at_this_length": 0.662
+        "cache_speedup_at_this_length": 0.882
       },
       "error": null
     },
@@ -245,12 +245,12 @@
         "prompt_len": 32,
         "gen_len": 96
       },
-      "tokens_per_sec": 254.2480377623762,
-      "ms_per_step": 3.9331670316945138,
-      "peak_memory_gib": 1.8787665367126465,
+      "tokens_per_sec": 247.11111080425758,
+      "ms_per_step": 4.046762594953179,
+      "peak_memory_gib": 2.8091139793395996,
       "mfu": null,
       "extra": {
-        "cache_speedup_at_this_length": 0.662
+        "cache_speedup_at_this_length": 0.882
       },
       "error": null
     },
@@ -263,12 +263,12 @@
         "prompt_len": 32,
         "gen_len": 224
       },
-      "tokens_per_sec": 168.5847088094248,
-      "ms_per_step": 5.931736081298108,
-      "peak_memory_gib": 1.8821635246276855,
+      "tokens_per_sec": 220.62125063608966,
+      "ms_per_step": 4.532654932907982,
+      "peak_memory_gib": 2.8125109672546387,
       "mfu": null,
       "extra": {
-        "cache_speedup_at_this_length": 0.67
+        "cache_speedup_at_this_length": 0.894
       },
       "error": null
     },
@@ -281,12 +281,12 @@
         "prompt_len": 32,
         "gen_len": 224
       },
-      "tokens_per_sec": 251.7642732870255,
-      "ms_per_step": 3.9719694416687292,
-      "peak_memory_gib": 1.8821635246276855,
+      "tokens_per_sec": 246.7681075588703,
+      "ms_per_step": 4.0523875224088055,
+      "peak_memory_gib": 2.8125109672546387,
       "mfu": null,
       "extra": {
-        "cache_speedup_at_this_length": 0.67
+        "cache_speedup_at_this_length": 0.894
       },
       "error": null
     },
@@ -299,12 +299,12 @@
         "prompt_len": 32,
         "gen_len": 480
       },
-      "tokens_per_sec": 171.5956168213775,
-      "ms_per_step": 5.827654683283375,
-      "peak_memory_gib": 1.892920970916748,
+      "tokens_per_sec": 222.67301519597302,
+      "ms_per_step": 4.490889922696321,
+      "peak_memory_gib": 2.823268413543701,
       "mfu": null,
       "extra": {
-        "cache_speedup_at_this_length": 0.698
+        "cache_speedup_at_this_length": 0.902
       },
       "error": null
     },
@@ -317,12 +317,12 @@
         "prompt_len": 32,
         "gen_len": 480
       },
-      "tokens_per_sec": 245.7178389821632,
-      "ms_per_step": 4.069708589910684,
-      "peak_memory_gib": 1.892920970916748,
+      "tokens_per_sec": 246.94126712002767,
+      "ms_per_step": 4.049545916980908,
+      "peak_memory_gib": 2.823268413543701,
       "mfu": null,
       "extra": {
-        "cache_speedup_at_this_length": 0.698
+        "cache_speedup_at_this_length": 0.902
       },
       "error": null
     },
@@ -335,12 +335,12 @@
         "prompt_len": 32,
         "gen_len": 992
       },
-      "tokens_per_sec": 161.21807478912604,
-      "ms_per_step": 6.202778449674483,
-      "peak_memory_gib": 1.90855073928833,
+      "tokens_per_sec": 221.74968422235565,
+      "ms_per_step": 4.509589285355046,
+      "peak_memory_gib": 2.8389010429382324,
       "mfu": null,
       "extra": {
-        "cache_speedup_at_this_length": 0.822
+        "cache_speedup_at_this_length": 1.123
       },
       "error": null
     },
@@ -353,12 +353,12 @@
         "prompt_len": 32,
         "gen_len": 992
       },
-      "tokens_per_sec": 196.07036513732123,
-      "ms_per_step": 5.100209811409455,
-      "peak_memory_gib": 1.90855073928833,
+      "tokens_per_sec": 197.460915738584,
+      "ms_per_step": 5.064293337542744,
+      "peak_memory_gib": 2.8389010429382324,
       "mfu": null,
       "extra": {
-        "cache_speedup_at_this_length": 0.822
+        "cache_speedup_at_this_length": 1.123
       },
       "error": null
     }
