@@ -142,11 +142,24 @@ class CausalSelfAttention(nn.Module):
     ) -> torch.Tensor:
         dropout_p = self.attn_dropout_p if self.training else 0.0
 
-        # Fast path: no cache, so the query and key sequences coincide and SDPA's
-        # own causal flag is both correct and kernel-fused.
+        # Which of these three branches we take is the single biggest lever on decode
+        # speed, because passing an explicit ``attn_mask`` disqualifies SDPA from its
+        # fused flash/mem-efficient kernels and drops it onto the math backend. So a
+        # mask is built only when one is genuinely needed.
         if q_len == kv_len:
+            # No cache: query and key sequences coincide, so SDPA's own causal flag
+            # is both correct and fused.
             attn_mask, is_causal = None, True
+        elif q_len == 1:
+            # Single-token decode step. Every cached key precedes this query, so the
+            # causal mask is all-True and carries no information — building it would
+            # cost a mask allocation per layer per token *and* forfeit the fused
+            # kernel, which is why the cache used to lose to plain recomputation.
+            attn_mask, is_causal = None, False
         else:
+            # Prefill against a partly-filled cache, or speculative verification of
+            # several draft tokens at once: the query block sits at the end of the
+            # key sequence and needs a real bottom-right aligned mask.
             attn_mask = build_causal_mask(q_len, kv_len, q.device)[None, None]
             is_causal = False
 

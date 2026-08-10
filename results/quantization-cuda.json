@@ -1,0 +1,151 @@
+{
+  "meta": {
+    "checkpoint": "/root/llmfs/checkpoints/best.pt",
+    "step": 19000,
+    "device": "cuda",
+    "hellaswag_limit": null,
+    "hellaswag_reference": 0.2955,
+    "provenance": {
+      "timestamp_utc": "2026-08-10T20:30:11Z",
+      "hostname": "4be4c7ed24a5",
+      "platform": "Linux-6.8.0-134-generic-x86_64-with-glibc2.35",
+      "python": "3.11.10",
+      "torch": "2.4.1+cu124",
+      "device": "cuda",
+      "git_commit": "6c13dcb1f434eec6ade8cb5804cd38529e428743",
+      "git_branch": "main",
+      "git_dirty": false,
+      "gpu": "NVIDIA GeForce RTX 4090",
+      "gpu_memory_gib": 23.5,
+      "gpu_arch": "sm_89",
+      "cuda": "12.4",
+      "torch_arch_list": [
+        "sm_50",
+        "sm_60",
+        "sm_70",
+        "sm_75",
+        "sm_80",
+        "sm_86",
+        "sm_90"
+      ],
+      "bf16_supported": true,
+      "driver": "580.173.02",
+      "cpu_count": 48
+    }
+  },
+  "results": [
+    {
+      "name": "fp32 baseline",
+      "bits": null,
+      "group_size": null,
+      "quantized_embedding": false,
+      "memory_mib": 474.837890625,
+      "compression": 1.0,
+      "perplexity": 19.090686066879346,
+      "acc_norm": null,
+      "acc": null,
+      "decode_tok_s": 171.19384781923526,
+      "extra": {}
+    },
+    {
+      "name": "int8 per-tensor",
+      "bits": 8,
+      "group_size": -1,
+      "quantized_embedding": false,
+      "memory_mib": 232.470703125,
+      "compression": 2.042570888468809,
+      "perplexity": 19.10554525985343,
+      "acc_norm": null,
+      "acc": null,
+      "decode_tok_s": 118.22524106465261,
+      "extra": {
+        "bits": 8,
+        "group_size": -1,
+        "replaced": 48,
+        "linear_bytes_before": 494272512,
+        "linear_bytes_after": 240132096,
+        "compression": 2.0583358919250845
+      }
+    },
+    {
+      "name": "int8 g128",
+      "bits": 8,
+      "group_size": 128,
+      "quantized_embedding": false,
+      "memory_mib": 236.900390625,
+      "compression": 2.004377828893671,
+      "perplexity": 19.10318688530482,
+      "acc_norm": null,
+      "acc": null,
+      "decode_tok_s": 117.21814600047114,
+      "extra": {
+        "bits": 8,
+        "group_size": 128,
+        "replaced": 48,
+        "linear_bytes_before": 494272512,
+        "linear_bytes_after": 244776960,
+        "compression": 2.019277108433735
+      }
+    },
+    {
+      "name": "int4 per-tensor",
+      "bits": 4,
+      "group_size": -1,
+      "quantized_embedding": false,
+      "memory_mib": 191.970703125,
+      "compression": 2.4734914385129567,
+      "perplexity": 22.664289419087474,
+      "acc_norm": null,
+      "acc": null,
+      "decode_tok_s": 80.61756123680678,
+      "extra": {
+        "bits": 4,
+        "group_size": -1,
+        "replaced": 48,
+        "linear_bytes_before": 494272512,
+        "linear_bytes_after": 197664768,
+        "compression": 2.5005594927265946
+      }
+    },
+    {
+      "name": "int4 g128",
+      "bits": 4,
+      "group_size": 128,
+      "quantized_embedding": false,
+      "memory_mib": 196.400390625,
+      "compression": 2.41770339210597,
+      "perplexity": 20.442163359084685,
+      "acc_norm": null,
+      "acc": null,
+      "decode_tok_s": 82.44799738676731,
+      "extra": {
+        "bits": 4,
+        "group_size": 128,
+        "replaced": 48,
+        "linear_bytes_before": 494272512,
+        "linear_bytes_after": 202309632,
+        "compression": 2.443148688046647
+      }
+    },
+    {
+      "name": "int4 g32",
+      "bits": 4,
+      "group_size": 32,
+      "quantized_embedding": false,
+      "memory_mib": 211.587890625,
+      "compression": 2.2441638281963945,
+      "perplexity": 20.29736203603998,
+      "acc_norm": null,
+      "acc": null,
+      "decode_tok_s": 81.85398154238277,
+      "extra": {
+        "bits": 4,
+        "group_size": 32,
+        "replaced": 48,
+        "linear_bytes_before": 494272512,
+        "linear_bytes_after": 218234880,
+        "compression": 2.264864864864865
+      }
+    }
+  ]
+}

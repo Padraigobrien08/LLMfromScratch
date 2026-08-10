@@ -107,3 +107,57 @@ def test_generation_beyond_block_size_rejected() -> None:
     prompt = torch.randint(0, 97, (1, 30))
     with pytest.raises(ValueError, match="exceeds block_size"):
         model.generate(prompt, GenerationConfig(max_new_tokens=10))
+
+
+def test_decode_step_passes_no_attn_mask(monkeypatch: pytest.MonkeyPatch) -> None:
+    """A single-token decode step must reach SDPA with ``attn_mask=None``.
+
+    Not a style preference: an explicit mask disqualifies SDPA from its fused
+    flash/mem-efficient kernels and silently drops it onto the math backend. When
+    ``q_len == 1`` the causal mask is all-True and therefore pure cost — building it
+    made cached decoding *slower* than recomputing from scratch on an RTX 4090
+    (0.66x at 1024 tokens). This pins the fix so it cannot regress unnoticed.
+    """
+    import torch.nn.functional as F
+
+    from llmfs.model import attention as attention_module
+
+    seen: list[object] = []
+    real_sdpa = F.scaled_dot_product_attention
+
+    def recording_sdpa(q, k, v, attn_mask=None, **kwargs):  # type: ignore[no-untyped-def]
+        if q.shape[2] == 1:  # only the decode steps, not the prefill
+            seen.append(attn_mask)
+        return real_sdpa(q, k, v, attn_mask=attn_mask, **kwargs)
+
+    monkeypatch.setattr(attention_module.F, "scaled_dot_product_attention", recording_sdpa)
+
+    model = tiny_model()
+    cache = model.make_cache(batch_size=1, max_seq_len=16)
+    model(torch.randint(0, 97, (1, 4)), cache=cache)  # prefill
+    for _ in range(3):
+        model(torch.randint(0, 97, (1, 1)), cache=cache)
+
+    assert seen, "no single-token attention calls were recorded"
+    assert all(mask is None for mask in seen), "decode step built a mask it does not need"
+
+
+def test_multi_token_verify_step_still_masks() -> None:
+    """The speculative-verification shape (q_len > 1 against a filled cache) still needs
+    a real bottom-right aligned mask — the q_len == 1 shortcut must not swallow it."""
+    model = tiny_model()
+    idx = torch.randint(0, 97, (1, 9))
+
+    # ``targets`` is what makes the model return logits for every position rather
+    # than only the last — needed here because the interior queries are the point.
+    full = model(idx, targets=idx).logits
+
+    cache = model.make_cache(batch_size=1, max_seq_len=16)
+    model(idx[:, :5], cache=cache)
+    chunk = idx[:, 5:]
+    chunked = model(chunk, targets=chunk, cache=cache).logits
+
+    # Without the mask each of these 4 queries would see all 9 keys, so the first
+    # three would attend to their own future and diverge. Only the last would agree —
+    # which is exactly why checking just the final position is not enough.
+    torch.testing.assert_close(chunked, full[:, 5:], atol=1e-4, rtol=1e-5)
