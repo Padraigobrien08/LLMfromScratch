@@ -188,7 +188,55 @@ three suites, writing `benchmarks-cuda.json`, `quantization-cuda.json` and
 ./scripts/gpu.sh watch
 ```
 
-Expect **~20 minutes and about $0.25**, most of it the 1.4GB checkpoint upload.
+Expect **~20 minutes and about $0.25**, most of it the 1.4GB checkpoint upload. The three
+benchmark suites themselves take about 5 minutes.
+
+Then stop the pod, from your own machine:
+
+```bash
+./scripts/gpu.sh stop
+```
+
+## Stopping the pod, and why `autostop` is not enough
+
+Read this before leaving a run unattended. There are three ways to stop a pod, and they
+are not equally trustworthy.
+
+| | Runs on | Trust |
+| --- | --- | --- |
+| RunPod console idle timeout | RunPod's infrastructure | **Highest** — survives anything happening to the pod or your laptop |
+| `gpu.sh stop` | Your machine | **High** — works even if the pod's own networking is broken |
+| `gpu.sh autostop N` | Inside the container | **Best-effort** — needs the pod healthy enough to reach the API |
+
+`autostop` puts a watchdog in a tmux session on the pod; when the job's session ends it
+waits `N` minutes and calls the RunPod API to stop the pod. That is convenient, and it is
+the wrong thing to *rely* on, for a reason worth stating plainly: **it is the thing being
+shut down.** A container restart, an empty `/etc/resolv.conf`, a wedged network — any of
+these leave the watchdog alive but unable to stop anything, and the meter keeps running.
+
+Two failures found the hard way, both now fixed, both worth knowing about because the
+shape of them recurs:
+
+- **Arming `autostop` and then launching a job silently disarmed it.** `tmux -t llmfs`
+  matches by *prefix* when nothing is named exactly that, so the job launcher's
+  "kill any stale job session" step resolved `llmfs` to `llmfs-watchdog` and killed the
+  watchdog instead. Every session target in `gpu.sh` is now exact (`-t =llmfs`).
+- **The original stop mechanism could not stop a pod at all.** It avoided credentials by
+  sending `SIGTERM` to the container's init, on the belief that exiting init is what RunPod
+  treats as the pod finishing. It is not: `kill -TERM 1` *restarts* the container — init
+  returns with a fresh PID, tmux and everything under it is destroyed, and the pod keeps
+  billing. It also destroyed the watchdog's own log through a `tee` that block-buffers, so
+  the log ended before the line explaining what happened. The stop now goes through the
+  API, the log is written directly, and there is **no fallback to signalling init** — a
+  fallback that logs "sent shutdown" while the meter runs is worse than no fallback.
+
+So for anything unattended: **set an idle timeout in the RunPod console.** It is enforced
+platform-side and is the only mechanism that does not depend on the pod, or on you, being
+in a good state. `autostop` is a convenience on top of it, not a substitute.
+
+`gpu.sh stop` needs `RUNPOD_API_KEY` in `.gpu.env`, which is gitignored and stays on your
+machine — the key is never copied to the rented box, because a key that can stop pods can
+also create them. Pressing **Stop** in the console does the same job and needs no key.
 
 Two notes. No network volume is needed — nothing here is expensive to regenerate, and
 `fetch` pulls the results to your laptop. And `--hellaswag-limit 0` is passed to the

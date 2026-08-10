@@ -29,7 +29,8 @@
 #   ./scripts/gpu.sh data ablation      # just the corpus (hours)
 #   ./scripts/gpu.sh sweep              # launch the ablation sweep, detached
 #   ./scripts/gpu.sh repro              # launch the 124M reproduction, detached
-#   ./scripts/gpu.sh autostop [min]     # stop the pod N min after the job ends
+#   ./scripts/gpu.sh autostop [min]     # best-effort: stop the pod N min after the job ends
+#   ./scripts/gpu.sh stop               # stop the pod now, from this machine (reliable)
 #   ./scripts/gpu.sh mirror [min]       # mirror checkpoints to persistent storage
 #   ./scripts/gpu.sh status             # progress + spend so far
 #   ./scripts/gpu.sh watch              # poll until done, then fetch automatically
@@ -56,6 +57,10 @@ GPU_PORT="${GPU_PORT:-22}"
 GPU_USER="${GPU_USER:-root}"
 GPU_KEY="${GPU_KEY:-$HOME/.ssh/id_ed25519}"
 GPU_RATE="${GPU_RATE:-0}"                      # $/hour, for the spend estimate
+# Only used by `gpu.sh stop`, and only from this machine. Never copied to the pod: a key
+# that can stop pods can also create them, so it has no business on a rented box.
+RUNPOD_API_KEY="${RUNPOD_API_KEY:-}"
+RUNPOD_POD_ID="${RUNPOD_POD_ID:-}"             # optional; otherwise read from the pod
 GPU_WORKDIR="${GPU_WORKDIR:-/workspace}"       # a network volume, ideally
 GPU_REPO="${GPU_REPO:-https://github.com/Padraigobrien08/LLMfromScratch.git}"
 GPU_BRANCH="${GPU_BRANCH:-main}"
@@ -96,7 +101,13 @@ ssh_run() {
 # instantly leaving no log. A file has no quoting to nest.
 ssh_detached() {
   local name="$1" cmd="$2"
-  ssh_run "tmux has-session -t $SESSION 2>/dev/null && tmux kill-session -t $SESSION || true"
+  # The "=" is load-bearing, and its absence cost real money. `tmux -t llmfs` matches by
+  # *prefix* when no session is named exactly that (verified on tmux 3.2a), so with the
+  # autostop watchdog running in "llmfs-watchdog" and no job session yet, this line
+  # resolved to the watchdog and killed it. Net effect: arming the autostop and then
+  # launching a job silently disarmed the autostop, and the pod idled until noticed by
+  # hand. Every session target in this file is exact for that reason.
+  ssh_run "tmux has-session -t =$SESSION 2>/dev/null && tmux kill-session -t =$SESSION || true"
 
   # Unquoted heredoc: $name/$cmd/$REMOTE_REPO expand here, \$(date) and \$? do not.
   ssh_run "cat > $GPU_WORKDIR/job.sh && chmod +x $GPU_WORKDIR/job.sh" <<EOF
@@ -113,7 +124,7 @@ EOF
   # Confirm it is actually alive: a session that dies on launch is the failure this
   # function exists to make impossible, and silence looks identical to success.
   sleep 3
-  if [[ "$(ssh_run "tmux has-session -t $SESSION 2>/dev/null && echo yes || echo no")" != "yes" ]]; then
+  if [[ "$(ssh_run "tmux has-session -t =$SESSION 2>/dev/null && echo yes || echo no")" != "yes" ]]; then
     ssh_run "tail -n 20 $RUN_LOG 2>/dev/null" || true
     die "the '$name' session exited immediately — see the log above"
   fi
@@ -295,7 +306,7 @@ cmd_status() {
   bold "job status"
   spend_so_far
   local running
-  running=$(ssh_run "tmux has-session -t $SESSION 2>/dev/null && echo yes || echo no")
+  running=$(ssh_run "tmux has-session -t =$SESSION 2>/dev/null && echo yes || echo no")
   echo "tmux session '$SESSION': $running"
   echo
   # metrics.jsonl rather than the log: Python block-buffers stdout through tee, so a
@@ -319,7 +330,7 @@ cmd_watch() {
   local interval="${1:-120}"
   bold "watching (poll every ${interval}s); Ctrl-C to stop watching — the job keeps running"
   while true; do
-    if [[ "$(ssh_run "tmux has-session -t $SESSION 2>/dev/null && echo yes || echo no")" == "no" ]]; then
+    if [[ "$(ssh_run "tmux has-session -t =$SESSION 2>/dev/null && echo yes || echo no")" == "no" ]]; then
       bold "job finished"
       spend_so_far
       cmd_fetch
@@ -380,19 +391,75 @@ cmd_autostop() {
   scp -q -P "$GPU_PORT" -i "$GPU_KEY" \
     "$REPO_ROOT/scripts/remote/watchdog.sh" "$GPU_USER@$GPU_HOST:$GPU_WORKDIR/watchdog.sh"
   ssh_run "chmod +x $GPU_WORKDIR/watchdog.sh"
-  ssh_run "tmux kill-session -t ${SESSION}-watchdog 2>/dev/null || true"
+  ssh_run "tmux kill-session -t =${SESSION}-watchdog 2>/dev/null || true"
+  # No `| tee` here: the watchdog appends to its own log. Routing it through tee as well
+  # both duplicated every line and, because tee block-buffers to a file, lost the last
+  # few lines whenever the container went down — which was exactly when they mattered.
   ssh_run "tmux new-session -d -s ${SESSION}-watchdog \
     'GPU_WORKDIR=$GPU_WORKDIR RESULTS_DIR=$GPU_RESULTS SESSION=$SESSION \
-     bash $GPU_WORKDIR/watchdog.sh $grace 2>&1 | tee -a $GPU_WORKDIR/watchdog.log'"
+     bash $GPU_WORKDIR/watchdog.sh $grace'"
   sleep 2
-  if [[ "$(ssh_run "tmux has-session -t ${SESSION}-watchdog 2>/dev/null && echo yes || echo no")" == "yes" ]]; then
+  if [[ "$(ssh_run "tmux has-session -t =${SESSION}-watchdog 2>/dev/null && echo yes || echo no")" == "yes" ]]; then
     bold "armed"
     echo "  results and the checkpoint are on the network volume and survive the stop"
     echo "  the corpus does not — regenerating it costs ~16 min"
     echo "  disarm with: ./scripts/gpu.sh autostop-off"
+    echo
+    echo "  NOTE: this is best-effort. It stops the pod through the RunPod API from"
+    echo "  inside the container, so it fails if the pod's own networking is degraded."
+    echo "  For an unattended overnight run, also set an idle timeout in the RunPod"
+    echo "  console — that is enforced platform-side and cannot be defeated from here."
+    echo "  'gpu.sh stop' stops the pod from this machine, which is the reliable path."
   else
     die "watchdog failed to start"
   fi
+}
+
+# Stops the pod from *this* machine rather than from inside the container. This is the
+# dependable path: it does not care whether the pod's DNS works, whether the container
+# was restarted, or whether a job wedged. It needs RUNPOD_API_KEY in .gpu.env, which is
+# gitignored and stays local — the key is never copied to the rented box.
+cmd_stop() {
+  require_host
+  if [[ -z "${RUNPOD_API_KEY:-}" ]]; then
+    die "set RUNPOD_API_KEY in .gpu.env (it stays on this machine; never goes to the pod).
+  Create a read/write key at https://www.runpod.io/console/user/settings
+  Or just press Stop in the console — that is equally fine and needs no key."
+  fi
+  local pod_id="${RUNPOD_POD_ID:-}"
+  if [[ -z "$pod_id" ]]; then
+    # The pod knows its own id, and the id is not a secret.
+    pod_id=$(ssh_run "tr '\\0' '\\n' < /proc/1/environ | sed -n 's/^RUNPOD_POD_ID=//p' | head -1" 2>/dev/null | tr -d '\r')
+  fi
+  [[ -n "$pod_id" ]] || die "could not determine the pod id; set RUNPOD_POD_ID in .gpu.env"
+
+  bold "stopping pod $pod_id"
+  # The key goes in via the environment, so it never appears in argv or in this file.
+  RUNPOD_API_KEY="$RUNPOD_API_KEY" POD_ID="$pod_id" python3 - <<'PY'
+import json, os, sys, urllib.error, urllib.request
+
+key, pod = os.environ["RUNPOD_API_KEY"], os.environ["POD_ID"]
+body = json.dumps(
+    {"query": "mutation { podStop(input: {podId: \"%s\"}) { id desiredStatus } }" % pod}
+).encode()
+req = urllib.request.Request(
+    "https://api.runpod.io/graphql?api_key=" + key,
+    data=body,
+    headers={"Content-Type": "application/json"},
+)
+try:
+    payload = json.load(urllib.request.urlopen(req, timeout=30))
+except urllib.error.HTTPError as exc:
+    sys.exit(f"HTTP {exc.code}: {exc.read().decode()[:300]}")
+except Exception as exc:  # noqa: BLE001 - any failure here means "not stopped"
+    sys.exit(f"request failed: {exc}")
+
+if payload.get("errors"):
+    sys.exit(f"API error: {json.dumps(payload['errors'])[:300]}")
+status = (payload.get("data") or {}).get("podStop") or {}
+print(f"  desiredStatus = {status.get('desiredStatus', '?')}")
+PY
+  bold "stop requested — confirm in the console that it is no longer billing"
 }
 
 cmd_mirror() {
@@ -402,12 +469,12 @@ cmd_mirror() {
   scp -q -P "$GPU_PORT" -i "$GPU_KEY" \
     "$REPO_ROOT/scripts/remote/mirror.sh" "$GPU_USER@$GPU_HOST:$GPU_WORKDIR/mirror.sh"
   ssh_run "chmod +x $GPU_WORKDIR/mirror.sh"
-  ssh_run "tmux kill-session -t ${SESSION}-mirror 2>/dev/null || true"
+  ssh_run "tmux kill-session -t =${SESSION}-mirror 2>/dev/null || true"
   ssh_run "tmux new-session -d -s ${SESSION}-mirror \
     'GPU_WORKDIR=$GPU_WORKDIR KEEP_DIR=$(dirname "$GPU_RESULTS")/checkpoints \
      bash $GPU_WORKDIR/mirror.sh $interval $run 2>&1 | tee -a $GPU_WORKDIR/mirror.log'"
   sleep 2
-  if [[ "$(ssh_run "tmux has-session -t ${SESSION}-mirror 2>/dev/null && echo yes || echo no")" == "yes" ]]; then
+  if [[ "$(ssh_run "tmux has-session -t =${SESSION}-mirror 2>/dev/null && echo yes || echo no")" == "yes" ]]; then
     bold "armed — worst case you lose ${interval} min of training, not the run"
   else
     die "mirror failed to start"
@@ -415,13 +482,13 @@ cmd_mirror() {
 }
 
 cmd_autostop_off() {
-  ssh_run "tmux kill-session -t ${SESSION}-watchdog 2>/dev/null || true"
+  ssh_run "tmux kill-session -t =${SESSION}-watchdog 2>/dev/null || true"
   bold "auto-stop disarmed"
 }
 
-cmd_attach() { require_host; ssh -t -p "$GPU_PORT" -i "$GPU_KEY" "$GPU_USER@$GPU_HOST" "tmux attach -t $SESSION"; }
+cmd_attach() { require_host; ssh -t -p "$GPU_PORT" -i "$GPU_KEY" "$GPU_USER@$GPU_HOST" "tmux attach -t =$SESSION"; }
 cmd_shell()  { require_host; ssh -t -p "$GPU_PORT" -i "$GPU_KEY" "$GPU_USER@$GPU_HOST" "cd $REMOTE_REPO 2>/dev/null; exec bash -l"; }
-cmd_kill()   { ssh_run "tmux kill-session -t $SESSION 2>/dev/null || true"; bold "killed session '$SESSION'"; }
+cmd_kill()   { ssh_run "tmux kill-session -t =$SESSION 2>/dev/null || true"; bold "killed session '$SESSION'"; }
 
 cmd_done() {
   bold "before you terminate the pod"
@@ -448,6 +515,7 @@ main() {
     bench)             cmd_bench "$@" ;;
     autostop)          cmd_autostop "$@" ;;
     autostop-off)      cmd_autostop_off "$@" ;;
+    stop)              cmd_stop "$@" ;;
     mirror)            cmd_mirror "$@" ;;
     preflight)         cmd_preflight "$@" ;;
     setup)             cmd_setup "$@" ;;
