@@ -71,11 +71,31 @@ do_data() {
   llmfs-prepare-data --source fineweb-edu --out-dir "$DATA_DIR"
 }
 
+check_disk() {
+  # Fail before the sweep, not 60% through it. The first run of this pipeline filled
+  # a 100GB disk at arm 8 of 13 and took the reproduction down with it, because the
+  # checkpoint budget was computed for 2 files per run and milestones silently made
+  # it 6. Estimating up front turns that into a message instead of six wasted hours.
+  local need_gb free_gb
+  need_gb=$(( 39 * 2 + 20 + 10 ))   # 39 runs x ~1.2GB, corpus 20GB, reproduction 10GB
+  free_gb=$(df -BG --output=avail "$OUT_DIR" 2>/dev/null | tail -1 | tr -dc '0-9')
+  say "disk: ${free_gb}GB free, ~${need_gb}GB needed"
+  if [[ -n "$free_gb" && "$free_gb" -lt "$need_gb" ]]; then
+    say "NOT ENOUGH DISK: ${free_gb}GB free, ~${need_gb}GB needed."
+    say "  free space, or reduce the run with --set log.milestone_fracs=[]"
+    return 1
+  fi
+  return 0
+}
+
 do_sweep() {
-  # keep_last_n=0 keeps no rolling checkpoints — best.pt and final.pt are never
-  # pruned, so every arm stays recoverable. At 3 seeds this is 39 run directories;
-  # at the default of 2 rolling checkpoints each that is ~109 GiB, more than the
-  # volume and more than the corpus. The sweep needs loss curves, not checkpoints.
+  # Two settings, both about disk, both learned the hard way:
+  #   keep_last_n=0     no rolling checkpoints (best.pt/final.pt are never pruned)
+  #   milestone_fracs=[] no milestones either
+  # Milestones exist to study training *dynamics*, which is a question about the
+  # reproduction, not about 39 ablation arms. Left at their default they add four
+  # 0.57GB files per run — 89GB across the sweep, which is how the first attempt
+  # filled the disk and killed the reproduction.
   # shellcheck disable=SC2086
   llmfs-ablate \
     --out-dir "$OUT_DIR/ablations" \
@@ -83,6 +103,7 @@ do_sweep() {
     --seeds "$SEEDS" \
     --set data.data_dir="$DATA_DIR" \
     --set log.keep_last_n=0 \
+    --set log.milestone_fracs=[] \
     $SWEEP_EXTRA
 }
 
@@ -159,6 +180,9 @@ say "pipeline starting (seeds=$SEEDS sweep=$RUN_SWEEP repro=$RUN_REPRO)"
 nvidia-smi --query-gpu=name,memory.total --format=csv,noheader || true
 
 stage data do_data || exit 1
+
+# Not marker-guarded: it must re-check on every resume, since what is on disk changes.
+check_disk || exit 1
 
 if [[ "$RUN_SWEEP" == "1" ]]; then
   stage sweep do_sweep || exit 1
