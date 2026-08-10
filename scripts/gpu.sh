@@ -29,6 +29,7 @@
 #   ./scripts/gpu.sh sweep              # launch the ablation sweep, detached
 #   ./scripts/gpu.sh repro              # launch the 124M reproduction, detached
 #   ./scripts/gpu.sh autostop [min]     # stop the pod N min after the job ends
+#   ./scripts/gpu.sh mirror [min]       # mirror checkpoints to persistent storage
 #   ./scripts/gpu.sh status             # progress + spend so far
 #   ./scripts/gpu.sh watch              # poll until done, then fetch automatically
 #   ./scripts/gpu.sh fetch              # pull results and post-process locally
@@ -262,7 +263,14 @@ cmd_status() {
   running=$(ssh_run "tmux has-session -t $SESSION 2>/dev/null && echo yes || echo no")
   echo "tmux session '$SESSION': $running"
   echo
-  echo "--- recent progress ---"
+  # metrics.jsonl rather than the log: Python block-buffers stdout through tee, so a
+  # healthy run can look frozen for many minutes. This reads what training actually
+  # committed to disk.
+  echo "--- training progress ---"
+  ssh_run "GPU_RATE=$GPU_RATE python3 - $GPU_WORKDIR/out 19073" \
+    < "$REPO_ROOT/scripts/remote/progress.py" 2>/dev/null || echo "  (unavailable)"
+  echo
+  echo "--- recent log ---"
   # tqdm redraws with carriage returns, so a progress bar is one enormous "line".
   # Translate CR to LF before tailing, or `tail` returns tens of KB of redraws.
   ssh_run "tail -c 200000 $RUN_LOG 2>/dev/null | tr '\\r' '\\n' | grep -v '^\\s*$' | tail -n 20 || echo '(no log yet)'"
@@ -352,6 +360,25 @@ cmd_autostop() {
   fi
 }
 
+cmd_mirror() {
+  # Own tmux session, so it can be armed against a job already running.
+  local interval="${1:-30}" run="${2:-gpt2-124m-repro}"
+  bold "mirroring checkpoints to persistent storage every ${interval} min"
+  scp -q -P "$GPU_PORT" -i "$GPU_KEY" \
+    "$REPO_ROOT/scripts/remote/mirror.sh" "$GPU_USER@$GPU_HOST:$GPU_WORKDIR/mirror.sh"
+  ssh_run "chmod +x $GPU_WORKDIR/mirror.sh"
+  ssh_run "tmux kill-session -t ${SESSION}-mirror 2>/dev/null || true"
+  ssh_run "tmux new-session -d -s ${SESSION}-mirror \
+    'GPU_WORKDIR=$GPU_WORKDIR KEEP_DIR=$(dirname "$GPU_RESULTS")/checkpoints \
+     bash $GPU_WORKDIR/mirror.sh $interval $run 2>&1 | tee -a $GPU_WORKDIR/mirror.log'"
+  sleep 2
+  if [[ "$(ssh_run "tmux has-session -t ${SESSION}-mirror 2>/dev/null && echo yes || echo no")" == "yes" ]]; then
+    bold "armed — worst case you lose ${interval} min of training, not the run"
+  else
+    die "mirror failed to start"
+  fi
+}
+
 cmd_autostop_off() {
   ssh_run "tmux kill-session -t ${SESSION}-watchdog 2>/dev/null || true"
   bold "auto-stop disarmed"
@@ -385,6 +412,7 @@ main() {
     all)               cmd_all "$@" ;;
     autostop)          cmd_autostop "$@" ;;
     autostop-off)      cmd_autostop_off "$@" ;;
+    mirror)            cmd_mirror "$@" ;;
     preflight)         cmd_preflight "$@" ;;
     setup)             cmd_setup "$@" ;;
     data)              cmd_data "$@" ;;
