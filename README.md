@@ -32,7 +32,7 @@ what is built and verified, and what is designed but not yet run.
 | Package, config system, data pipeline, trainer, CI | **Done** — 223 tests green, end-to-end verified |
 | Modern architecture (RoPE, RMSNorm, SwiGLU, GQA, KV cache) | **Done** — hand-implemented, property-tested |
 | GPT-2 124M reproduction on FineWeb-Edu | Configured; **GPU run pending** |
-| Ablation study (13 arms) | Runner + report built and validated; **GPU runs pending** |
+| Ablation study (12 arms × 3 seeds) | **Done** — [docs/ablations.md](docs/ablations.md), 39 runs, 7.6 GPU-h |
 | Efficiency benchmarks (throughput, memory, KV cache) | **Built** — `llmfs-bench`; **GPU run pending** |
 | Quantization + speculative decoding | **Not started** |
 | Fault-tolerance design doc | **Done** — [docs/fault-tolerance.md](docs/fault-tolerance.md) |
@@ -206,10 +206,40 @@ The runner is built for a multi-hour job on rented hardware: it skips arms that
 already have a result, writes after every arm, and records a diverged arm as a
 finding rather than dying on it — the `lr-3e-3` arm is *expected* to blow up.
 
-**Status**: infrastructure complete and validated end to end; the real runs need a
-GPU. Estimated ~12 hours and roughly $39 on an H100 SXM for all 13 arms plus the
-repeated baseline — see [docs/gpu-runbook.md](docs/gpu-runbook.md) for the cost table
-across available hardware, and for the one-command path to running it on a rented pod.
+### Results
+
+**[Full write-up: docs/ablations.md](docs/ablations.md)** — 39 runs, 7.6 GPU-hours on
+one H100, ~$25. Baseline 3.9116, seed noise floor **0.0043**.
+
+| Arm | Δ val loss | Δ throughput |
+| --- | --- | --- |
+| `lr-3e-3` | **−0.1251** | +1.1% |
+| `sched-wsd` | **−0.1034** | +0.8% |
+| `modern-stack` | **−0.0886** | ±0.0% |
+| `pos-rope` | **−0.0886** | −2.3% |
+| `mlp-swiglu` | **−0.0341** | −2.2% |
+| `norm-rmsnorm` | +0.0007 *(within noise)* | +1.3% |
+| `no-bias` | +0.0038 | **+4.2%** |
+| `gqa-2` | +0.0311 | +2.0% |
+| `lr-3e-4` | +0.4457 | +0.9% |
+
+![Ablation deltas](results/ablation_deltas.png)
+
+Three things worth pulling out:
+
+- **The optimiser dominates the architecture.** Learning rate and schedule move loss
+  more than every architecture change combined. RMSNorm vs LayerNorm is worth 0.0007;
+  the learning rate is worth 0.125 — 180× more.
+- **The components are additive.** Summing the five individual modern-stack parts
+  predicts −0.0872; the combined arm measured −0.0886. Within a third of the noise
+  floor, so they compose without interacting.
+- **Loss is the wrong single metric.** Every change that improves loss costs
+  throughput and vice versa. `modern-stack` buys −0.0886 for ±0.0% — which a
+  loss-only table cannot show.
+
+The prediction that `lr-3e-3` would diverge was wrong: it won. That means every arm
+was measured at a learning rate now known to be suboptimal, which is the study's
+largest caveat and is stated as such in the write-up.
 
 ---
 

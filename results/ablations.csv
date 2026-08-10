@@ -1,0 +1,14 @@
+arm,axis,status,val_loss,perplexity,delta,significant,tokens_per_sec,wall_clock_s,params
+baseline,"—",completed,3.911562,49.9770,,False,747413.9,701.5,51237888
+lr-3e-3,"lr 1e-3 → 3e-3",completed,3.786438,44.0990,-0.125124,True,755448.1,694.0,51237888
+sched-wsd,"cosine → WSD schedule",completed,3.808175,45.0681,-0.103387,True,753446.8,695.9,51237888
+modern-stack,"all modern components",completed,3.822930,45.7380,-0.088632,True,747513.1,701.4,49881600
+pos-rope,"learned positions → RoPE",completed,3.822937,45.7383,-0.088626,True,730065.6,718.2,50975744
+mlp-swiglu,"GELU → SwiGLU (param-matched)",completed,3.877444,48.3006,-0.034118,True,731337.3,716.9,53343232
+wd-zero,"weight decay 0.1 → 0",completed,3.911976,49.9976,0.000413,False,754030.1,695.3,51237888
+norm-rmsnorm,"LayerNorm → RMSNorm",completed,3.912293,50.0135,0.000730,False,757456.1,692.2,51229184
+untied-embeddings,"tied → untied embeddings",completed,3.914100,50.1039,0.002538,True,746656.8,702.2,76993536
+no-bias,"bias → no bias",completed,3.915314,50.1648,0.003752,True,778879.2,673.1,51192320
+gqa-2,"8 KV heads → 2 (GQA)",completed,3.942631,51.5540,0.031069,True,762611.5,687.5,48086016
+pos-none,"learned positions → none",completed,4.004355,54.8364,0.092793,True,755889.3,693.6,50975744
+lr-3e-4,"lr 1e-3 → 3e-4",completed,4.357232,78.0408,0.445670,True,753875.8,695.5,51237888

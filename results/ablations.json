@@ -1,0 +1,2259 @@
+{
+  "meta": {
+    "arms": [
+      "_base.yaml",
+      "norm-rmsnorm.yaml",
+      "pos-rope.yaml",
+      "pos-none.yaml",
+      "mlp-swiglu.yaml",
+      "untied-embeddings.yaml",
+      "no-bias.yaml",
+      "gqa-2.yaml",
+      "sched-wsd.yaml",
+      "wd-zero.yaml",
+      "lr-3e-4.yaml",
+      "lr-3e-3.yaml",
+      "modern-stack.yaml"
+    ],
+    "seed": 1337,
+    "seeds": 3,
+    "seed_list": [
+      1337,
+      1338,
+      1339
+    ],
+    "paired": true,
+    "overrides": [
+      "data.data_dir=/root/llmfs/data/fineweb-edu-10B",
+      "log.keep_last_n=0",
+      "log.milestone_fracs=[]",
+      "data.micro_batch_size=64"
+    ],
+    "out_dir": "/root/llmfs/out/ablations"
+  },
+  "arms": [
+    {
+      "name": "baseline",
+      "config": "/root/llmfs/LLMfromScratch/configs/ablations/_base.yaml",
+      "seed": 1337,
+      "status": "completed",
+      "val_loss": 3.9135513305664062,
+      "perplexity": 50.07647468111615,
+      "steps": 2000,
+      "tokens": 524288000,
+      "wall_clock_s": 707.3308261595666,
+      "tokens_per_sec": 741220.346420652,
+      "params": 51237888,
+      "run_dir": "/root/llmfs/out/ablations/baseline-seed1337",
+      "error": null,
+      "history": [
+        {
+          "step": 200,
+          "val_loss": 6.020751476287842
+        },
+        {
+          "step": 400,
+          "val_loss": 5.160024166107178
+        },
+        {
+          "step": 600,
+          "val_loss": 4.70003080368042
+        },
+        {
+          "step": 800,
+          "val_loss": 4.3800811767578125
+        },
+        {
+          "step": 1000,
+          "val_loss": 4.219982147216797
+        },
+        {
+          "step": 1200,
+          "val_loss": 4.1183319091796875
+        },
+        {
+          "step": 1400,
+          "val_loss": 4.033462047576904
+        },
+        {
+          "step": 1600,
+          "val_loss": 3.970750570297241
+        },
+        {
+          "step": 1800,
+          "val_loss": 3.933502197265625
+        },
+        {
+          "step": 2000,
+          "val_loss": 3.9135513305664062
+        }
+      ]
+    },
+    {
+      "name": "baseline",
+      "config": "/root/llmfs/LLMfromScratch/configs/ablations/_base.yaml",
+      "seed": 1338,
+      "status": "completed",
+      "val_loss": 3.909252643585205,
+      "perplexity": 49.86167360340859,
+      "steps": 2000,
+      "tokens": 524288000,
+      "wall_clock_s": 699.3749488815665,
+      "tokens_per_sec": 749652.2442481478,
+      "params": 51237888,
+      "run_dir": "/root/llmfs/out/ablations/baseline-seed1338",
+      "error": null,
+      "history": [
+        {
+          "step": 200,
+          "val_loss": 6.019217491149902
+        },
+        {
+          "step": 400,
+          "val_loss": 5.176833629608154
+        },
+        {
+          "step": 600,
+          "val_loss": 4.722614765167236
+        },
+        {
+          "step": 800,
+          "val_loss": 4.388968467712402
+        },
+        {
+          "step": 1000,
+          "val_loss": 4.218337535858154
+        },
+        {
+          "step": 1200,
+          "val_loss": 4.116594314575195
+        },
+        {
+          "step": 1400,
+          "val_loss": 4.030348300933838
+        },
+        {
+          "step": 1600,
+          "val_loss": 3.9681899547576904
+        },
+        {
+          "step": 1800,
+          "val_loss": 3.9307734966278076
+        },
+        {
+          "step": 2000,
+          "val_loss": 3.909252643585205
+        }
+      ]
+    },
+    {
+      "name": "baseline",
+      "config": "/root/llmfs/LLMfromScratch/configs/ablations/_base.yaml",
+      "seed": 1339,
+      "status": "completed",
+      "val_loss": 3.9118824005126953,
+      "perplexity": 49.992970248447854,
+      "steps": 2000,
+      "tokens": 524288000,
+      "wall_clock_s": 697.7768684122711,
+      "tokens_per_sec": 751369.1320736534,
+      "params": 51237888,
+      "run_dir": "/root/llmfs/out/ablations/baseline-seed1339",
+      "error": null,
+      "history": [
+        {
+          "step": 200,
+          "val_loss": 6.011085033416748
+        },
+        {
+          "step": 400,
+          "val_loss": 5.145284175872803
+        },
+        {
+          "step": 600,
+          "val_loss": 4.691064357757568
+        },
+        {
+          "step": 800,
+          "val_loss": 4.372079372406006
+        },
+        {
+          "step": 1000,
+          "val_loss": 4.215208530426025
+        },
+        {
+          "step": 1200,
+          "val_loss": 4.117438793182373
+        },
+        {
+          "step": 1400,
+          "val_loss": 4.031056880950928
+        },
+        {
+          "step": 1600,
+          "val_loss": 3.969072103500366
+        },
+        {
+          "step": 1800,
+          "val_loss": 3.9324092864990234
+        },
+        {
+          "step": 2000,
+          "val_loss": 3.9118824005126953
+        }
+      ]
+    },
+    {
+      "name": "norm-rmsnorm",
+      "config": "/root/llmfs/LLMfromScratch/configs/ablations/norm-rmsnorm.yaml",
+      "seed": 1337,
+      "status": "completed",
+      "val_loss": 3.9114797115325928,
+      "perplexity": 49.97284268309258,
+      "steps": 2000,
+      "tokens": 524288000,
+      "wall_clock_s": 692.9276498081163,
+      "tokens_per_sec": 756627.3335249134,
+      "params": 51229184,
+      "run_dir": "/root/llmfs/out/ablations/norm-rmsnorm-seed1337",
+      "error": null,
+      "history": [
+        {
+          "step": 200,
+          "val_loss": 6.01608419418335
+        },
+        {
+          "step": 400,
+          "val_loss": 5.172510623931885
+        },
+        {
+          "step": 600,
+          "val_loss": 4.7002153396606445
+        },
+        {
+          "step": 800,
+          "val_loss": 4.384454250335693
+        },
+        {
+          "step": 1000,
+          "val_loss": 4.221498966217041
+        },
+        {
+          "step": 1200,
+          "val_loss": 4.116912364959717
+        },
+        {
+          "step": 1400,
+          "val_loss": 4.032365322113037
+        },
+        {
+          "step": 1600,
+          "val_loss": 3.9699223041534424
+        },
+        {
+          "step": 1800,
+          "val_loss": 3.9321560859680176
+        },
+        {
+          "step": 2000,
+          "val_loss": 3.9114797115325928
+        }
+      ]
+    },
+    {
+      "name": "norm-rmsnorm",
+      "config": "/root/llmfs/LLMfromScratch/configs/ablations/norm-rmsnorm.yaml",
+      "seed": 1338,
+      "status": "completed",
+      "val_loss": 3.9114208221435547,
+      "perplexity": 49.96989989956869,
+      "steps": 2000,
+      "tokens": 524288000,
+      "wall_clock_s": 691.1125607350841,
+      "tokens_per_sec": 758614.4859563174,
+      "params": 51229184,
+      "run_dir": "/root/llmfs/out/ablations/norm-rmsnorm-seed1338",
+      "error": null,
+      "history": [
+        {
+          "step": 200,
+          "val_loss": 6.036506175994873
+        },
+        {
+          "step": 400,
+          "val_loss": 5.1836161613464355
+        },
+        {
+          "step": 600,
+          "val_loss": 4.722458362579346
+        },
+        {
+          "step": 800,
+          "val_loss": 4.392153739929199
+        },
+        {
+          "step": 1000,
+          "val_loss": 4.22110652923584
+        },
+        {
+          "step": 1200,
+          "val_loss": 4.118678569793701
+        },
+        {
+          "step": 1400,
+          "val_loss": 4.033303737640381
+        },
+        {
+          "step": 1600,
+          "val_loss": 3.969604969024658
+        },
+        {
+          "step": 1800,
+          "val_loss": 3.932008743286133
+        },
+        {
+          "step": 2000,
+          "val_loss": 3.9114208221435547
+        }
+      ]
+    },
+    {
+      "name": "norm-rmsnorm",
+      "config": "/root/llmfs/LLMfromScratch/configs/ablations/norm-rmsnorm.yaml",
+      "seed": 1339,
+      "status": "completed",
+      "val_loss": 3.9139771461486816,
+      "perplexity": 50.097802564891154,
+      "steps": 2000,
+      "tokens": 524288000,
+      "wall_clock_s": 692.4707386866212,
+      "tokens_per_sec": 757126.5769213497,
+      "params": 51229184,
+      "run_dir": "/root/llmfs/out/ablations/norm-rmsnorm-seed1339",
+      "error": null,
+      "history": [
+        {
+          "step": 200,
+          "val_loss": 6.010478496551514
+        },
+        {
+          "step": 400,
+          "val_loss": 5.15333366394043
+        },
+        {
+          "step": 600,
+          "val_loss": 4.699939727783203
+        },
+        {
+          "step": 800,
+          "val_loss": 4.380126953125
+        },
+        {
+          "step": 1000,
+          "val_loss": 4.218739032745361
+        },
+        {
+          "step": 1200,
+          "val_loss": 4.117293834686279
+        },
+        {
+          "step": 1400,
+          "val_loss": 4.033327579498291
+        },
+        {
+          "step": 1600,
+          "val_loss": 3.971547842025757
+        },
+        {
+          "step": 1800,
+          "val_loss": 3.9341487884521484
+        },
+        {
+          "step": 2000,
+          "val_loss": 3.9139771461486816
+        }
+      ]
+    },
+    {
+      "name": "pos-rope",
+      "config": "/root/llmfs/LLMfromScratch/configs/ablations/pos-rope.yaml",
+      "seed": 1337,
+      "status": "completed",
+      "val_loss": 3.822791337966919,
+      "perplexity": 45.73168290854534,
+      "steps": 2000,
+      "tokens": 524288000,
+      "wall_clock_s": 722.9302674420178,
+      "tokens_per_sec": 725226.2404991229,
+      "params": 50975744,
+      "run_dir": "/root/llmfs/out/ablations/pos-rope-seed1337",
+      "error": null,
+      "history": [
+        {
+          "step": 200,
+          "val_loss": 5.686750888824463
+        },
+        {
+          "step": 400,
+          "val_loss": 4.864670753479004
+        },
+        {
+          "step": 600,
+          "val_loss": 4.427066802978516
+        },
+        {
+          "step": 800,
+          "val_loss": 4.212716579437256
+        },
+        {
+          "step": 1000,
+          "val_loss": 4.084149360656738
+        },
+        {
+          "step": 1200,
+          "val_loss": 4.0046186447143555
+        },
+        {
+          "step": 1400,
+          "val_loss": 3.9294114112854004
+        },
+        {
+          "step": 1600,
+          "val_loss": 3.873838424682617
+        },
+        {
+          "step": 1800,
+          "val_loss": 3.8411476612091064
+        },
+        {
+          "step": 2000,
+          "val_loss": 3.822791337966919
+        }
+      ]
+    },
+    {
+      "name": "pos-rope",
+      "config": "/root/llmfs/LLMfromScratch/configs/ablations/pos-rope.yaml",
+      "seed": 1338,
+      "status": "completed",
+      "val_loss": 3.8227689266204834,
+      "perplexity": 45.7306580114413,
+      "steps": 2000,
+      "tokens": 524288000,
+      "wall_clock_s": 715.7760931467637,
+      "tokens_per_sec": 732474.8689147673,
+      "params": 50975744,
+      "run_dir": "/root/llmfs/out/ablations/pos-rope-seed1338",
+      "error": null,
+      "history": [
+        {
+          "step": 200,
+          "val_loss": 5.676969528198242
+        },
+        {
+          "step": 400,
+          "val_loss": 4.8627824783325195
+        },
+        {
+          "step": 600,
+          "val_loss": 4.428936004638672
+        },
+        {
+          "step": 800,
+          "val_loss": 4.214035987854004
+        },
+        {
+          "step": 1000,
+          "val_loss": 4.0844244956970215
+        },
+        {
+          "step": 1200,
+          "val_loss": 4.002382278442383
+        },
+        {
+          "step": 1400,
+          "val_loss": 3.9307029247283936
+        },
+        {
+          "step": 1600,
+          "val_loss": 3.874208927154541
+        },
+        {
+          "step": 1800,
+          "val_loss": 3.841254472732544
+        },
+        {
+          "step": 2000,
+          "val_loss": 3.8227689266204834
+        }
+      ]
+    },
+    {
+      "name": "pos-rope",
+      "config": "/root/llmfs/LLMfromScratch/configs/ablations/pos-rope.yaml",
+      "seed": 1339,
+      "status": "completed",
+      "val_loss": 3.823249578475952,
+      "perplexity": 45.752643820402966,
+      "steps": 2000,
+      "tokens": 524288000,
+      "wall_clock_s": 715.7557120211422,
+      "tokens_per_sec": 732495.7261179544,
+      "params": 50975744,
+      "run_dir": "/root/llmfs/out/ablations/pos-rope-seed1339",
+      "error": null,
+      "history": [
+        {
+          "step": 200,
+          "val_loss": 5.712497234344482
+        },
+        {
+          "step": 400,
+          "val_loss": 4.883582592010498
+        },
+        {
+          "step": 600,
+          "val_loss": 4.4401021003723145
+        },
+        {
+          "step": 800,
+          "val_loss": 4.216811656951904
+        },
+        {
+          "step": 1000,
+          "val_loss": 4.085230827331543
+        },
+        {
+          "step": 1200,
+          "val_loss": 4.003169536590576
+        },
+        {
+          "step": 1400,
+          "val_loss": 3.9303863048553467
+        },
+        {
+          "step": 1600,
+          "val_loss": 3.8745408058166504
+        },
+        {
+          "step": 1800,
+          "val_loss": 3.8419113159179688
+        },
+        {
+          "step": 2000,
+          "val_loss": 3.823249578475952
+        }
+      ]
+    },
+    {
+      "name": "pos-none",
+      "config": "/root/llmfs/LLMfromScratch/configs/ablations/pos-none.yaml",
+      "seed": 1337,
+      "status": "completed",
+      "val_loss": 3.9980015754699707,
+      "perplexity": 54.48914870256675,
+      "steps": 2000,
+      "tokens": 524288000,
+      "wall_clock_s": 695.7365764565766,
+      "tokens_per_sec": 753572.5700526292,
+      "params": 50975744,
+      "run_dir": "/root/llmfs/out/ablations/pos-none-seed1337",
+      "error": null,
+      "history": [
+        {
+          "step": 200,
+          "val_loss": 5.946871280670166
+        },
+        {
+          "step": 400,
+          "val_loss": 5.340234756469727
+        },
+        {
+          "step": 600,
+          "val_loss": 4.849009990692139
+        },
+        {
+          "step": 800,
+          "val_loss": 4.495567798614502
+        },
+        {
+          "step": 1000,
+          "val_loss": 4.309025764465332
+        },
+        {
+          "step": 1200,
+          "val_loss": 4.203653812408447
+        },
+        {
+          "step": 1400,
+          "val_loss": 4.120907783508301
+        },
+        {
+          "step": 1600,
+          "val_loss": 4.055984020233154
+        },
+        {
+          "step": 1800,
+          "val_loss": 4.018833160400391
+        },
+        {
+          "step": 2000,
+          "val_loss": 3.9980015754699707
+        }
+      ]
+    },
+    {
+      "name": "pos-none",
+      "config": "/root/llmfs/LLMfromScratch/configs/ablations/pos-none.yaml",
+      "seed": 1338,
+      "status": "completed",
+      "val_loss": 3.9966862201690674,
+      "perplexity": 54.417523228779395,
+      "steps": 2000,
+      "tokens": 524288000,
+      "wall_clock_s": 693.9175936384127,
+      "tokens_per_sec": 755547.9278901186,
+      "params": 50975744,
+      "run_dir": "/root/llmfs/out/ablations/pos-none-seed1338",
+      "error": null,
+      "history": [
+        {
+          "step": 200,
+          "val_loss": 5.9730987548828125
+        },
+        {
+          "step": 400,
+          "val_loss": 5.317054748535156
+        },
+        {
+          "step": 600,
+          "val_loss": 4.834283351898193
+        },
+        {
+          "step": 800,
+          "val_loss": 4.497786045074463
+        },
+        {
+          "step": 1000,
+          "val_loss": 4.310790538787842
+        },
+        {
+          "step": 1200,
+          "val_loss": 4.205369472503662
+        },
+        {
+          "step": 1400,
+          "val_loss": 4.121132850646973
+        },
+        {
+          "step": 1600,
+          "val_loss": 4.055113792419434
+        },
+        {
+          "step": 1800,
+          "val_loss": 4.0176239013671875
+        },
+        {
+          "step": 2000,
+          "val_loss": 3.9966862201690674
+        }
+      ]
+    },
+    {
+      "name": "pos-none",
+      "config": "/root/llmfs/LLMfromScratch/configs/ablations/pos-none.yaml",
+      "seed": 1339,
+      "status": "completed",
+      "val_loss": 4.01837682723999,
+      "perplexity": 55.61076664699769,
+      "steps": 2000,
+      "tokens": 524288000,
+      "wall_clock_s": 691.1737944018096,
+      "tokens_per_sec": 758547.2774669585,
+      "params": 50975744,
+      "run_dir": "/root/llmfs/out/ablations/pos-none-seed1339",
+      "error": null,
+      "history": [
+        {
+          "step": 200,
+          "val_loss": 5.950043201446533
+        },
+        {
+          "step": 400,
+          "val_loss": 5.350848197937012
+        },
+        {
+          "step": 600,
+          "val_loss": 4.849748134613037
+        },
+        {
+          "step": 800,
+          "val_loss": 4.524318218231201
+        },
+        {
+          "step": 1000,
+          "val_loss": 4.329897403717041
+        },
+        {
+          "step": 1200,
+          "val_loss": 4.225104808807373
+        },
+        {
+          "step": 1400,
+          "val_loss": 4.140446662902832
+        },
+        {
+          "step": 1600,
+          "val_loss": 4.075404167175293
+        },
+        {
+          "step": 1800,
+          "val_loss": 4.039165019989014
+        },
+        {
+          "step": 2000,
+          "val_loss": 4.01837682723999
+        }
+      ]
+    },
+    {
+      "name": "mlp-swiglu",
+      "config": "/root/llmfs/LLMfromScratch/configs/ablations/mlp-swiglu.yaml",
+      "seed": 1337,
+      "status": "completed",
+      "val_loss": 3.8806512355804443,
+      "perplexity": 48.45576091392738,
+      "steps": 2000,
+      "tokens": 524288000,
+      "wall_clock_s": 718.7789855282754,
+      "tokens_per_sec": 729414.7582996853,
+      "params": 53343232,
+      "run_dir": "/root/llmfs/out/ablations/mlp-swiglu-seed1337",
+      "error": null,
+      "history": [
+        {
+          "step": 200,
+          "val_loss": 5.978646278381348
+        },
+        {
+          "step": 400,
+          "val_loss": 5.000337600708008
+        },
+        {
+          "step": 600,
+          "val_loss": 4.529825687408447
+        },
+        {
+          "step": 800,
+          "val_loss": 4.2893595695495605
+        },
+        {
+          "step": 1000,
+          "val_loss": 4.15273904800415
+        },
+        {
+          "step": 1200,
+          "val_loss": 4.067939758300781
+        },
+        {
+          "step": 1400,
+          "val_loss": 3.9910831451416016
+        },
+        {
+          "step": 1600,
+          "val_loss": 3.935488224029541
+        },
+        {
+          "step": 1800,
+          "val_loss": 3.8995227813720703
+        },
+        {
+          "step": 2000,
+          "val_loss": 3.8806512355804443
+        }
+      ]
+    },
+    {
+      "name": "mlp-swiglu",
+      "config": "/root/llmfs/LLMfromScratch/configs/ablations/mlp-swiglu.yaml",
+      "seed": 1338,
+      "status": "completed",
+      "val_loss": 3.870993137359619,
+      "perplexity": 47.99002310668499,
+      "steps": 2000,
+      "tokens": 524288000,
+      "wall_clock_s": 717.6654022112489,
+      "tokens_per_sec": 730546.5727964309,
+      "params": 53343232,
+      "run_dir": "/root/llmfs/out/ablations/mlp-swiglu-seed1338",
+      "error": null,
+      "history": [
+        {
+          "step": 200,
+          "val_loss": 5.97507381439209
+        },
+        {
+          "step": 400,
+          "val_loss": 5.002292633056641
+        },
+        {
+          "step": 600,
+          "val_loss": 4.547699928283691
+        },
+        {
+          "step": 800,
+          "val_loss": 4.2858757972717285
+        },
+        {
+          "step": 1000,
+          "val_loss": 4.145183563232422
+        },
+        {
+          "step": 1200,
+          "val_loss": 4.0575337409973145
+        },
+        {
+          "step": 1400,
+          "val_loss": 3.981168746948242
+        },
+        {
+          "step": 1600,
+          "val_loss": 3.9259793758392334
+        },
+        {
+          "step": 1800,
+          "val_loss": 3.8906631469726562
+        },
+        {
+          "step": 2000,
+          "val_loss": 3.870993137359619
+        }
+      ]
+    },
+    {
+      "name": "mlp-swiglu",
+      "config": "/root/llmfs/LLMfromScratch/configs/ablations/mlp-swiglu.yaml",
+      "seed": 1339,
+      "status": "completed",
+      "val_loss": 3.8806889057159424,
+      "perplexity": 48.45758628338741,
+      "steps": 2000,
+      "tokens": 524288000,
+      "wall_clock_s": 714.2395312534645,
+      "tokens_per_sec": 734050.6609594873,
+      "params": 53343232,
+      "run_dir": "/root/llmfs/out/ablations/mlp-swiglu-seed1339",
+      "error": null,
+      "history": [
+        {
+          "step": 200,
+          "val_loss": 5.975759506225586
+        },
+        {
+          "step": 400,
+          "val_loss": 5.009652614593506
+        },
+        {
+          "step": 600,
+          "val_loss": 4.536738872528076
+        },
+        {
+          "step": 800,
+          "val_loss": 4.288717746734619
+        },
+        {
+          "step": 1000,
+          "val_loss": 4.15352201461792
+        },
+        {
+          "step": 1200,
+          "val_loss": 4.066691875457764
+        },
+        {
+          "step": 1400,
+          "val_loss": 3.992636203765869
+        },
+        {
+          "step": 1600,
+          "val_loss": 3.933624029159546
+        },
+        {
+          "step": 1800,
+          "val_loss": 3.9002742767333984
+        },
+        {
+          "step": 2000,
+          "val_loss": 3.8806889057159424
+        }
+      ]
+    },
+    {
+      "name": "untied-embeddings",
+      "config": "/root/llmfs/LLMfromScratch/configs/ablations/untied-embeddings.yaml",
+      "seed": 1337,
+      "status": "completed",
+      "val_loss": 3.917428970336914,
+      "perplexity": 50.27103017518773,
+      "steps": 2000,
+      "tokens": 524288000,
+      "wall_clock_s": 702.9435821864754,
+      "tokens_per_sec": 745846.4851037192,
+      "params": 76993536,
+      "run_dir": "/root/llmfs/out/ablations/untied-embeddings-seed1337",
+      "error": null,
+      "history": [
+        {
+          "step": 200,
+          "val_loss": 5.959476947784424
+        },
+        {
+          "step": 400,
+          "val_loss": 5.102319240570068
+        },
+        {
+          "step": 600,
+          "val_loss": 4.718409538269043
+        },
+        {
+          "step": 800,
+          "val_loss": 4.430121898651123
+        },
+        {
+          "step": 1000,
+          "val_loss": 4.246153831481934
+        },
+        {
+          "step": 1200,
+          "val_loss": 4.1330037117004395
+        },
+        {
+          "step": 1400,
+          "val_loss": 4.043536186218262
+        },
+        {
+          "step": 1600,
+          "val_loss": 3.977814197540283
+        },
+        {
+          "step": 1800,
+          "val_loss": 3.9386773109436035
+        },
+        {
+          "step": 2000,
+          "val_loss": 3.917428970336914
+        }
+      ]
+    },
+    {
+      "name": "untied-embeddings",
+      "config": "/root/llmfs/LLMfromScratch/configs/ablations/untied-embeddings.yaml",
+      "seed": 1338,
+      "status": "completed",
+      "val_loss": 3.9125733375549316,
+      "perplexity": 50.02752417936468,
+      "steps": 2000,
+      "tokens": 524288000,
+      "wall_clock_s": 699.8267997540534,
+      "tokens_per_sec": 749168.223029263,
+      "params": 76993536,
+      "run_dir": "/root/llmfs/out/ablations/untied-embeddings-seed1338",
+      "error": null,
+      "history": [
+        {
+          "step": 200,
+          "val_loss": 5.968636989593506
+        },
+        {
+          "step": 400,
+          "val_loss": 5.116093635559082
+        },
+        {
+          "step": 600,
+          "val_loss": 4.7267279624938965
+        },
+        {
+          "step": 800,
+          "val_loss": 4.430814743041992
+        },
+        {
+          "step": 1000,
+          "val_loss": 4.241993427276611
+        },
+        {
+          "step": 1200,
+          "val_loss": 4.130840301513672
+        },
+        {
+          "step": 1400,
+          "val_loss": 4.039577960968018
+        },
+        {
+          "step": 1600,
+          "val_loss": 3.973355531692505
+        },
+        {
+          "step": 1800,
+          "val_loss": 3.934743881225586
+        },
+        {
+          "step": 2000,
+          "val_loss": 3.9125733375549316
+        }
+      ]
+    },
+    {
+      "name": "untied-embeddings",
+      "config": "/root/llmfs/LLMfromScratch/configs/ablations/untied-embeddings.yaml",
+      "seed": 1339,
+      "status": "completed",
+      "val_loss": 3.912296772003174,
+      "perplexity": 50.013690202625824,
+      "steps": 2000,
+      "tokens": 524288000,
+      "wall_clock_s": 703.7840501805767,
+      "tokens_per_sec": 744955.785607074,
+      "params": 76993536,
+      "run_dir": "/root/llmfs/out/ablations/untied-embeddings-seed1339",
+      "error": null,
+      "history": [
+        {
+          "step": 200,
+          "val_loss": 5.964972972869873
+        },
+        {
+          "step": 400,
+          "val_loss": 5.105068683624268
+        },
+        {
+          "step": 600,
+          "val_loss": 4.72294807434082
+        },
+        {
+          "step": 800,
+          "val_loss": 4.424041748046875
+        },
+        {
+          "step": 1000,
+          "val_loss": 4.24008846282959
+        },
+        {
+          "step": 1200,
+          "val_loss": 4.129348278045654
+        },
+        {
+          "step": 1400,
+          "val_loss": 4.039599895477295
+        },
+        {
+          "step": 1600,
+          "val_loss": 3.9735779762268066
+        },
+        {
+          "step": 1800,
+          "val_loss": 3.9345505237579346
+        },
+        {
+          "step": 2000,
+          "val_loss": 3.912296772003174
+        }
+      ]
+    },
+    {
+      "name": "no-bias",
+      "config": "/root/llmfs/LLMfromScratch/configs/ablations/no-bias.yaml",
+      "seed": 1337,
+      "status": "completed",
+      "val_loss": 3.9146783351898193,
+      "perplexity": 50.132942913608666,
+      "steps": 2000,
+      "tokens": 524288000,
+      "wall_clock_s": 674.3235218245536,
+      "tokens_per_sec": 777502.1677746101,
+      "params": 51192320,
+      "run_dir": "/root/llmfs/out/ablations/no-bias-seed1337",
+      "error": null,
+      "history": [
+        {
+          "step": 200,
+          "val_loss": 6.028782844543457
+        },
+        {
+          "step": 400,
+          "val_loss": 5.173178672790527
+        },
+        {
+          "step": 600,
+          "val_loss": 4.713433742523193
+        },
+        {
+          "step": 800,
+          "val_loss": 4.391061305999756
+        },
+        {
+          "step": 1000,
+          "val_loss": 4.221602916717529
+        },
+        {
+          "step": 1200,
+          "val_loss": 4.122986316680908
+        },
+        {
+          "step": 1400,
+          "val_loss": 4.034515380859375
+        },
+        {
+          "step": 1600,
+          "val_loss": 3.9720535278320312
+        },
+        {
+          "step": 1800,
+          "val_loss": 3.9353930950164795
+        },
+        {
+          "step": 2000,
+          "val_loss": 3.9146783351898193
+        }
+      ]
+    },
+    {
+      "name": "no-bias",
+      "config": "/root/llmfs/LLMfromScratch/configs/ablations/no-bias.yaml",
+      "seed": 1338,
+      "status": "completed",
+      "val_loss": 3.917861223220825,
+      "perplexity": 50.29276467001876,
+      "steps": 2000,
+      "tokens": 524288000,
+      "wall_clock_s": 673.9606625242159,
+      "tokens_per_sec": 777920.7736492513,
+      "params": 51192320,
+      "run_dir": "/root/llmfs/out/ablations/no-bias-seed1338",
+      "error": null,
+      "history": [
+        {
+          "step": 200,
+          "val_loss": 6.013459205627441
+        },
+        {
+          "step": 400,
+          "val_loss": 5.1761794090271
+        },
+        {
+          "step": 600,
+          "val_loss": 4.71587610244751
+        },
+        {
+          "step": 800,
+          "val_loss": 4.393809795379639
+        },
+        {
+          "step": 1000,
+          "val_loss": 4.225161552429199
+        },
+        {
+          "step": 1200,
+          "val_loss": 4.1217169761657715
+        },
+        {
+          "step": 1400,
+          "val_loss": 4.0388264656066895
+        },
+        {
+          "step": 1600,
+          "val_loss": 3.9756839275360107
+        },
+        {
+          "step": 1800,
+          "val_loss": 3.9374020099639893
+        },
+        {
+          "step": 2000,
+          "val_loss": 3.917861223220825
+        }
+      ]
+    },
+    {
+      "name": "no-bias",
+      "config": "/root/llmfs/LLMfromScratch/configs/ablations/no-bias.yaml",
+      "seed": 1339,
+      "status": "completed",
+      "val_loss": 3.9134037494659424,
+      "perplexity": 50.06908488518588,
+      "steps": 2000,
+      "tokens": 524288000,
+      "wall_clock_s": 671.1190547114238,
+      "tokens_per_sec": 781214.5942204546,
+      "params": 51192320,
+      "run_dir": "/root/llmfs/out/ablations/no-bias-seed1339",
+      "error": null,
+      "history": [
+        {
+          "step": 200,
+          "val_loss": 6.019562721252441
+        },
+        {
+          "step": 400,
+          "val_loss": 5.1814470291137695
+        },
+        {
+          "step": 600,
+          "val_loss": 4.717187881469727
+        },
+        {
+          "step": 800,
+          "val_loss": 4.391091823577881
+        },
+        {
+          "step": 1000,
+          "val_loss": 4.222337245941162
+        },
+        {
+          "step": 1200,
+          "val_loss": 4.119339942932129
+        },
+        {
+          "step": 1400,
+          "val_loss": 4.033541679382324
+        },
+        {
+          "step": 1600,
+          "val_loss": 3.971406936645508
+        },
+        {
+          "step": 1800,
+          "val_loss": 3.9341773986816406
+        },
+        {
+          "step": 2000,
+          "val_loss": 3.9134037494659424
+        }
+      ]
+    },
+    {
+      "name": "gqa-2",
+      "config": "/root/llmfs/LLMfromScratch/configs/ablations/gqa-2.yaml",
+      "seed": 1337,
+      "status": "completed",
+      "val_loss": 3.943761110305786,
+      "perplexity": 51.61235647066684,
+      "steps": 2000,
+      "tokens": 524288000,
+      "wall_clock_s": 688.1942499848083,
+      "tokens_per_sec": 761831.4160741295,
+      "params": 48086016,
+      "run_dir": "/root/llmfs/out/ablations/gqa-2-seed1337",
+      "error": null,
+      "history": [
+        {
+          "step": 200,
+          "val_loss": 6.021590232849121
+        },
+        {
+          "step": 400,
+          "val_loss": 5.200015068054199
+        },
+        {
+          "step": 600,
+          "val_loss": 4.751087188720703
+        },
+        {
+          "step": 800,
+          "val_loss": 4.410207271575928
+        },
+        {
+          "step": 1000,
+          "val_loss": 4.248031139373779
+        },
+        {
+          "step": 1200,
+          "val_loss": 4.146874904632568
+        },
+        {
+          "step": 1400,
+          "val_loss": 4.062420845031738
+        },
+        {
+          "step": 1600,
+          "val_loss": 4.0008864402771
+        },
+        {
+          "step": 1800,
+          "val_loss": 3.9646248817443848
+        },
+        {
+          "step": 2000,
+          "val_loss": 3.943761110305786
+        }
+      ]
+    },
+    {
+      "name": "gqa-2",
+      "config": "/root/llmfs/LLMfromScratch/configs/ablations/gqa-2.yaml",
+      "seed": 1338,
+      "status": "completed",
+      "val_loss": 3.9419045448303223,
+      "perplexity": 51.51662364616243,
+      "steps": 2000,
+      "tokens": 524288000,
+      "wall_clock_s": 686.3792881825939,
+      "tokens_per_sec": 763845.8925359158,
+      "params": 48086016,
+      "run_dir": "/root/llmfs/out/ablations/gqa-2-seed1338",
+      "error": null,
+      "history": [
+        {
+          "step": 200,
+          "val_loss": 6.038956165313721
+        },
+        {
+          "step": 400,
+          "val_loss": 5.197280406951904
+        },
+        {
+          "step": 600,
+          "val_loss": 4.744567394256592
+        },
+        {
+          "step": 800,
+          "val_loss": 4.417550563812256
+        },
+        {
+          "step": 1000,
+          "val_loss": 4.246057510375977
+        },
+        {
+          "step": 1200,
+          "val_loss": 4.1463751792907715
+        },
+        {
+          "step": 1400,
+          "val_loss": 4.060439586639404
+        },
+        {
+          "step": 1600,
+          "val_loss": 3.999513626098633
+        },
+        {
+          "step": 1800,
+          "val_loss": 3.9628045558929443
+        },
+        {
+          "step": 2000,
+          "val_loss": 3.9419045448303223
+        }
+      ]
+    },
+    {
+      "name": "gqa-2",
+      "config": "/root/llmfs/LLMfromScratch/configs/ablations/gqa-2.yaml",
+      "seed": 1339,
+      "status": "completed",
+      "val_loss": 3.9422264099121094,
+      "perplexity": 51.53320771721921,
+      "steps": 2000,
+      "tokens": 524288000,
+      "wall_clock_s": 687.9002165906131,
+      "tokens_per_sec": 762157.0503328058,
+      "params": 48086016,
+      "run_dir": "/root/llmfs/out/ablations/gqa-2-seed1339",
+      "error": null,
+      "history": [
+        {
+          "step": 200,
+          "val_loss": 6.020595073699951
+        },
+        {
+          "step": 400,
+          "val_loss": 5.1940717697143555
+        },
+        {
+          "step": 600,
+          "val_loss": 4.721745491027832
+        },
+        {
+          "step": 800,
+          "val_loss": 4.399017333984375
+        },
+        {
+          "step": 1000,
+          "val_loss": 4.241790294647217
+        },
+        {
+          "step": 1200,
+          "val_loss": 4.145972728729248
+        },
+        {
+          "step": 1400,
+          "val_loss": 4.060703277587891
+        },
+        {
+          "step": 1600,
+          "val_loss": 3.9982807636260986
+        },
+        {
+          "step": 1800,
+          "val_loss": 3.962027072906494
+        },
+        {
+          "step": 2000,
+          "val_loss": 3.9422264099121094
+        }
+      ]
+    },
+    {
+      "name": "sched-wsd",
+      "config": "/root/llmfs/LLMfromScratch/configs/ablations/sched-wsd.yaml",
+      "seed": 1337,
+      "status": "completed",
+      "val_loss": 3.8077404499053955,
+      "perplexity": 45.04853436043154,
+      "steps": 2000,
+      "tokens": 524288000,
+      "wall_clock_s": 696.053728852421,
+      "tokens_per_sec": 753229.2095674712,
+      "params": 51237888,
+      "run_dir": "/root/llmfs/out/ablations/sched-wsd-seed1337",
+      "error": null,
+      "history": [
+        {
+          "step": 200,
+          "val_loss": 6.017764091491699
+        },
+        {
+          "step": 400,
+          "val_loss": 5.165633201599121
+        },
+        {
+          "step": 600,
+          "val_loss": 4.711223602294922
+        },
+        {
+          "step": 800,
+          "val_loss": 4.384049892425537
+        },
+        {
+          "step": 1000,
+          "val_loss": 4.222928524017334
+        },
+        {
+          "step": 1200,
+          "val_loss": 4.1336588859558105
+        },
+        {
+          "step": 1400,
+          "val_loss": 4.054560661315918
+        },
+        {
+          "step": 1600,
+          "val_loss": 3.98240065574646
+        },
+        {
+          "step": 1800,
+          "val_loss": 3.9338576793670654
+        },
+        {
+          "step": 2000,
+          "val_loss": 3.8077404499053955
+        }
+      ]
+    },
+    {
+      "name": "sched-wsd",
+      "config": "/root/llmfs/LLMfromScratch/configs/ablations/sched-wsd.yaml",
+      "seed": 1338,
+      "status": "completed",
+      "val_loss": 3.8085834980010986,
+      "perplexity": 45.086528454712436,
+      "steps": 2000,
+      "tokens": 524288000,
+      "wall_clock_s": 696.144779028371,
+      "tokens_per_sec": 753130.6932040253,
+      "params": 51237888,
+      "run_dir": "/root/llmfs/out/ablations/sched-wsd-seed1338",
+      "error": null,
+      "history": [
+        {
+          "step": 200,
+          "val_loss": 6.010065078735352
+        },
+        {
+          "step": 400,
+          "val_loss": 5.167630195617676
+        },
+        {
+          "step": 600,
+          "val_loss": 4.715245246887207
+        },
+        {
+          "step": 800,
+          "val_loss": 4.387083530426025
+        },
+        {
+          "step": 1000,
+          "val_loss": 4.221842288970947
+        },
+        {
+          "step": 1200,
+          "val_loss": 4.129409313201904
+        },
+        {
+          "step": 1400,
+          "val_loss": 4.049553394317627
+        },
+        {
+          "step": 1600,
+          "val_loss": 3.98205304145813
+        },
+        {
+          "step": 1800,
+          "val_loss": 3.9357516765594482
+        },
+        {
+          "step": 2000,
+          "val_loss": 3.8085834980010986
+        }
+      ]
+    },
+    {
+      "name": "sched-wsd",
+      "config": "/root/llmfs/LLMfromScratch/configs/ablations/sched-wsd.yaml",
+      "seed": 1339,
+      "status": "completed",
+      "val_loss": 3.808201313018799,
+      "perplexity": 45.069300353003584,
+      "steps": 2000,
+      "tokens": 524288000,
+      "wall_clock_s": 695.3600989216939,
+      "tokens_per_sec": 753980.5646211536,
+      "params": 51237888,
+      "run_dir": "/root/llmfs/out/ablations/sched-wsd-seed1339",
+      "error": null,
+      "history": [
+        {
+          "step": 200,
+          "val_loss": 6.011526584625244
+        },
+        {
+          "step": 400,
+          "val_loss": 5.153268337249756
+        },
+        {
+          "step": 600,
+          "val_loss": 4.7069010734558105
+        },
+        {
+          "step": 800,
+          "val_loss": 4.382310390472412
+        },
+        {
+          "step": 1000,
+          "val_loss": 4.2216105461120605
+        },
+        {
+          "step": 1200,
+          "val_loss": 4.127334117889404
+        },
+        {
+          "step": 1400,
+          "val_loss": 4.0481743812561035
+        },
+        {
+          "step": 1600,
+          "val_loss": 3.981858968734741
+        },
+        {
+          "step": 1800,
+          "val_loss": 3.9337971210479736
+        },
+        {
+          "step": 2000,
+          "val_loss": 3.808201313018799
+        }
+      ]
+    },
+    {
+      "name": "wd-zero",
+      "config": "/root/llmfs/LLMfromScratch/configs/ablations/wd-zero.yaml",
+      "seed": 1337,
+      "status": "completed",
+      "val_loss": 3.910820722579956,
+      "perplexity": 49.93992198021369,
+      "steps": 2000,
+      "tokens": 524288000,
+      "wall_clock_s": 695.6024770587683,
+      "tokens_per_sec": 753717.8450209936,
+      "params": 51237888,
+      "run_dir": "/root/llmfs/out/ablations/wd-zero-seed1337",
+      "error": null,
+      "history": [
+        {
+          "step": 200,
+          "val_loss": 6.0021772384643555
+        },
+        {
+          "step": 400,
+          "val_loss": 5.149519920349121
+        },
+        {
+          "step": 600,
+          "val_loss": 4.684809684753418
+        },
+        {
+          "step": 800,
+          "val_loss": 4.371188163757324
+        },
+        {
+          "step": 1000,
+          "val_loss": 4.208477973937988
+        },
+        {
+          "step": 1200,
+          "val_loss": 4.108977794647217
+        },
+        {
+          "step": 1400,
+          "val_loss": 4.026391506195068
+        },
+        {
+          "step": 1600,
+          "val_loss": 3.9658432006835938
+        },
+        {
+          "step": 1800,
+          "val_loss": 3.929293394088745
+        },
+        {
+          "step": 2000,
+          "val_loss": 3.910820722579956
+        }
+      ]
+    },
+    {
+      "name": "wd-zero",
+      "config": "/root/llmfs/LLMfromScratch/configs/ablations/wd-zero.yaml",
+      "seed": 1338,
+      "status": "completed",
+      "val_loss": 3.912587881088257,
+      "perplexity": 50.02825176162056,
+      "steps": 2000,
+      "tokens": 524288000,
+      "wall_clock_s": 695.1517184311524,
+      "tokens_per_sec": 754206.5797999251,
+      "params": 51237888,
+      "run_dir": "/root/llmfs/out/ablations/wd-zero-seed1338",
+      "error": null,
+      "history": [
+        {
+          "step": 200,
+          "val_loss": 6.009755611419678
+        },
+        {
+          "step": 400,
+          "val_loss": 5.165958404541016
+        },
+        {
+          "step": 600,
+          "val_loss": 4.7069010734558105
+        },
+        {
+          "step": 800,
+          "val_loss": 4.3809494972229
+        },
+        {
+          "step": 1000,
+          "val_loss": 4.213344097137451
+        },
+        {
+          "step": 1200,
+          "val_loss": 4.112762928009033
+        },
+        {
+          "step": 1400,
+          "val_loss": 4.029479026794434
+        },
+        {
+          "step": 1600,
+          "val_loss": 3.9683144092559814
+        },
+        {
+          "step": 1800,
+          "val_loss": 3.9323558807373047
+        },
+        {
+          "step": 2000,
+          "val_loss": 3.912587881088257
+        }
+      ]
+    },
+    {
+      "name": "wd-zero",
+      "config": "/root/llmfs/LLMfromScratch/configs/ablations/wd-zero.yaml",
+      "seed": 1339,
+      "status": "completed",
+      "val_loss": 3.91251802444458,
+      "perplexity": 50.024757077928335,
+      "steps": 2000,
+      "tokens": 524288000,
+      "wall_clock_s": 695.1893537323922,
+      "tokens_per_sec": 754165.7494971084,
+      "params": 51237888,
+      "run_dir": "/root/llmfs/out/ablations/wd-zero-seed1339",
+      "error": null,
+      "history": [
+        {
+          "step": 200,
+          "val_loss": 6.019351005554199
+        },
+        {
+          "step": 400,
+          "val_loss": 5.154491901397705
+        },
+        {
+          "step": 600,
+          "val_loss": 4.683511257171631
+        },
+        {
+          "step": 800,
+          "val_loss": 4.367485046386719
+        },
+        {
+          "step": 1000,
+          "val_loss": 4.209071636199951
+        },
+        {
+          "step": 1200,
+          "val_loss": 4.112703323364258
+        },
+        {
+          "step": 1400,
+          "val_loss": 4.0278096199035645
+        },
+        {
+          "step": 1600,
+          "val_loss": 3.967672109603882
+        },
+        {
+          "step": 1800,
+          "val_loss": 3.931354522705078
+        },
+        {
+          "step": 2000,
+          "val_loss": 3.91251802444458
+        }
+      ]
+    },
+    {
+      "name": "lr-3e-4",
+      "config": "/root/llmfs/LLMfromScratch/configs/ablations/lr-3e-4.yaml",
+      "seed": 1337,
+      "status": "completed",
+      "val_loss": 4.358453750610352,
+      "perplexity": 78.13622288053685,
+      "steps": 2000,
+      "tokens": 524288000,
+      "wall_clock_s": 695.0656249634922,
+      "tokens_per_sec": 754299.9986908255,
+      "params": 51237888,
+      "run_dir": "/root/llmfs/out/ablations/lr-3e-4-seed1337",
+      "error": null,
+      "history": [
+        {
+          "step": 200,
+          "val_loss": 6.393160343170166
+        },
+        {
+          "step": 400,
+          "val_loss": 5.69886589050293
+        },
+        {
+          "step": 600,
+          "val_loss": 5.259126663208008
+        },
+        {
+          "step": 800,
+          "val_loss": 4.969995498657227
+        },
+        {
+          "step": 1000,
+          "val_loss": 4.736696243286133
+        },
+        {
+          "step": 1200,
+          "val_loss": 4.584357261657715
+        },
+        {
+          "step": 1400,
+          "val_loss": 4.4808669090271
+        },
+        {
+          "step": 1600,
+          "val_loss": 4.416778087615967
+        },
+        {
+          "step": 1800,
+          "val_loss": 4.3790435791015625
+        },
+        {
+          "step": 2000,
+          "val_loss": 4.358453750610352
+        }
+      ]
+    },
+    {
+      "name": "lr-3e-4",
+      "config": "/root/llmfs/LLMfromScratch/configs/ablations/lr-3e-4.yaml",
+      "seed": 1338,
+      "status": "completed",
+      "val_loss": 4.356059551239014,
+      "perplexity": 77.94937295208311,
+      "steps": 2000,
+      "tokens": 524288000,
+      "wall_clock_s": 696.418189398013,
+      "tokens_per_sec": 752835.0177832042,
+      "params": 51237888,
+      "run_dir": "/root/llmfs/out/ablations/lr-3e-4-seed1338",
+      "error": null,
+      "history": [
+        {
+          "step": 200,
+          "val_loss": 6.38656759262085
+        },
+        {
+          "step": 400,
+          "val_loss": 5.683806419372559
+        },
+        {
+          "step": 600,
+          "val_loss": 5.246913433074951
+        },
+        {
+          "step": 800,
+          "val_loss": 4.959174633026123
+        },
+        {
+          "step": 1000,
+          "val_loss": 4.72476863861084
+        },
+        {
+          "step": 1200,
+          "val_loss": 4.577057361602783
+        },
+        {
+          "step": 1400,
+          "val_loss": 4.478127956390381
+        },
+        {
+          "step": 1600,
+          "val_loss": 4.414393901824951
+        },
+        {
+          "step": 1800,
+          "val_loss": 4.377167701721191
+        },
+        {
+          "step": 2000,
+          "val_loss": 4.356059551239014
+        }
+      ]
+    },
+    {
+      "name": "lr-3e-4",
+      "config": "/root/llmfs/LLMfromScratch/configs/ablations/lr-3e-4.yaml",
+      "seed": 1339,
+      "status": "completed",
+      "val_loss": 4.357182502746582,
+      "perplexity": 78.0369554842183,
+      "steps": 2000,
+      "tokens": 524288000,
+      "wall_clock_s": 694.8882815083489,
+      "tokens_per_sec": 754492.5046972473,
+      "params": 51237888,
+      "run_dir": "/root/llmfs/out/ablations/lr-3e-4-seed1339",
+      "error": null,
+      "history": [
+        {
+          "step": 200,
+          "val_loss": 6.38686466217041
+        },
+        {
+          "step": 400,
+          "val_loss": 5.672489166259766
+        },
+        {
+          "step": 600,
+          "val_loss": 5.252224922180176
+        },
+        {
+          "step": 800,
+          "val_loss": 4.967719078063965
+        },
+        {
+          "step": 1000,
+          "val_loss": 4.742156028747559
+        },
+        {
+          "step": 1200,
+          "val_loss": 4.5843682289123535
+        },
+        {
+          "step": 1400,
+          "val_loss": 4.482547760009766
+        },
+        {
+          "step": 1600,
+          "val_loss": 4.418420314788818
+        },
+        {
+          "step": 1800,
+          "val_loss": 4.378659725189209
+        },
+        {
+          "step": 2000,
+          "val_loss": 4.357182502746582
+        }
+      ]
+    },
+    {
+      "name": "lr-3e-3",
+      "config": "/root/llmfs/LLMfromScratch/configs/ablations/lr-3e-3.yaml",
+      "seed": 1337,
+      "status": "completed",
+      "val_loss": 3.7871971130371094,
+      "perplexity": 44.132528269338266,
+      "steps": 2000,
+      "tokens": 524288000,
+      "wall_clock_s": 693.0613395217806,
+      "tokens_per_sec": 756481.3820978155,
+      "params": 51237888,
+      "run_dir": "/root/llmfs/out/ablations/lr-3e-3-seed1337",
+      "error": null,
+      "history": [
+        {
+          "step": 200,
+          "val_loss": 5.961538791656494
+        },
+        {
+          "step": 400,
+          "val_loss": 4.982171535491943
+        },
+        {
+          "step": 600,
+          "val_loss": 4.4994425773620605
+        },
+        {
+          "step": 800,
+          "val_loss": 4.252360820770264
+        },
+        {
+          "step": 1000,
+          "val_loss": 4.105556488037109
+        },
+        {
+          "step": 1200,
+          "val_loss": 4.0106306076049805
+        },
+        {
+          "step": 1400,
+          "val_loss": 3.9200520515441895
+        },
+        {
+          "step": 1600,
+          "val_loss": 3.8522090911865234
+        },
+        {
+          "step": 1800,
+          "val_loss": 3.8108177185058594
+        },
+        {
+          "step": 2000,
+          "val_loss": 3.7871971130371094
+        }
+      ]
+    },
+    {
+      "name": "lr-3e-3",
+      "config": "/root/llmfs/LLMfromScratch/configs/ablations/lr-3e-3.yaml",
+      "seed": 1338,
+      "status": "completed",
+      "val_loss": 3.7866475582122803,
+      "perplexity": 44.10828168851891,
+      "steps": 2000,
+      "tokens": 524288000,
+      "wall_clock_s": 695.7570400191471,
+      "tokens_per_sec": 753550.4060233033,
+      "params": 51237888,
+      "run_dir": "/root/llmfs/out/ablations/lr-3e-3-seed1338",
+      "error": null,
+      "history": [
+        {
+          "step": 200,
+          "val_loss": 5.930393218994141
+        },
+        {
+          "step": 400,
+          "val_loss": 4.9520792961120605
+        },
+        {
+          "step": 600,
+          "val_loss": 4.49436616897583
+        },
+        {
+          "step": 800,
+          "val_loss": 4.2501540184021
+        },
+        {
+          "step": 1000,
+          "val_loss": 4.1032867431640625
+        },
+        {
+          "step": 1200,
+          "val_loss": 4.010645866394043
+        },
+        {
+          "step": 1400,
+          "val_loss": 3.9210469722747803
+        },
+        {
+          "step": 1600,
+          "val_loss": 3.851689577102661
+        },
+        {
+          "step": 1800,
+          "val_loss": 3.8094756603240967
+        },
+        {
+          "step": 2000,
+          "val_loss": 3.7866475582122803
+        }
+      ]
+    },
+    {
+      "name": "lr-3e-3",
+      "config": "/root/llmfs/LLMfromScratch/configs/ablations/lr-3e-3.yaml",
+      "seed": 1339,
+      "status": "completed",
+      "val_loss": 3.785468339920044,
+      "perplexity": 44.05629905137472,
+      "steps": 2000,
+      "tokens": 524288000,
+      "wall_clock_s": 693.2160418666899,
+      "tokens_per_sec": 756312.5610714359,
+      "params": 51237888,
+      "run_dir": "/root/llmfs/out/ablations/lr-3e-3-seed1339",
+      "error": null,
+      "history": [
+        {
+          "step": 200,
+          "val_loss": 5.913289546966553
+        },
+        {
+          "step": 400,
+          "val_loss": 4.9613037109375
+        },
+        {
+          "step": 600,
+          "val_loss": 4.490878105163574
+        },
+        {
+          "step": 800,
+          "val_loss": 4.250827312469482
+        },
+        {
+          "step": 1000,
+          "val_loss": 4.105085372924805
+        },
+        {
+          "step": 1200,
+          "val_loss": 4.009746074676514
+        },
+        {
+          "step": 1400,
+          "val_loss": 3.919217348098755
+        },
+        {
+          "step": 1600,
+          "val_loss": 3.850087881088257
+        },
+        {
+          "step": 1800,
+          "val_loss": 3.808929443359375
+        },
+        {
+          "step": 2000,
+          "val_loss": 3.785468339920044
+        }
+      ]
+    },
+    {
+      "name": "modern-stack",
+      "config": "/root/llmfs/LLMfromScratch/configs/ablations/modern-stack.yaml",
+      "seed": 1337,
+      "status": "completed",
+      "val_loss": 3.824504852294922,
+      "perplexity": 45.81011197793004,
+      "steps": 2000,
+      "tokens": 524288000,
+      "wall_clock_s": 705.4773456966504,
+      "tokens_per_sec": 743167.7334475877,
+      "params": 49881600,
+      "run_dir": "/root/llmfs/out/ablations/modern-stack-seed1337",
+      "error": null,
+      "history": [
+        {
+          "step": 200,
+          "val_loss": 5.591848850250244
+        },
+        {
+          "step": 400,
+          "val_loss": 4.770763397216797
+        },
+        {
+          "step": 600,
+          "val_loss": 4.392859935760498
+        },
+        {
+          "step": 800,
+          "val_loss": 4.193525791168213
+        },
+        {
+          "step": 1000,
+          "val_loss": 4.078085899353027
+        },
+        {
+          "step": 1200,
+          "val_loss": 3.998229742050171
+        },
+        {
+          "step": 1400,
+          "val_loss": 3.9287540912628174
+        },
+        {
+          "step": 1600,
+          "val_loss": 3.8743908405303955
+        },
+        {
+          "step": 1800,
+          "val_loss": 3.841815233230591
+        },
+        {
+          "step": 2000,
+          "val_loss": 3.824504852294922
+        }
+      ]
+    },
+    {
+      "name": "modern-stack",
+      "config": "/root/llmfs/LLMfromScratch/configs/ablations/modern-stack.yaml",
+      "seed": 1338,
+      "status": "completed",
+      "val_loss": 3.8282668590545654,
+      "perplexity": 45.98277450400954,
+      "steps": 2000,
+      "tokens": 524288000,
+      "wall_clock_s": 700.448523433879,
+      "tokens_per_sec": 748503.2553566254,
+      "params": 49881600,
+      "run_dir": "/root/llmfs/out/ablations/modern-stack-seed1338",
+      "error": null,
+      "history": [
+        {
+          "step": 200,
+          "val_loss": 5.615384101867676
+        },
+        {
+          "step": 400,
+          "val_loss": 4.783736705780029
+        },
+        {
+          "step": 600,
+          "val_loss": 4.392077922821045
+        },
+        {
+          "step": 800,
+          "val_loss": 4.1965012550354
+        },
+        {
+          "step": 1000,
+          "val_loss": 4.08161735534668
+        },
+        {
+          "step": 1200,
+          "val_loss": 4.001956462860107
+        },
+        {
+          "step": 1400,
+          "val_loss": 3.9322450160980225
+        },
+        {
+          "step": 1600,
+          "val_loss": 3.878704071044922
+        },
+        {
+          "step": 1800,
+          "val_loss": 3.8463752269744873
+        },
+        {
+          "step": 2000,
+          "val_loss": 3.8282668590545654
+        }
+      ]
+    },
+    {
+      "name": "modern-stack",
+      "config": "/root/llmfs/LLMfromScratch/configs/ablations/modern-stack.yaml",
+      "seed": 1339,
+      "status": "completed",
+      "val_loss": 3.8160195350646973,
+      "perplexity": 45.423043168693034,
+      "steps": 2000,
+      "tokens": 524288000,
+      "wall_clock_s": 698.242324758321,
+      "tokens_per_sec": 750868.2607882143,
+      "params": 49881600,
+      "run_dir": "/root/llmfs/out/ablations/modern-stack-seed1339",
+      "error": null,
+      "history": [
+        {
+          "step": 200,
+          "val_loss": 5.636563301086426
+        },
+        {
+          "step": 400,
+          "val_loss": 4.784210681915283
+        },
+        {
+          "step": 600,
+          "val_loss": 4.399938583374023
+        },
+        {
+          "step": 800,
+          "val_loss": 4.193779945373535
+        },
+        {
+          "step": 1000,
+          "val_loss": 4.073439598083496
+        },
+        {
+          "step": 1200,
+          "val_loss": 3.992542266845703
+        },
+        {
+          "step": 1400,
+          "val_loss": 3.920668840408325
+        },
+        {
+          "step": 1600,
+          "val_loss": 3.86761212348938
+        },
+        {
+          "step": 1800,
+          "val_loss": 3.834017276763916
+        },
+        {
+          "step": 2000,
+          "val_loss": 3.8160195350646973
+        }
+      ]
+    }
+  ]
+}
