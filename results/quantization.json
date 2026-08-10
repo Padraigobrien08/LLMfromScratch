@@ -1,0 +1,136 @@
+{
+  "meta": {
+    "checkpoint": "out/gpt2-124m-repro/best.pt",
+    "step": 19000,
+    "device": "mps",
+    "hellaswag_limit": 1000,
+    "hellaswag_reference": 0.2955,
+    "provenance": {
+      "timestamp_utc": "2026-08-10T20:06:31Z",
+      "hostname": "Padraigs-MacBook-Pro.local",
+      "platform": "macOS-15.5-arm64-arm-64bit",
+      "python": "3.11.0",
+      "torch": "2.13.0",
+      "device": "mps",
+      "git_commit": "650c03256a1b8c7976b4a15d3fcf9e7fd2e6be7e",
+      "git_branch": "redesign/broadsheet-site",
+      "git_dirty": true,
+      "cpu_count": 10
+    }
+  },
+  "results": [
+    {
+      "name": "fp32 baseline",
+      "bits": null,
+      "group_size": null,
+      "quantized_embedding": false,
+      "memory_mib": 474.837890625,
+      "compression": 1.0,
+      "perplexity": 19.082554896367192,
+      "acc_norm": 0.348,
+      "acc": 0.324,
+      "decode_tok_s": 154.3364625543921,
+      "extra": {}
+    },
+    {
+      "name": "int8 per-tensor",
+      "bits": 8,
+      "group_size": -1,
+      "quantized_embedding": false,
+      "memory_mib": 232.470703125,
+      "compression": 2.042570888468809,
+      "perplexity": 19.094729486420796,
+      "acc_norm": 0.347,
+      "acc": 0.325,
+      "decode_tok_s": 28.72744596916748,
+      "extra": {
+        "bits": 8,
+        "group_size": -1,
+        "replaced": 48,
+        "linear_bytes_before": 494272512,
+        "linear_bytes_after": 240132096,
+        "compression": 2.0583358919250845
+      }
+    },
+    {
+      "name": "int8 g128",
+      "bits": 8,
+      "group_size": 128,
+      "quantized_embedding": false,
+      "memory_mib": 236.900390625,
+      "compression": 2.004377828893671,
+      "perplexity": 19.089455718892925,
+      "acc_norm": 0.346,
+      "acc": 0.324,
+      "decode_tok_s": 28.092282709211716,
+      "extra": {
+        "bits": 8,
+        "group_size": 128,
+        "replaced": 48,
+        "linear_bytes_before": 494272512,
+        "linear_bytes_after": 244776960,
+        "compression": 2.019277108433735
+      }
+    },
+    {
+      "name": "int4 per-tensor",
+      "bits": 4,
+      "group_size": -1,
+      "quantized_embedding": false,
+      "memory_mib": 191.970703125,
+      "compression": 2.4734914385129567,
+      "perplexity": 22.6484948764818,
+      "acc_norm": 0.335,
+      "acc": 0.326,
+      "decode_tok_s": 22.410653605975718,
+      "extra": {
+        "bits": 4,
+        "group_size": -1,
+        "replaced": 48,
+        "linear_bytes_before": 494272512,
+        "linear_bytes_after": 197664768,
+        "compression": 2.5005594927265946
+      }
+    },
+    {
+      "name": "int4 g128",
+      "bits": 4,
+      "group_size": 128,
+      "quantized_embedding": false,
+      "memory_mib": 196.400390625,
+      "compression": 2.41770339210597,
+      "perplexity": 20.43079712970814,
+      "acc_norm": 0.34,
+      "acc": 0.317,
+      "decode_tok_s": 22.333069147287187,
+      "extra": {
+        "bits": 4,
+        "group_size": 128,
+        "replaced": 48,
+        "linear_bytes_before": 494272512,
+        "linear_bytes_after": 202309632,
+        "compression": 2.443148688046647
+      }
+    },
+    {
+      "name": "int4 g32",
+      "bits": 4,
+      "group_size": 32,
+      "quantized_embedding": false,
+      "memory_mib": 211.587890625,
+      "compression": 2.2441638281963945,
+      "perplexity": 20.286478728662324,
+      "acc_norm": 0.336,
+      "acc": 0.325,
+      "decode_tok_s": 23.2346435798302,
+      "extra": {
+        "bits": 4,
+        "group_size": 32,
+        "replaced": 48,
+        "linear_bytes_before": 494272512,
+        "linear_bytes_after": 218234880,
+        "compression": 2.264864864864865
+      }
+    }
+  ]
+}

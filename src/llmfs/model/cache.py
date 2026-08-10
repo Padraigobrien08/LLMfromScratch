@@ -80,6 +80,22 @@ class KVCache:
     def advance(self, n_tokens: int) -> None:
         self._pos += n_tokens
 
+    def rewind_to(self, pos: int) -> None:
+        """Discard everything cached beyond ``pos``.
+
+        Speculative decoding needs this: the target scores ``k`` draft tokens in one
+        pass, which writes ``k`` entries into the cache, and any draft it rejects must
+        be undone before the next iteration.
+
+        Because the cache is preallocated, rolling back is only a move of the write
+        offset — attention reads ``[:pos]``, so stale entries past it are never seen and
+        are overwritten by the next write. That is the property that makes rejection
+        cheap; a cache built by concatenation would have to reallocate here.
+        """
+        if not 0 <= pos <= self._pos:
+            raise ValueError(f"cannot rewind to {pos}: cache holds {self._pos} tokens")
+        self._pos = pos
+
     def reset(self) -> None:
         self._pos = 0
 

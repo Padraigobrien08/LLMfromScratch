@@ -50,6 +50,8 @@ llmfs-viz-serve = "llmfs.viz.server:main"
 llmfs-ablate = "llmfs.ablation.sweep:main"
 llmfs-ablate-report = "llmfs.ablation.report:main"
 llmfs-bench = "llmfs.bench.throughput:main"
+llmfs-quant-eval = "llmfs.quant.evaluate:main"
+llmfs-spec-bench = "llmfs.infer.benchmark:main"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/llmfs"]
