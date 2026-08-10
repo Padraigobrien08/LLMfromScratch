@@ -28,6 +28,7 @@
 #   ./scripts/gpu.sh data ablation      # just the corpus (hours)
 #   ./scripts/gpu.sh sweep              # launch the ablation sweep, detached
 #   ./scripts/gpu.sh repro              # launch the 124M reproduction, detached
+#   ./scripts/gpu.sh autostop [min]     # stop the pod N min after the job ends
 #   ./scripts/gpu.sh status             # progress + spend so far
 #   ./scripts/gpu.sh watch              # poll until done, then fetch automatically
 #   ./scripts/gpu.sh fetch              # pull results and post-process locally
@@ -329,6 +330,33 @@ cmd_fetch_checkpoints() {
     "$GPU_USER@$GPU_HOST:$GPU_WORKDIR/out/" "$REPO_ROOT/out/"
 }
 
+cmd_autostop() {
+  # Runs in its own tmux session so it never disturbs a job already in flight.
+  local grace="${1:-10}"
+  bold "arming auto-stop: pod stops ${grace} min after the pipeline ends"
+  scp -q -P "$GPU_PORT" -i "$GPU_KEY" \
+    "$REPO_ROOT/scripts/remote/watchdog.sh" "$GPU_USER@$GPU_HOST:$GPU_WORKDIR/watchdog.sh"
+  ssh_run "chmod +x $GPU_WORKDIR/watchdog.sh"
+  ssh_run "tmux kill-session -t ${SESSION}-watchdog 2>/dev/null || true"
+  ssh_run "tmux new-session -d -s ${SESSION}-watchdog \
+    'GPU_WORKDIR=$GPU_WORKDIR RESULTS_DIR=$GPU_RESULTS SESSION=$SESSION \
+     bash $GPU_WORKDIR/watchdog.sh $grace 2>&1 | tee -a $GPU_WORKDIR/watchdog.log'"
+  sleep 2
+  if [[ "$(ssh_run "tmux has-session -t ${SESSION}-watchdog 2>/dev/null && echo yes || echo no")" == "yes" ]]; then
+    bold "armed"
+    echo "  results and the checkpoint are on the network volume and survive the stop"
+    echo "  the corpus does not — regenerating it costs ~16 min"
+    echo "  disarm with: ./scripts/gpu.sh autostop-off"
+  else
+    die "watchdog failed to start"
+  fi
+}
+
+cmd_autostop_off() {
+  ssh_run "tmux kill-session -t ${SESSION}-watchdog 2>/dev/null || true"
+  bold "auto-stop disarmed"
+}
+
 cmd_attach() { require_host; ssh -t -p "$GPU_PORT" -i "$GPU_KEY" "$GPU_USER@$GPU_HOST" "tmux attach -t $SESSION"; }
 cmd_shell()  { require_host; ssh -t -p "$GPU_PORT" -i "$GPU_KEY" "$GPU_USER@$GPU_HOST" "cd $REMOTE_REPO 2>/dev/null; exec bash -l"; }
 cmd_kill()   { ssh_run "tmux kill-session -t $SESSION 2>/dev/null || true"; bold "killed session '$SESSION'"; }
@@ -355,6 +383,8 @@ main() {
   local cmd="${1:-}"; shift || true
   case "$cmd" in
     all)               cmd_all "$@" ;;
+    autostop)          cmd_autostop "$@" ;;
+    autostop-off)      cmd_autostop_off "$@" ;;
     preflight)         cmd_preflight "$@" ;;
     setup)             cmd_setup "$@" ;;
     data)              cmd_data "$@" ;;
