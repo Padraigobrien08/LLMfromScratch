@@ -274,6 +274,69 @@ def bench_inference(
     return results
 
 
+def bench_cache_scaling(
+    model: Transformer,
+    lengths: tuple[int, ...] = (128, 256, 512, 1024),
+    prompt_len: int = 32,
+    device: torch.device | None = None,
+) -> list[BenchResult]:
+    """Cached against naive decoding as a function of sequence length.
+
+    This is the axis the KV cache exists for, and the earlier single-point benchmark
+    missed it. At 192 tokens the cache showed no benefit at all — decoding a 124M model
+    is bound by streaming weights, and re-reading a 192-token prefix costs almost
+    nothing next to that. The naive path is quadratic in length while the cached path is
+    linear, so the two must diverge; measuring one short sequence and concluding "the
+    cache does not help" was the wrong reading of a correct number.
+    """
+    device = device or next(model.parameters()).device
+    model.eval()
+    results: list[BenchResult] = []
+
+    for total in lengths:
+        if total > model.cfg.block_size:
+            print(f"  {total:>5} tokens: skipped (exceeds block_size={model.cfg.block_size})")
+            continue
+        gen_len = total - prompt_len
+        prompt = torch.randint(0, model.cfg.vocab_size, (1, prompt_len), device=device)
+
+        timings = {}
+        for use_cache in (True, False):
+            cfg = GenerationConfig(max_new_tokens=gen_len, temperature=0.0, top_k=None)
+            model.generate(prompt[:, :8], GenerationConfig(max_new_tokens=4), use_cache=use_cache)
+            _sync(device)
+            _reset_memory(device)
+            start = time.perf_counter()
+            model.generate(prompt, cfg, use_cache=use_cache)
+            _sync(device)
+            timings[use_cache] = time.perf_counter() - start
+
+        speedup = timings[False] / timings[True]
+        for use_cache in (True, False):
+            results.append(
+                BenchResult(
+                    suite="cache-scaling",
+                    variant=("kv-cache" if use_cache else "naive") + f" @{total}",
+                    settings={
+                        "use_cache": use_cache,
+                        "total_len": total,
+                        "prompt_len": prompt_len,
+                        "gen_len": gen_len,
+                    },
+                    tokens_per_sec=gen_len / timings[use_cache],
+                    ms_per_step=timings[use_cache] / gen_len * 1000,
+                    peak_memory_gib=_peak_memory_gib(device),
+                    extra={"cache_speedup_at_this_length": round(speedup, 3)},
+                )
+            )
+        print(
+            f"  {total:>5} tokens: cached {gen_len / timings[True]:>8,.1f} tok/s  "
+            f"naive {gen_len / timings[False]:>8,.1f} tok/s  -> {speedup:>5.2f}x"
+        )
+
+    return results
+
+
 # ----------------------------------------------------------------------- CLI
 
 
@@ -292,7 +355,11 @@ def write_results(
 
 def main(argv: list[str] | None = None) -> None:
     parser = argparse.ArgumentParser(description="Throughput and memory benchmarks.")
-    parser.add_argument("--suite", choices=["training", "inference", "both"], default="both")
+    parser.add_argument(
+        "--suite",
+        choices=["training", "inference", "cache-scaling", "both", "all"],
+        default="both",
+    )
     parser.add_argument("--config", type=str, default="gpt2-124m")
     parser.add_argument(
         "--checkpoint", type=str, default=None, help="trained model for the inference suite"
@@ -307,11 +374,11 @@ def main(argv: list[str] | None = None) -> None:
     device = get_device(args.device)
     results: list[BenchResult] = []
 
-    if args.suite in ("training", "both"):
+    if args.suite in ("training", "both", "all"):
         print(f"training throughput ({args.config} on {device})")
         results += bench_training(cfg, steps=args.steps, device=device)
 
-    if args.suite in ("inference", "both"):
+    if args.suite in ("inference", "both", "all"):
         print(f"\ninference throughput ({device})")
         if args.checkpoint:
             from ..train.checkpoint import model_from_checkpoint
@@ -322,6 +389,16 @@ def main(argv: list[str] | None = None) -> None:
             # untrained model gives the same throughput numbers.
             model = Transformer(ModelConfig(**cfg.to_dict()["model"])).to(device).eval()
         results += bench_inference(model, gen_len=args.gen_len, device=device)
+
+    if args.suite in ("cache-scaling", "all"):
+        print(f"\ncache scaling by sequence length ({device})")
+        if args.checkpoint:
+            from ..train.checkpoint import model_from_checkpoint
+
+            model, _ = model_from_checkpoint(args.checkpoint, device=device)
+        else:
+            model = Transformer(ModelConfig(**cfg.to_dict()["model"])).to(device).eval()
+        results += bench_cache_scaling(model, device=device)
 
     write_results(
         results, Path(args.out), device, extra={"config": args.config, "suite": args.suite}

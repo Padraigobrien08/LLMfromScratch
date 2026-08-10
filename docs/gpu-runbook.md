@@ -159,6 +159,45 @@ total to ~65 GB.
 
 ---
 
+## Benchmarks only (no training)
+
+For measuring rather than training — quantization decode throughput, speculative
+decoding wall-clock, the KV-cache-vs-sequence-length sweep. These need CUDA but not a
+corpus, so the full pipeline's 16 minutes of tokenisation would be most of the bill.
+
+Rent the cheapest card that is representative; a **4090 at $0.74/hr** is fine, since
+what is being compared is one configuration against another on the same hardware.
+
+```bash
+./scripts/gpu.sh preflight && ./scripts/gpu.sh setup
+```
+
+```bash
+./scripts/gpu.sh autostop 10
+```
+
+```bash
+./scripts/gpu.sh bench
+```
+
+`bench` uploads the local checkpoint (and the draft model, if present) and runs all
+three suites, writing `benchmarks-cuda.json`, `quantization-cuda.json` and
+`speculative-cuda.json`. Then:
+
+```bash
+./scripts/gpu.sh watch
+```
+
+Expect **~20 minutes and about $0.25**, most of it the 1.4GB checkpoint upload.
+
+Two notes. No network volume is needed — nothing here is expensive to regenerate, and
+`fetch` pulls the results to your laptop. And `--hellaswag-limit 0` is passed to the
+quantization sweep deliberately: memory and quality are device-independent and already
+measured locally, so paying GPU rates to re-measure them would be waste. The only
+column CUDA adds is decode throughput.
+
+---
+
 ## The sequence
 
 ```bash

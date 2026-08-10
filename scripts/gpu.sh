@@ -25,6 +25,7 @@
 #   ./scripts/gpu.sh preflight          # verify the pod: GPU, disk, CUDA, volume
 #   ./scripts/gpu.sh setup              # clone repo, install deps
 #   ./scripts/gpu.sh all                # EVERYTHING: data -> sweep -> repro -> eval
+#   ./scripts/gpu.sh bench              # benchmarks only: upload a checkpoint, measure
 #   ./scripts/gpu.sh data ablation      # just the corpus (hours)
 #   ./scripts/gpu.sh sweep              # launch the ablation sweep, detached
 #   ./scripts/gpu.sh repro              # launch the 124M reproduction, detached
@@ -226,6 +227,40 @@ cmd_all() {
      bash $GPU_WORKDIR/pipeline.sh"
 }
 
+cmd_bench() {
+  # The benchmark-only path: no corpus, no training. Uploads the checkpoint and runs
+  # every measurement that genuinely needs CUDA. A benchmarking session should not
+  # spend its first 16 minutes tokenising a corpus it will never train on.
+  local target="${1:-out/gpt2-124m-repro/best.pt}"
+  local draft="${2:-out/gpt2-124m-repro/milestone_010pct_step0001907.pt}"
+
+  [[ -f "$REPO_ROOT/$target" || -f "$target" ]] || die "target checkpoint not found: $target"
+  local target_path="${target}"
+  [[ -f "$REPO_ROOT/$target" ]] && target_path="$REPO_ROOT/$target"
+
+  bold "uploading checkpoints (this is the only slow part)"
+  ssh_run "mkdir -p $GPU_WORKDIR/checkpoints"
+  rsync -az --progress -e "ssh -p $GPU_PORT -i $GPU_KEY" \
+    "$target_path" "$GPU_USER@$GPU_HOST:$GPU_WORKDIR/checkpoints/best.pt"
+
+  local draft_path=""
+  [[ -f "$REPO_ROOT/$draft" ]] && draft_path="$REPO_ROOT/$draft"
+  [[ -z "$draft_path" && -f "$draft" ]] && draft_path="$draft"
+  if [[ -n "$draft_path" ]]; then
+    rsync -az --progress -e "ssh -p $GPU_PORT -i $GPU_KEY" \
+      "$draft_path" "$GPU_USER@$GPU_HOST:$GPU_WORKDIR/checkpoints/draft.pt"
+  else
+    warn "no draft checkpoint found; model-draft rows will be skipped"
+  fi
+
+  bold "launching benchmarks"
+  scp -q -P "$GPU_PORT" -i "$GPU_KEY" \
+    "$REPO_ROOT/scripts/remote/bench_pipeline.sh" "$GPU_USER@$GPU_HOST:$GPU_WORKDIR/bench_pipeline.sh"
+  ssh_run "chmod +x $GPU_WORKDIR/bench_pipeline.sh"
+  ssh_detached "benchmarks" \
+    "GPU_WORKDIR=$GPU_WORKDIR RESULTS_DIR=$GPU_RESULTS bash $GPU_WORKDIR/bench_pipeline.sh"
+}
+
 cmd_sweep() {
   bold "launching the ablation sweep"
   ssh_detached "ablation-sweep" \
@@ -410,6 +445,7 @@ main() {
   local cmd="${1:-}"; shift || true
   case "$cmd" in
     all)               cmd_all "$@" ;;
+    bench)             cmd_bench "$@" ;;
     autostop)          cmd_autostop "$@" ;;
     autostop-off)      cmd_autostop_off "$@" ;;
     mirror)            cmd_mirror "$@" ;;
