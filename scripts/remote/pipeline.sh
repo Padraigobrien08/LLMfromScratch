@@ -76,8 +76,11 @@ check_disk() {
   # a 100GB disk at arm 8 of 13 and took the reproduction down with it, because the
   # checkpoint budget was computed for 2 files per run and milestones silently made
   # it 6. Estimating up front turns that into a message instead of six wasted hours.
+  # Sized against the work that REMAINS, not the whole job. A resumed pipeline has
+  # the corpus on disk and some arms already done; counting those again makes the
+  # guard refuse work that would comfortably fit, which is its own kind of failure.
   local need_gb free_gb
-  need_gb=$(( 39 * 2 + 20 + 10 ))   # 39 runs x ~1.2GB, corpus 20GB, reproduction 10GB
+  need_gb=$(python3 "$REPO/scripts/remote/disk_need.py" "$DATA_DIR" "$RESULTS/ablations.json" "$OUT_DIR")
   free_gb=$(df -BG --output=avail "$OUT_DIR" 2>/dev/null | tail -1 | tr -dc '0-9')
   say "disk: ${free_gb}GB free, ~${need_gb}GB needed"
   if [[ -n "$free_gb" && "$free_gb" -lt "$need_gb" ]]; then
