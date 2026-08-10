@@ -1,8 +1,9 @@
 # LLMfromScratch
 
-A from-scratch decoder-only language model: a GPT-2 124M reproduction, extended with
-modern architecture components, a controlled ablation study, and efficiency
-benchmarks — reproducible from one command.
+A from-scratch decoder-only language model that **reproduces GPT-2 124M** —
+validation loss **3.0503** against a 3.29 target, HellaSwag **0.3043** against the
+reference 0.2955 — extended with modern architecture components, a paired-seed
+ablation study, and efficiency benchmarks. Reproducible from one command.
 
 [![CI](https://github.com/Padraigobrien08/LLMfromScratch/actions/workflows/ci.yml/badge.svg)](https://github.com/Padraigobrien08/LLMfromScratch/actions/workflows/ci.yml)
 [![Site](https://github.com/Padraigobrien08/LLMfromScratch/actions/workflows/pages.yml/badge.svg)](https://padraigobrien08.github.io/LLMfromScratch/)
@@ -31,9 +32,9 @@ what is built and verified, and what is designed but not yet run.
 | --- | --- |
 | Package, config system, data pipeline, trainer, CI | **Done** — 223 tests green, end-to-end verified |
 | Modern architecture (RoPE, RMSNorm, SwiGLU, GQA, KV cache) | **Done** — hand-implemented, property-tested |
-| GPT-2 124M reproduction on FineWeb-Edu | Configured; **GPU run pending** |
+| GPT-2 124M reproduction on FineWeb-Edu | **Done** — 3.0503 val loss, [docs/reproduction.md](docs/reproduction.md) |
 | Ablation study (12 arms × 3 seeds) | **Done** — [docs/ablations.md](docs/ablations.md), 39 runs, 7.6 GPU-h |
-| Efficiency benchmarks (throughput, memory, KV cache) | **Built** — `llmfs-bench`; **GPU run pending** |
+| Efficiency benchmarks (throughput, memory, KV cache) | **Done** — measured on H100, below |
 | Quantization + speculative decoding | **Not started** |
 | Fault-tolerance design doc | **Done** — [docs/fault-tolerance.md](docs/fault-tolerance.md) |
 | Multi-GPU scaling report | DDP wired; **scaling run pending** |
@@ -151,17 +152,27 @@ to `out/<run_name>/`. Resume with `--resume auto`.
 
 ## Reproduction
 
-The trust anchor: a documented target, hit within a stated tolerance, rather than a
-model that merely emits plausible text.
+The trust anchor: a documented target, hit within a tolerance fixed *before* the run.
 
-- **Target**: GPT-2 124M on FineWeb-Edu (sample-10BT), one epoch, 10B tokens.
-- **Protocol, provenance of the target number, and tolerance**:
-  [docs/reproduction.md](docs/reproduction.md).
-- **Status**: not yet run. The config, data pipeline and trainer are complete and
-  verified end to end at small scale; what remains is the GPU time.
+| | achieved | target | |
+| --- | --- | --- | --- |
+| Validation loss, full 100M-token split | **3.0503** | ≤ 3.29 | **−0.2397** |
+| Perplexity | **21.12** | — | |
+| HellaSwag `acc_norm` | **0.3043** | 0.2955 (GPT-2 124M) | **+0.0088** |
 
-Results, loss curves, wall-clock, hardware and cost will be published here once the
-run completes.
+![Loss curve](results/reproduction_curve.png)
+
+Crossed the target at step 6,500 — 34% of the run — and kept improving. **44.1% MFU
+held flat for seven hours**, ~401,000 tokens/sec on one H100, ~$23 of GPU time.
+
+**HellaSwag is what makes the loss trustworthy.** Validation loss is measured on a
+split we chose with a tokenizer we configured; a mismatch in either would move the
+number without looking wrong. HellaSwag is a fixed public set scored against a
+published figure, so clearing both chance (0.25) and the GPT-2 124M reference is the
+independent check. Near 0.25 and the loss would have meant nothing.
+
+Protocol, target provenance, hardware, and sample generations:
+[docs/reproduction.md](docs/reproduction.md).
 
 ---
 
@@ -245,18 +256,52 @@ largest caveat and is stated as such in the write-up.
 
 ## Efficiency
 
-The consolidated benchmark — naive → KV cache → quantized → speculative decoding,
-with latency, tokens/sec, memory and cost — is the headline deliverable here and is
-**not yet built**.
+Measured on the H100 that trained the model, at the 124M configuration. Every result
+carries its provenance — GPU, driver, torch build, measured 808 TFLOP/s dense bf16,
+and the commit that produced it.
 
-One number is measured so far, and only because it falls out of the cache tests: on a
-7M-parameter debug model on MPS, KV-cache decoding runs at 44.5 tok/s against 14.5
-tok/s for the naive re-forward baseline (3.1×), producing bitwise-identical output
-under greedy decoding. That is a toy model on a laptop, reported as a sanity check
-rather than a benchmark.
+### Training throughput
 
-Already wired and awaiting measurement on real hardware: mixed precision (bf16),
-`torch.compile`, gradient checkpointing, fused AdamW, TF32, and MFU logging.
+| Variant | tokens/sec | peak memory | MFU |
+| --- | --- | --- | --- |
+| baseline | 298,199 | 14.5 GiB | 32.8% |
+| **`torch.compile`** | **377,315** | 14.5 GiB | **41.5%** |
+| gradient checkpointing | 259,874 | 10.3 GiB | 28.6% |
+| compile + checkpointing | 336,637 | 10.0 GiB | 37.0% |
+| **compile + micro-batch ×2** | **396,860** | 27.8 GiB | **43.6%** |
+| compile + checkpoint + batch ×4 | 363,369 | 35.2 GiB | 39.9% |
+
+`torch.compile` is worth **+26.5%** throughput for nothing. Gradient checkpointing is
+the more interesting row: it costs 13% throughput to save 29% of activation memory,
+and on an 80GB card holding a 124M model that trade never pays — the last two rows show
+checkpointing with a 4× batch losing to compile with a 2× batch. Checkpointing is for
+when memory is the binding constraint, and here it is not. Reporting it as a win
+because it saves memory would have been the easy mistake.
+
+### Inference
+
+| Variant | tokens/sec | time to first token | KV cache |
+| --- | --- | --- | --- |
+| naive (no cache), batch 1 | 388.4 | 2.2 ms | — |
+| kv-cache, batch 1 | 384.3 | 27.0 ms | 13.5 MiB |
+| kv-cache, batch 4 | 1,547.0 | 4.2 ms | 54 MiB |
+| kv-cache, batch 16 | **5,844.1** | 7.8 ms | 216 MiB |
+
+**The KV cache gives no speedup here, and that is a real result rather than a bug.**
+At a 64-token prompt and 128 generated tokens, decoding a 124M model on an H100 is
+bound by streaming weights from memory, not by attention over the prefix — so
+re-running 192 tokens costs almost the same as running one. The cache's advantage
+grows with sequence length, and this benchmark is too short to show it. On a 7M model
+on MPS the same comparison gave 3.1×, because there the weights are small enough that
+attention dominates.
+
+Two honest limitations: the batch-1 `ttft` includes allocating the cache, which is why
+it reads worse than the naive path, and the benchmark should sweep sequence length —
+that is the axis the cache exists for. Batching is where the measured win is: **15×
+throughput from batch 1 to 16** for 216 MiB of cache.
+
+**Not yet built:** quantization and speculative decoding, which will be measured
+against these baselines.
 
 ---
 

@@ -47,3 +47,6 @@ web/public/data/
 
 # Downloadable eval data (fetched on demand by llmfs-eval-hellaswag)
 data/hellaswag/
+
+# Raw pod run log (1.4MB of progress redraws; kept locally, not committed)
+results/run.log

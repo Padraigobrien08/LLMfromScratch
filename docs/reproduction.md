@@ -5,8 +5,71 @@ that generates fluent-looking text proves very little; a model that lands on a
 documented validation loss, under a protocol stated in advance, proves the training
 pipeline is correct end to end.
 
-**Status: not yet run.** This document fixes the protocol *before* the run, so the
-tolerance cannot be chosen after seeing the result.
+**Status: reproduced.** Final validation loss **3.0503** against a target of ≤ 3.29,
+and HellaSwag `acc_norm` **0.3043** against GPT-2 124M's 0.2955. The protocol below was
+fixed *before* the run — the tolerance was not chosen after seeing the result.
+
+## Results
+
+| | achieved | target | |
+| --- | --- | --- | --- |
+| Validation loss, full split | **3.0503** | ≤ 3.29 | **−0.2397** |
+| Perplexity | **21.12** | — | |
+| HellaSwag `acc_norm` | **0.3043** | 0.2955 (GPT-2 124M) | **+0.0088** |
+| HellaSwag `acc` | 0.2891 | 0.25 (chance) | +0.0391 |
+
+![Loss curve](../results/reproduction_curve.png)
+
+Validation loss crossed the 3.29 target at **step 6,500 — 34% of the run** — and kept
+improving to the end. The curve shows no instability: no spikes, no plateau, and a
+clean cosine tail.
+
+### Why HellaSwag is the number that makes the loss trustworthy
+
+Validation loss is measured on a split we chose, with a tokenizer we configured. It can
+look correct while a mismatch in either quietly invalidates the comparison to the
+published figure — and such a mistake moves the loss without producing anything a
+reader would recognise as wrong.
+
+HellaSwag is measured on a fixed public set of 10,042 examples against a number
+somebody else published, scoring 4 candidate endings per example by length-normalised
+log-likelihood. Chance is 0.25. **0.3043 clears both chance and the GPT-2 124M
+reference**, which is what licenses the loss figure. Had it come back near 0.25, the
+loss would have meant nothing however good it looked.
+
+### What it was run on
+
+| | |
+| --- | --- |
+| GPU | NVIDIA H100 80GB HBM3 (sm_90), driver 580.126.09 |
+| Software | torch 2.4.1+cu124, measured 808 TFLOP/s dense bf16 |
+| Commit | `fb1b615` (clean tree) |
+| Wall-clock | 7.1 h of training, 19,073 steps at ~1,305 ms/step |
+| Throughput | ~401,000 tokens/sec sustained |
+| **MFU** | **44.1% mean** — flat across the whole run |
+| Cost | ~$23 of H100 time at $3.29/hr |
+
+MFU of 44.1% held constant for seven hours with no drift, which says the run was
+compute-bound throughout rather than intermittently starved by the data loader.
+
+Two numbers came in better than budgeted. MFU was estimated at 35% and measured 44.1%,
+and micro-batch size was tuned by measurement before launching rather than guessed —
+raising it from the config's default cut about an hour off the run.
+
+### Sample generations
+
+From `results/samples.txt`, greedy-ish sampling at temperature 0.8:
+
+> **The capital of France is** Paris. The sun goes down in the east at sunset during
+> the month of May. The capital of Norway is Copenhagen. / The capital of Norway is
+> Oslo. It's called Oslo, which means the town of the house.
+
+Worth reading honestly: the grammar is fluent, the format is right, and the facts are
+unreliable — Paris correct, Copenhagen wrong then self-corrected to Oslo, and it
+repeats itself. That is exactly what a 124M model trained on 10B tokens should look
+like. A model this size has learned the shape of English and very little reliable world
+knowledge, and samples that looked better than this would be more suspicious than
+reassuring.
 
 ---
 
@@ -48,7 +111,7 @@ mismatch; a downstream task is much less forgiving.
 
 ## Protocol
 
-Fixed in advance, and not to be adjusted after seeing the result:
+Fixed in advance, and not adjusted after seeing the result:
 
 - **One run, one seed** (1337). If the target is missed, the failure is reported
   along with the diagnosis. Re-rolling seeds until one clears the bar is how a

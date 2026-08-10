@@ -1,0 +1,37 @@
+{
+  "acc": 0.28908583947420835,
+  "acc_norm": 0.3043218482374029,
+  "n_evaluated": 10042,
+  "n_skipped_too_long": 0,
+  "chance": 0.25,
+  "gpt2_124m_reference_acc_norm": 0.2955,
+  "checkpoint": "/root/llmfs/out/gpt2-124m-repro/best.pt",
+  "step": 19000,
+  "provenance": {
+    "timestamp_utc": "2026-08-10T17:42:45Z",
+    "hostname": "f46aa7b5b1b2",
+    "platform": "Linux-6.8.0-90-generic-x86_64-with-glibc2.35",
+    "python": "3.11.10",
+    "torch": "2.4.1+cu124",
+    "device": "cuda",
+    "git_commit": "fb1b6151257cb249ea685f3db6ef7d07fb5ac56a",
+    "git_branch": "main",
+    "git_dirty": false,
+    "gpu": "NVIDIA H100 80GB HBM3",
+    "gpu_memory_gib": 79.2,
+    "gpu_arch": "sm_90",
+    "cuda": "12.4",
+    "torch_arch_list": [
+      "sm_50",
+      "sm_60",
+      "sm_70",
+      "sm_75",
+      "sm_80",
+      "sm_86",
+      "sm_90"
+    ],
+    "bf16_supported": true,
+    "driver": "580.126.09",
+    "cpu_count": 64
+  }
+}

@@ -1,0 +1,222 @@
+{
+  "provenance": {
+    "timestamp_utc": "2026-08-10T17:45:22Z",
+    "hostname": "f46aa7b5b1b2",
+    "platform": "Linux-6.8.0-90-generic-x86_64-with-glibc2.35",
+    "python": "3.11.10",
+    "torch": "2.4.1+cu124",
+    "device": "cuda",
+    "git_commit": "fb1b6151257cb249ea685f3db6ef7d07fb5ac56a",
+    "git_branch": "main",
+    "git_dirty": false,
+    "gpu": "NVIDIA H100 80GB HBM3",
+    "gpu_memory_gib": 79.2,
+    "gpu_arch": "sm_90",
+    "cuda": "12.4",
+    "torch_arch_list": [
+      "sm_50",
+      "sm_60",
+      "sm_70",
+      "sm_75",
+      "sm_80",
+      "sm_86",
+      "sm_90"
+    ],
+    "bf16_supported": true,
+    "driver": "580.126.09",
+    "measured_bf16_tflops": 808.4,
+    "cpu_count": 64
+  },
+  "meta": {
+    "config": "gpt2-124m",
+    "suite": "both"
+  },
+  "results": [
+    {
+      "suite": "training",
+      "variant": "baseline",
+      "settings": {
+        "compile": false,
+        "grad_checkpointing": false,
+        "micro_batch_size": 16,
+        "block_size": 1024,
+        "dtype": "bfloat16"
+      },
+      "tokens_per_sec": 298198.7862403083,
+      "ms_per_step": 54.943214915692806,
+      "peak_memory_gib": 14.5107741355896,
+      "mfu": 0.32780274120367914,
+      "extra": {},
+      "error": null
+    },
+    {
+      "suite": "training",
+      "variant": "compile",
+      "settings": {
+        "compile": true,
+        "grad_checkpointing": false,
+        "micro_batch_size": 16,
+        "block_size": 1024,
+        "dtype": "bfloat16"
+      },
+      "tokens_per_sec": 377315.3209571692,
+      "ms_per_step": 43.42256751842797,
+      "peak_memory_gib": 14.5180983543396,
+      "mfu": 0.41477364166141356,
+      "extra": {},
+      "error": null
+    },
+    {
+      "suite": "training",
+      "variant": "grad-checkpoint",
+      "settings": {
+        "compile": false,
+        "grad_checkpointing": true,
+        "micro_batch_size": 16,
+        "block_size": 1024,
+        "dtype": "bfloat16"
+      },
+      "tokens_per_sec": 259873.50338105892,
+      "ms_per_step": 63.04605812765658,
+      "peak_memory_gib": 10.304072856903076,
+      "mfu": 0.2856726811284376,
+      "extra": {},
+      "error": null
+    },
+    {
+      "suite": "training",
+      "variant": "compile+checkpoint",
+      "settings": {
+        "compile": true,
+        "grad_checkpointing": true,
+        "micro_batch_size": 16,
+        "block_size": 1024,
+        "dtype": "bfloat16"
+      },
+      "tokens_per_sec": 336636.9031900113,
+      "ms_per_step": 48.66964924149215,
+      "peak_memory_gib": 9.960375785827637,
+      "mfu": 0.3700568370760421,
+      "extra": {},
+      "error": null
+    },
+    {
+      "suite": "training",
+      "variant": "micro-batch x2",
+      "settings": {
+        "compile": true,
+        "grad_checkpointing": false,
+        "micro_batch_size": 32,
+        "block_size": 1024,
+        "dtype": "bfloat16"
+      },
+      "tokens_per_sec": 396859.7731979518,
+      "ms_per_step": 82.56820724345744,
+      "peak_memory_gib": 27.813960552215576,
+      "mfu": 0.43625838712476345,
+      "extra": {},
+      "error": null
+    },
+    {
+      "suite": "training",
+      "variant": "checkpoint+batch x4",
+      "settings": {
+        "compile": true,
+        "grad_checkpointing": true,
+        "micro_batch_size": 64,
+        "block_size": 1024,
+        "dtype": "bfloat16"
+      },
+      "tokens_per_sec": 363368.9013607391,
+      "ms_per_step": 180.35665615461767,
+      "peak_memory_gib": 35.21229267120361,
+      "mfu": 0.39944267861046956,
+      "extra": {},
+      "error": null
+    },
+    {
+      "suite": "inference",
+      "variant": "kv-cache b1",
+      "settings": {
+        "use_cache": true,
+        "batch_size": 1,
+        "prompt_len": 64,
+        "gen_len": 128,
+        "n_kv_head": 12
+      },
+      "tokens_per_sec": 384.34712563782665,
+      "ms_per_step": 2.6018146963906474,
+      "peak_memory_gib": 2.87821102142334,
+      "mfu": null,
+      "extra": {
+        "time_to_first_token_ms": 27.022406458854675,
+        "total_seconds": 0.3330322811380029,
+        "kv_cache_mib": 13.5
+      },
+      "error": null
+    },
+    {
+      "suite": "inference",
+      "variant": "naive (no cache) b1",
+      "settings": {
+        "use_cache": false,
+        "batch_size": 1,
+        "prompt_len": 64,
+        "gen_len": 128,
+        "n_kv_head": 12
+      },
+      "tokens_per_sec": 388.4071208634948,
+      "ms_per_step": 2.574618090875447,
+      "peak_memory_gib": 2.8624024391174316,
+      "mfu": null,
+      "extra": {
+        "time_to_first_token_ms": 2.2302474826574326,
+        "total_seconds": 0.3295511156320572,
+        "kv_cache_mib": 0.0
+      },
+      "error": null
+    },
+    {
+      "suite": "inference",
+      "variant": "kv-cache b4",
+      "settings": {
+        "use_cache": true,
+        "batch_size": 4,
+        "prompt_len": 64,
+        "gen_len": 128,
+        "n_kv_head": 12
+      },
+      "tokens_per_sec": 1546.9581979312518,
+      "ms_per_step": 2.585719514172524,
+      "peak_memory_gib": 2.9634785652160645,
+      "mfu": null,
+      "extra": {
+        "time_to_first_token_ms": 4.244387149810791,
+        "total_seconds": 0.3309720978140831,
+        "kv_cache_mib": 54.0
+      },
+      "error": null
+    },
+    {
+      "suite": "inference",
+      "variant": "kv-cache b16",
+      "settings": {
+        "use_cache": true,
+        "batch_size": 16,
+        "prompt_len": 64,
+        "gen_len": 128,
+        "n_kv_head": 12
+      },
+      "tokens_per_sec": 5844.118329839975,
+      "ms_per_step": 2.7377953520044684,
+      "peak_memory_gib": 3.306257724761963,
+      "mfu": null,
+      "extra": {
+        "time_to_first_token_ms": 7.766008377075195,
+        "total_seconds": 0.35043780505657196,
+        "kv_cache_mib": 216.0
+      },
+      "error": null
+    }
+  ]
+}

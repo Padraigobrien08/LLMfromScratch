@@ -1,0 +1,9 @@
+{
+  "checkpoint": "/root/llmfs/out/gpt2-124m-repro/best.pt",
+  "split": "val",
+  "step": 19000,
+  "loss": 3.050325984352098,
+  "perplexity": 21.1222288164529,
+  "batches": 12207,
+  "tokens_evaluated": 99999744
+}
