@@ -34,6 +34,11 @@ bench/scratch/
 # Generated attention explorer (rebuilt by `llmfs-viz`, deployed by CI)
 site/
 
+# Interactive site: dependencies, build output, and results copied in at deploy time
+web/node_modules/
+web/dist/
+web/public/data/
+
 .DS_Store
 
 # GPU pod connection details and run state (never committed)

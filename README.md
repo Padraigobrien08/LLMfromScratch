@@ -5,10 +5,16 @@ modern architecture components, a controlled ablation study, and efficiency
 benchmarks — reproducible from one command.
 
 [![CI](https://github.com/Padraigobrien08/LLMfromScratch/actions/workflows/ci.yml/badge.svg)](https://github.com/Padraigobrien08/LLMfromScratch/actions/workflows/ci.yml)
-[![Attention explorer](https://github.com/Padraigobrien08/LLMfromScratch/actions/workflows/pages.yml/badge.svg)](https://padraigobrien08.github.io/LLMfromScratch/)
+[![Site](https://github.com/Padraigobrien08/LLMfromScratch/actions/workflows/pages.yml/badge.svg)](https://padraigobrien08.github.io/LLMfromScratch/)
 
-**→ [Explore the model's attention, live](https://padraigobrien08.github.io/LLMfromScratch/)** —
-every attention weight, per layer and per head, in a page you can click through.
+**→ [Open the interactive site](https://padraigobrien08.github.io/LLMfromScratch/)** — an
+[explainer that assumes no prior knowledge](https://padraigobrien08.github.io/LLMfromScratch/#/explainer),
+built out of things you can poke at: a real tokenizer, a parameter budget you can drag, a sampler
+you can turn up. Then the deep ends — [RoPE's defining property holding as you move two
+tokens](https://padraigobrien08.github.io/LLMfromScratch/#/rope), an
+[ablation playground](https://padraigobrien08.github.io/LLMfromScratch/#/ablations), and
+[every attention weight](https://padraigobrien08.github.io/LLMfromScratch/attention/) per layer
+and per head.
 
 Every architecture component here — rotary embeddings, RMSNorm, SwiGLU,
 grouped-query attention, the KV cache — is written by hand and covered by tests that
@@ -23,7 +29,7 @@ what is built and verified, and what is designed but not yet run.
 
 | Pillar | Status |
 | --- | --- |
-| Package, config system, data pipeline, trainer, CI | **Done** — 221 tests green, end-to-end verified |
+| Package, config system, data pipeline, trainer, CI | **Done** — 223 tests green, end-to-end verified |
 | Modern architecture (RoPE, RMSNorm, SwiGLU, GQA, KV cache) | **Done** — hand-implemented, property-tested |
 | GPT-2 124M reproduction on FineWeb-Edu | Configured; **GPU run pending** |
 | Ablation study (13 arms) | Runner + report built and validated; **GPU runs pending** |
@@ -31,7 +37,8 @@ what is built and verified, and what is designed but not yet run.
 | Quantization + speculative decoding | **Not started** |
 | Fault-tolerance design doc | **Done** — [docs/fault-tolerance.md](docs/fault-tolerance.md) |
 | Multi-GPU scaling report | DDP wired; **scaling run pending** |
-| Interactive attention visualization | **Done** — [live](https://padraigobrien08.github.io/LLMfromScratch/), auto-deployed from CI |
+| Interactive attention visualization | **Done** — [live](https://padraigobrien08.github.io/LLMfromScratch/attention/), auto-deployed from CI |
+| Interactive site (explainer, RoPE explorer, ablation playground) | **Done** — [live](https://padraigobrien08.github.io/LLMfromScratch/); the playground shows a pending state until the sweep publishes |
 
 No results are reported below that have not been measured. Sections describing
 pending work say so.
@@ -223,9 +230,67 @@ Already wired and awaiting measurement on real hardware: mixed precision (bf16),
 
 ---
 
-## Attention explorer
+## Interactive site
 
 **[padraigobrien08.github.io/LLMfromScratch](https://padraigobrien08.github.io/LLMfromScratch/)**
+
+**"How a language model actually works"** is the on-ramp: eight steps from a sentence
+you type to a model that predicts what comes next, assuming no prior knowledge, with
+something to poke at rather than take on faith at each one. Type text and watch the
+real GPT-2 vocabulary cut it into tokens. Drag `n_layer` and `n_embd` and watch 31% of
+a 124M model turn out to be the embedding table before any computation happens. Sample
+from a real next-token distribution and see what temperature, top-k and top-p actually
+do. Read a validation loss as "how many equally likely options is it choosing between?"
+
+Three things run in the browser that would normally be hand-waved, and each is pinned
+to the Python that produced it: the **BPE tokenizer** (the real merges, exact on all 14
+fixture cases including emoji, newlines and leading spaces), the **parameter
+accounting** (exact against the real `Transformer` for twelve configurations), and the
+**sampler** (same temperature → top-k → top-p order as `Transformer.generate`,
+including the off-by-one that makes `top_p = 0` sample from nothing).
+
+The sampling distribution is a bigram model counted from `data/wizard_of_oz.txt` — real
+statistics rather than invented logits, and the model this project began as. It also
+sets up the next step honestly: draw a few tokens and the text wanders, because it can
+only see one token back, which is precisely what attention exists to fix.
+
+**The RoPE explorer** puts the property this repository tests for on screen. Drag a
+query and a key along a sequence and the attention logit between them does not move,
+as long as the distance between them does not — one dial per dimension pair shows
+every arrow spinning while every angle between them holds. A panel accumulates the
+range the logit actually occupies as you slide, so the page reports its own
+assertion: across ~900 samples spanning positions 0–512, the logit moves by about
+5e-15.
+
+The rotation it draws is a TypeScript port of `src/llmfs/model/rope.py`, and the two
+are pinned together **in both directions**: a fixture generated by the Python
+implementation is asserted by the browser tests, and `tests/test_rope.py` asserts
+that same committed fixture still reproduces the model. Either side changing alone
+fails CI. A visualization that has quietly drifted from the code is worse than none,
+because nothing about it looks wrong.
+
+That pairing surfaced one measured detail worth stating: the cos/sin tables are built
+in float32 while the port uses float64, so the two agree to ~1e-8 early in a sequence
+and ~3e-7 by position 200. That is the same choice HF Llama makes and sits far below
+the resolution of the bf16 activations consuming it — but it is asserted as a bound
+rather than assumed.
+
+**The ablation playground** turns the sweep into something you can interrogate:
+toggle a design decision and get its paired delta, its per-seed values, the error bar,
+and a verdict — including "not a result" when the seeds disagree. Toggle two and it
+says the combination was never measured, rather than adding the individual deltas and
+pretending that is a finding. The analysis mirrors `ablation/report.py`, so the page
+cannot report something the repository's own report would refuse to.
+
+```bash
+npm install --prefix web && npm run dev --prefix web
+```
+
+---
+
+## Attention explorer
+
+**[padraigobrien08.github.io/LLMfromScratch/attention/](https://padraigobrien08.github.io/LLMfromScratch/attention/)**
 
 Every attention weight in the model, per layer and per head, in a page you can click
 through. Built by CI from a model CI trains, and deployed to GitHub Pages on every
@@ -305,10 +370,11 @@ src/llmfs/
   eval/       evaluation and generation entrypoints
   viz/        attention extraction, head statistics, static export, live server
   ablation/   sweep runner, paired-seed analysis, tables and plots
-  bench/      training + inference throughput, memory, provenance
-  bench/      throughput, memory and cost benchmarks
+  bench/      training + inference throughput, memory, cost, provenance
 configs/      gpt2-124m, llama-124m, debug, and 11 single-axis ablation arms
-tests/        221 tests — component correctness, config validation, end-to-end training
+tests/        223 tests — component correctness, config validation, end-to-end training
+web/          the interactive site: explainer, RoPE explorer, ablations (69 tests)
+scripts/      GPU pod automation, and the exporters that pin the site to the model
 docs/         reproduction protocol, fault-tolerance design
 notebooks/    exploration only; nothing here is the source of truth
 legacy/       the original tutorial scripts, kept for reference

@@ -94,3 +94,35 @@ def test_gpt2_vocabulary_matches_the_published_size() -> None:
     assert tokenizer.vocab_size == 50257
     assert tokenizer.eot_token == 50256
     assert tokenizer.decode(tokenizer.encode("hello world")) == "hello world"
+
+
+# --- the fixture that keeps the browser port honest -------------------------------
+
+FIXTURE_PATH = (
+    Path(__file__).resolve().parents[1] / "web" / "src" / "data" / "tokenizer-fixture.json"
+)
+
+
+@pytest.mark.skipif(not FIXTURE_PATH.exists(), reason="web/ fixture not present")
+def test_committed_fixture_still_matches_gpt2() -> None:
+    """The site tokenizes in the browser; this pins that port to the real vocabulary.
+
+    ``web/src/lib/tokenizer.test.ts`` asserts the TypeScript BPE reproduces these
+    ids. This asserts the ids are still what GPT-2 actually produces. The explainer
+    opens by telling a reader that the model sees these tokens and not their text —
+    a claim they cannot check, so it had better not drift.
+
+    Regenerate with ``python scripts/dump_tokenizer.py``.
+    """
+    import json
+
+    tiktoken = pytest.importorskip("tiktoken")
+    try:
+        enc = tiktoken.get_encoding("gpt2")
+    except Exception as exc:  # pragma: no cover - offline CI
+        pytest.skip(f"gpt2 vocabulary unavailable: {exc}")
+
+    fixture = json.loads(FIXTURE_PATH.read_text())
+    assert enc.n_vocab == fixture["n_vocab"]
+    for case in fixture["cases"]:
+        assert enc.encode(case["text"]) == case["ids"], f"drifted on {case['text']!r}"

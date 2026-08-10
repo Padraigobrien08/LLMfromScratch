@@ -54,6 +54,26 @@ jobs:
       - name: Test
         run: uv run pytest tests -q --durations=10
 
+  site:
+    # The site ships a second implementation of the rotation math, in TypeScript,
+    # so it can run in a browser. These tests are what stop it drifting into a
+    # picture of something the model does not do.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      - run: npm ci --prefix web
+      - name: Test
+        run: npm test --prefix web
+      - name: Type-check and build
+        run: npm run build --prefix web
+
   end-to-end:
     # Proves the pipeline actually runs, not just that its parts type-check:
     # prepare a corpus, train, resume, evaluate, generate.

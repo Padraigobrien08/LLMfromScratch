@@ -9,6 +9,9 @@ survives a "does it generate English?" check.
 
 from __future__ import annotations
 
+import json
+from pathlib import Path
+
 import pytest
 import torch
 
@@ -89,3 +92,34 @@ def test_broadcasts_across_gqa_head_counts(rope: RotaryEmbedding) -> None:
     q_out, k_out = apply_rotary_emb(q, k, cos, sin)
     assert q_out.shape == q.shape
     assert k_out.shape == k.shape
+
+
+# --- the fixture that keeps the browser port honest -------------------------------
+
+FIXTURE_PATH = Path(__file__).resolve().parents[1] / "web" / "src" / "data" / "rope-fixture.json"
+
+
+@pytest.mark.skipif(not FIXTURE_PATH.exists(), reason="web/ fixture not present")
+def test_committed_fixture_still_matches_this_implementation() -> None:
+    """The site's TypeScript RoPE port is pinned to a fixture generated from here.
+
+    ``web/src/lib/rope.test.ts`` asserts the port reproduces that file. This asserts
+    the file still reproduces *us*. Without both halves, changing this module would
+    leave the explorer quietly drawing a rotation the model no longer performs —
+    and a visualization that disagrees with the code is worse than none, because
+    a reader has no way to tell.
+
+    Regenerate with ``python scripts/dump_rope_fixture.py``.
+    """
+    fixture = json.loads(FIXTURE_PATH.read_text())
+    head_dim = fixture["head_dim"]
+    rope = RotaryEmbedding(head_dim=head_dim, max_seq_len=8, theta=fixture["theta"])
+    q = torch.tensor(fixture["q"], dtype=torch.float64)
+    k = torch.tensor(fixture["k"], dtype=torch.float64)
+
+    for case in fixture["cases"]:
+        q_rot = _rotate(rope, q, case["m"])
+        k_rot = _rotate(rope, k, case["n"])
+        torch.testing.assert_close(q_rot, torch.tensor(case["q_rot"], dtype=q_rot.dtype))
+        torch.testing.assert_close(k_rot, torch.tensor(case["k_rot"], dtype=k_rot.dtype))
+        assert torch.dot(q_rot, k_rot).item() == pytest.approx(case["logit"], abs=1e-9)

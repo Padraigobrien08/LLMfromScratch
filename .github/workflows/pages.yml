@@ -1,6 +1,7 @@
-name: Deploy attention explorer
+name: Deploy site
 
-# Builds the attention explorer and publishes it to GitHub Pages.
+# Builds the interactive site and the attention explorer, and publishes both to
+# GitHub Pages: the React site at the root, the explorer at /attention/.
 #
 # The page is generated from a checkpoint this workflow trains itself, so what is
 # hosted is always a real model produced by the current code — never a stale artifact
@@ -84,9 +85,41 @@ jobs:
             --set log.out_dir=pages-out
 
       - name: Build the explorer
+        # Now served under /attention/ so the interactive site can hold the root. It
+        # stays a separate single-file page rather than becoming a React route: the
+        # claim that it needs no build step, no CDN and no backend is worth keeping
+        # literally true, and a test asserts it references nothing external.
         run: |
           uv run llmfs-viz --checkpoint pages-out/debug/best.pt \
-            --out site/index.html --device cpu
+            --out site/attention/index.html --device cpu
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      - name: Install the site's dependencies
+        run: npm ci --prefix web
+
+      - name: Publish ablation results to the site, if any exist
+        # The playground reads this at runtime and renders an explicit "not published
+        # yet" state when it is missing, so a sweep that has not run yet produces an
+        # honest page rather than a broken one or a fabricated table.
+        run: |
+          if [ -f results/ablations.json ]; then
+            mkdir -p web/public/data
+            cp results/ablations.json web/public/data/ablations.json
+            echo "published $(wc -c < results/ablations.json) bytes of results"
+          else
+            echo "no results/ablations.json yet — the page will show its pending state"
+          fi
+
+      - name: Build the site
+        run: npm run build --prefix web
+
+      - name: Assemble the deployment
+        run: cp -r web/dist/. site/
 
       - uses: actions/upload-pages-artifact@v3
         with:
