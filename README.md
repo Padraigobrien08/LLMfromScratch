@@ -35,11 +35,11 @@ what is built and verified, and what is designed but not yet run.
 | GPT-2 124M reproduction on FineWeb-Edu | **Done** — 3.0503 val loss, [docs/reproduction.md](docs/reproduction.md) |
 | Ablation study (12 arms × 3 seeds) | **Done** — [docs/ablations.md](docs/ablations.md), 39 runs, 7.6 GPU-h |
 | Efficiency benchmarks (throughput, memory, KV cache) | **Done** — measured on H100, below |
-| Quantization + speculative decoding | **Not started** |
+| Quantization + speculative decoding | **Done** — [docs/efficiency.md](docs/efficiency.md); GPU throughput pending |
 | Fault-tolerance design doc | **Done** — [docs/fault-tolerance.md](docs/fault-tolerance.md) |
 | Multi-GPU scaling report | DDP wired; **scaling run pending** |
 | Interactive attention visualization | **Done** — [live](https://padraigobrien08.github.io/LLMfromScratch/attention/), auto-deployed from CI |
-| Interactive site (explainer, RoPE explorer, ablation playground) | **Done** — [live](https://padraigobrien08.github.io/LLMfromScratch/); the playground shows a pending state until the sweep publishes |
+| Interactive site (explainer, RoPE explorer, ablation playground) | **Done** — [live](https://padraigobrien08.github.io/LLMfromScratch/); the playground renders the published sweep |
 
 No results are reported below that have not been measured. Sections describing
 pending work say so.
@@ -300,8 +300,44 @@ it reads worse than the naive path, and the benchmark should sweep sequence leng
 that is the axis the cache exists for. Batching is where the measured win is: **15×
 throughput from batch 1 to 16** for 216 MiB of cache.
 
-**Not yet built:** quantization and speculative decoding, which will be measured
-against these baselines.
+### Quantization and speculative decoding
+
+Both hand-implemented and measured. **[Full results: docs/efficiency.md](docs/efficiency.md)**
+
+| Quantization | Memory | Perplexity | Δ ppl | Decode |
+| --- | --- | --- | --- | --- |
+| fp32 baseline | 475 MiB | 19.083 | — | 154.3 tok/s |
+| **int8 g128** | 237 MiB (2.00×) | 19.089 | **+0.007** | 28.1 |
+| **int4 g128** | 196 MiB (2.42×) | 20.431 | **+1.348** | 22.3 |
+| int4 per-tensor | 192 MiB (2.47×) | 22.648 | +3.566 | 22.4 |
+
+| Speculative decoding | Speedup | Acceptance | Tokens/target fwd |
+| --- | --- | --- | --- |
+| **prompt-lookup, code-like text** | **3.00×** | 96.5% | 6.40 |
+| prompt-lookup, repetitive text | 1.59× | 100% | 3.05 |
+| prompt-lookup, prose | 0.76× | 53.6% | 1.88 |
+| model-draft, code-like text | 0.64× | **100%** | **8.00** |
+
+Four findings, each reported against the flattering framing:
+
+- **Speculative decoding is verified lossless.** All 18 benchmark runs reproduced
+  greedy decoding token-for-token; tests assert it across every `k` and four drafters
+  including adversarial ones. An implementation that were merely *close* would not be a
+  faster decoder, it would be a different model.
+- **Acceptance rate and speedup are different questions.** The last row is the lesson:
+  100% acceptance and 8 tokens per target forward pass — the algorithmic ideal — still
+  running at 0.64×, because the draft model is the same size as the target. A drafter
+  must be cheap first and accurate second.
+- **Grouping is worth 2.2 perplexity points at 4 bits.** One scale per tensor is set by
+  its largest outlier; per-128-feature groups confine the damage. And **HellaSwag could
+  not measure any of this** — a 1.5-point standard error at n=1000 swallowed every
+  scheme, which is why the quality column is perplexity.
+- **Every quantized scheme is 74–85% slower.** Dequantize-then-matmul materialises a
+  full-size weight, so bytes moved go *up*. The memory saving is in what is stored; a
+  fused kernel is what would make it a speed saving. Compression also caps at 2.42×,
+  not 8×, because the tied token embedding is a third of this model.
+
+Throughput figures are MPS and directional; memory and quality are device-independent.
 
 ---
 
