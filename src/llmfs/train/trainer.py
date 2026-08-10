@@ -339,7 +339,16 @@ class Trainer:
         )
 
     def _accumulate_gradients(self) -> float:
-        """Run ``grad_accum_steps`` micro-batches and return the mean loss."""
+        """Run ``grad_accum_steps`` micro-batches and return the mean loss.
+
+        The returned value is averaged across ranks. Without that it would be rank 0's
+        own micro-batches only — one Nth of the effective batch — so the logged loss
+        would get noisier as the world size grew, and a multi-GPU run's curve could not
+        be compared against a single-GPU one. The optimisation is unaffected either way
+        (DDP averages the *gradients* regardless); this is about the number being a
+        description of the batch that was actually trained on. It costs one scalar
+        all-reduce per optimiser step, against a 124M-parameter gradient all-reduce.
+        """
         model = self.model
         loss_accum = 0.0
 
@@ -361,6 +370,12 @@ class Trainer:
 
             loss.backward()
             loss_accum += loss.detach().float().item()
+
+        if self.dist.enabled:
+            reduced = all_reduce_mean(
+                torch.tensor(loss_accum, device=self.device, dtype=torch.float32), self.dist
+            )
+            loss_accum = reduced.item()
 
         return loss_accum
 

@@ -29,6 +29,7 @@
 #   ./scripts/gpu.sh data ablation      # just the corpus (hours)
 #   ./scripts/gpu.sh sweep              # launch the ablation sweep, detached
 #   ./scripts/gpu.sh repro              # launch the 124M reproduction, detached
+#   ./scripts/gpu.sh scaling            # multi-GPU scaling report (needs 2+ GPUs)
 #   ./scripts/gpu.sh autostop [min]     # best-effort: stop the pod N min after the job ends
 #   ./scripts/gpu.sh stop               # stop the pod now, from this machine (reliable)
 #   ./scripts/gpu.sh mirror [min]       # mirror checkpoints to persistent storage
@@ -384,6 +385,19 @@ cmd_fetch_checkpoints() {
     "$GPU_USER@$GPU_HOST:$GPU_WORKDIR/out/" "$REPO_ROOT/out/"
 }
 
+cmd_scaling() {
+  # Multi-GPU scaling. Unlike `bench` this needs a corpus, because it measures the real
+  # training step — but only a small one, since 30 steps is under 16M tokens.
+  bold "launching scaling measurement"
+  scp -q -P "$GPU_PORT" -i "$GPU_KEY" \
+    "$REPO_ROOT/scripts/remote/scaling_pipeline.sh" \
+    "$GPU_USER@$GPU_HOST:$GPU_WORKDIR/scaling_pipeline.sh"
+  ssh_run "chmod +x $GPU_WORKDIR/scaling_pipeline.sh"
+  ssh_detached "scaling" \
+    "GPU_WORKDIR=$GPU_WORKDIR RESULTS_DIR=$GPU_RESULTS ${SCALING_EXTRA:-} \
+     bash $GPU_WORKDIR/scaling_pipeline.sh"
+}
+
 cmd_autostop() {
   # Runs in its own tmux session so it never disturbs a job already in flight.
   local grace="${1:-10}"
@@ -513,6 +527,7 @@ main() {
   case "$cmd" in
     all)               cmd_all "$@" ;;
     bench)             cmd_bench "$@" ;;
+    scaling)           cmd_scaling "$@" ;;
     autostop)          cmd_autostop "$@" ;;
     autostop-off)      cmd_autostop_off "$@" ;;
     stop)              cmd_stop "$@" ;;
