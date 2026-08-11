@@ -69,7 +69,11 @@ echo "--- installing llmfs ---"
 if [[ "$USE_SYSTEM_TORCH" == "1" ]]; then
   # Install into the image's interpreter so the working torch is the one used.
   # torch>=2.4 is already satisfied, so pip leaves it alone.
-  PIP_ARGS=(--quiet --no-input)
+  # Not --quiet. This install pulls a few hundred MB (datasets, wandb, tensorboard,
+  # matplotlib, pandas) and takes minutes; with --quiet it emits nothing at all, which is
+  # indistinguishable from a hang to whoever is watching a pod bill by the minute. The
+  # progress bars are suppressed instead, so the log stays readable but keeps moving.
+  PIP_ARGS=(--no-input --progress-bar off)
   if ! "$SYS_PY" -m pip install "${PIP_ARGS[@]}" -e ".[train,bench]" 2>/dev/null; then
     # Ubuntu 24.04 marks the system interpreter externally-managed (PEP 668).
     "$SYS_PY" -m pip install "${PIP_ARGS[@]}" --break-system-packages -e ".[train,bench]"
@@ -83,7 +87,8 @@ else
   uv venv --python 3.11 .venv >/dev/null
   # Explicit CUDA index: the default PyPI wheel is not guaranteed to carry kernels
   # for the newest architectures.
-  uv pip install -q --index-strategy unsafe-best-match --extra-index-url "$CUDA_INDEX" \
+  # Also not -q: this path additionally downloads torch itself, so silence is worse.
+  uv pip install --index-strategy unsafe-best-match --extra-index-url "$CUDA_INDEX" \
     -e ".[train,bench]"
   LLMFS_PY="$REPO/.venv/bin/python"
 fi
