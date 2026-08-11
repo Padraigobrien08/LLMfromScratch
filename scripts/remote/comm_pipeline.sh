@@ -43,6 +43,13 @@ WARMUP="${COMM_WARMUP:-10}"
 WORLD_SIZES="${COMM_WORLD_SIZES:-1,8}"
 BATCH_SIZES="${COMM_BATCH_SIZES:-1048576,524288,262144,131072}"
 CONFIG="${SCALING_CONFIG:-gpt2-124m}"
+# Extra override applied to every point, so the sweep stays internally consistent.
+# Its intended use is runtime.compile=false. On the 8x5090 box, torch.compile under DDP
+# cost ~690s per run and then hung outright — one rank pegged at 100% in what looked like
+# inductor autotuning while the other seven blocked waiting for it, for 100 minutes. This
+# sweep measures the *shape* of efficiency against accumulation, which does not need the
+# production compile path; it only needs every point to share whatever setting is chosen.
+COMM_SET="${COMM_SET:-}"
 
 mkdir -p "$MARKERS" "$RESULTS"
 cd "$REPO" || exit 1
@@ -83,6 +90,7 @@ do_data() {
 
 say "communication sweep starting"
 say "  world sizes: $WORLD_SIZES   batch sizes: $BATCH_SIZES"
+[[ -n "$COMM_SET" ]] && say "  extra override on every point: $COMM_SET"
 nvidia-smi --query-gpu=index,name,memory.total --format=csv,noheader || true
 
 gpu_count=$(nvidia-smi --query-gpu=index --format=csv,noheader 2>/dev/null | wc -l)
@@ -119,7 +127,8 @@ for tps in "${batches[@]}"; do
       --out "$RESULTS/comm-$label.json" \
       --label "$label" \
       --set "data.data_dir=$DATA_DIR" \
-      --set "train.tokens_per_step=$tps"; then
+      --set "train.tokens_per_step=$tps" \
+      ${COMM_SET:+--set "$COMM_SET"}; then
     date -u +%FT%TZ > "$MARKERS/$label.done"
     say "batch $tps: done in $(( $(date -u +%s) - started ))s"
   else
