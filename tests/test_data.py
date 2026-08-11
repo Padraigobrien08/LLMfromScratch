@@ -161,3 +161,26 @@ def test_shard_writer_round_trips_token_values(tmp_path: Path) -> None:
         [np.fromfile(tmp_path / m["path"], dtype=np.uint16) for m in writer.manifest]
     )
     np.testing.assert_array_equal(recovered, tokens)
+
+
+def test_small_limit_docs_would_have_produced_no_training_data() -> None:
+    """The trap this guards: shard 0 is the validation split, so a corpus smaller than one
+    shard becomes entirely validation. Measured on a real pod — `--limit-docs 40000` gave
+    41.8M tokens in one partial shard and "0 train / 41,834,799 val", after paying ten
+    minutes to tokenise it."""
+    from llmfs.data.prepare import _assert_trainable
+
+    meta = {"tokens": {"train": 0, "val": 41_834_799}}
+    with pytest.raises(SystemExit) as excinfo:
+        _assert_trainable(meta, Path("/tmp/x"), shard_tokens=100_000_000)
+    message = str(excinfo.value)
+    assert "0 training tokens" in message
+    # Must carry the remedy, with a shard size that would actually work.
+    assert "--shard-tokens" in message
+    assert "4,183,479" in message
+
+
+def test_assert_trainable_passes_when_train_tokens_exist() -> None:
+    from llmfs.data.prepare import _assert_trainable
+
+    _assert_trainable({"tokens": {"train": 1, "val": 1}}, Path("/tmp/x"), shard_tokens=10)

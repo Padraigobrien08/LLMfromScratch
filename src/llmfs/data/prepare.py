@@ -177,6 +177,27 @@ def prepare_text_file(
     return meta
 
 
+def _assert_trainable(meta: dict, out_dir: Path, shard_tokens: int) -> None:
+    """Refuse to report success on a corpus that cannot train anything.
+
+    Data preparation that "succeeds" while producing no training tokens is the worst
+    shape of failure available here: it costs the full tokenisation time, exits 0, and
+    the consequence appears much later as a loader error about missing shards, on a
+    machine that bills by the minute.
+    """
+    train_tokens = meta["tokens"]["train"]
+    if train_tokens > 0:
+        return
+    total = train_tokens + meta["tokens"]["val"]
+    raise SystemExit(
+        f"FATAL: 0 training tokens written to {out_dir} ({total:,} tokens, all validation).\n"
+        f"  Shard 0 is the validation split, and this corpus did not fill even one shard "
+        f"of {shard_tokens:,} tokens.\n"
+        f"  Re-run with a smaller --shard-tokens (try {max(1_000_000, total // 10):,}) "
+        f"or more documents."
+    )
+
+
 def prepare_fineweb_edu(
     out_dir: str | Path,
     tokenizer_spec: str = "gpt2",
@@ -199,6 +220,24 @@ def prepare_fineweb_edu(
     if limit_docs is not None:
         dataset = dataset.take(limit_docs)
 
+        # Shard 0 is the validation split, so a corpus smaller than one shard becomes
+        # *entirely* validation and leaves zero training tokens. The 100M default is
+        # sized for the full 10B sample; with --limit-docs it is usually far too large.
+        # Measured on the real thing: --limit-docs 40000 produced 41.8M tokens, one
+        # partial shard, "wrote 0 train / 41,834,799 val tokens" — and the failure only
+        # surfaced later as an unrelated-looking loader error.
+        #
+        # ~1,000 tokens per FineWeb-Edu document is a reasonable estimate, so aim for
+        # roughly ten shards: one for validation and nine for training.
+        estimated_tokens = limit_docs * 1_000
+        if shard_tokens > estimated_tokens // 4:
+            shard_tokens = max(1_000_000, estimated_tokens // 10)
+            print(
+                f"--limit-docs {limit_docs:,} is small, so shard size is reduced to "
+                f"{shard_tokens:,} tokens; otherwise the whole corpus would land in the "
+                f"validation shard and training would have none."
+            )
+
     num_proc = num_proc or max(1, (mp.cpu_count() or 2) - 1)
     writer = ShardWriter(out_dir, shard_tokens=shard_tokens, val_shards=1)
 
@@ -213,6 +252,7 @@ def prepare_fineweb_edu(
 
     meta = _write_meta(out_dir, writer, tokenizer_spec, source=f"fineweb-edu/{subset}")
     print(f"wrote {meta['tokens']['train']:,} train / {meta['tokens']['val']:,} val tokens")
+    _assert_trainable(meta, out_dir, shard_tokens)
     return meta
 
 
