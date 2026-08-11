@@ -19,8 +19,12 @@ RESULTS="${RESULTS_DIR:-$WORKDIR/results}"
 MARKERS="$WORKDIR/.scaling-stages"
 DATA_DIR="${SCALING_DATA_DIR:-$WORKDIR/data/fineweb-edu-scaling}"
 LIMIT_DOCS="${SCALING_LIMIT_DOCS:-40000}"
-STEPS="${SCALING_STEPS:-30}"
-WARMUP="${SCALING_WARMUP:-10}"
+# 50/15 rather than 30/10. The extra 20 steps cost ~35s at world size 1 and essentially
+# nothing at world size 8 (each step there is ~230ms), and they take the steady-state
+# sample from 20 points to 35 — worth it when a single transient can otherwise invent a
+# scaling cliff. Warmup is generous because compile is on, and it lands on step 1.
+STEPS="${SCALING_STEPS:-50}"
+WARMUP="${SCALING_WARMUP:-15}"
 WORLD_SIZES="${SCALING_WORLD_SIZES:-1,2,4,8}"
 CONFIG="${SCALING_CONFIG:-gpt2-124m}"
 # Names the output file. Two pods (NVLink vs PCIe) are measured in this study, and an
