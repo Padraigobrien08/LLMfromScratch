@@ -939,3 +939,171 @@ body {
   outline: 2px solid var(--color-accent);
   outline-offset: 3px;
 }
+
+/* ── the stack, block by block ─────────────────────────────────────────────── */
+
+.stack-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: var(--space-6);
+  align-items: start;
+}
+
+.stack-column {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 6px;
+}
+
+.stack-block {
+  width: 100%;
+  display: grid;
+  gap: 3px;
+  text-align: left;
+  padding: 12px 14px;
+  background: var(--color-neutral-100);
+  border: 1px solid var(--color-divider);
+  border-left: 3px solid transparent;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font: inherit;
+  color: inherit;
+}
+
+.stack-block:hover {
+  background: color-mix(in srgb, var(--color-accent) 6%, var(--color-neutral-100));
+}
+
+.stack-block[aria-current="true"] {
+  border-left-color: var(--color-accent);
+  background: color-mix(in srgb, var(--color-accent) 9%, var(--color-neutral-100));
+}
+
+.stack-block-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.stack-block-title {
+  font: 600 16px/1.3 var(--font-heading);
+  letter-spacing: -0.01em;
+}
+
+.stack-block-repeat {
+  font: 500 12px/1 var(--mono);
+  color: var(--color-accent-2-700);
+}
+
+.stack-block-summary {
+  font: 400 13px/1.45 var(--font-body);
+  color: var(--color-neutral-700);
+}
+
+.stack-block-params {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+  font: 500 13px/1.3 var(--mono);
+}
+
+.stack-block-share,
+.stack-block-noparams {
+  font: 400 12px/1.3 var(--font-body);
+  color: var(--color-neutral-600);
+}
+
+/* Sticky so the detail stays beside whichever block is being read. Stacks below
+   860px, where two columns would leave both of them too narrow to read. */
+.stack-detail-inner {
+  position: sticky;
+  top: var(--space-4);
+  padding: var(--space-4);
+  background: var(--color-surface);
+  border: 1px solid var(--color-divider);
+  border-radius: var(--radius-md);
+}
+
+.stack-detail-shape {
+  font: 500 14px/1.5 var(--mono);
+  color: var(--color-accent-700);
+  margin: 0 0 var(--space-3);
+  overflow-wrap: anywhere;
+}
+
+.stack-detail-what {
+  font: 400 15px/1.62 var(--font-body);
+  margin: 0;
+}
+
+.stack-detail-pin {
+  font: 400 14px/1.6 var(--font-body);
+  margin: 0;
+  padding-left: var(--space-3);
+  border-left: 2px solid var(--color-accent);
+}
+
+.stack-detail-unpinned {
+  border-left-color: var(--color-neutral-400);
+  color: var(--color-neutral-700);
+}
+
+@media (max-width: 860px) {
+  .stack-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .stack-detail-inner {
+    position: static;
+  }
+}
+
+/* ── what the suite asserts ────────────────────────────────────────────────── */
+
+.claims {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--space-4);
+}
+
+.claim {
+  padding: var(--space-4) 0;
+  border-bottom: 1px solid var(--color-divider);
+}
+
+.claim-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  margin-bottom: var(--space-2);
+}
+
+.claim-area {
+  margin: 0;
+}
+
+.claim-pins {
+  font: var(--font-heading-weight) 22px/1.32 var(--font-heading);
+  letter-spacing: -0.015em;
+  margin: 0 0 var(--space-2);
+  max-width: 62ch;
+}
+
+.claim-why {
+  font: 400 16px/1.62 var(--font-body);
+  color: var(--color-neutral-800);
+  margin: 0 0 var(--space-2);
+  max-width: 68ch;
+}
+
+.claim-source {
+  font: 400 13px/1.4 var(--mono);
+  margin: 0;
+  color: var(--color-neutral-600);
+  overflow-wrap: anywhere;
+}

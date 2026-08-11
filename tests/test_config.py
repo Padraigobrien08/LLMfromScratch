@@ -120,6 +120,13 @@ def test_shipped_config_loads_and_has_consistent_batching(path: Path) -> None:
     assert cfg.train.max_steps > cfg.optim.warmup_steps
 
 
+@pytest.mark.showcase(
+    pins="that every ablation arm differs from the shared baseline in its own named "
+    "axis and nothing else",
+    why="The discipline the entire ablation study rests on. An arm that drifted would "
+    "measure something other than the thing named on the tin, and the resulting "
+    "table would read as authoritative while being about nothing in particular.",
+)
 def test_ablation_arms_differ_from_their_baseline_in_one_axis_only() -> None:
     """The discipline the ablation study rests on.
 

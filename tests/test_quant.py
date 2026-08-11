@@ -194,6 +194,13 @@ def test_skip_patterns_are_honoured() -> None:
     assert isinstance(model.blocks[0].attn.out_proj, QuantLinear)
 
 
+@pytest.mark.showcase(
+    pins="that quantizing a tied lm_head is refused rather than silently done",
+    why="With tied embeddings the head *is* the token embedding, so quantizing it "
+    "stores a compressed copy while the original fp32 tensor stays. Measured on the "
+    "124M model that makes it bigger: 196 MiB becomes 217. Refusing beats reporting "
+    "a compression ratio worse than doing nothing.",
+)
 def test_quantizing_a_tied_head_is_refused() -> None:
     """With tied embeddings, quantizing lm_head makes the model *bigger*.
 

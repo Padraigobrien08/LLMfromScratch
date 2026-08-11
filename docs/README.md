@@ -30,8 +30,13 @@ scrubber along the reproduction and watch the target line get crossed a third of
 switch the mask bug back on and watch the KV cache change sides; slide gradient accumulation and
 watch a two-parameter model land on points it never saw.
 
+Two further pages answer the question that follows — *is any of this actually held down?* One walks
+the architecture block by block, naming the test behind each claim and saying plainly where there
+is no test to name; the other shows what a dozen of those tests assert and the bug each exists to
+catch, collected from the tests themselves rather than typed.
+
 These documents remain the long form: the protocol, the provenance, the caveats and the reasoning
-each plate compresses. [The repository README](../README.md) carries the honest status table.
+each page compresses. [The repository README](../README.md) carries the honest status table.
 
 ---
 

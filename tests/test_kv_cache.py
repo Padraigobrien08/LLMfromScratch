@@ -19,6 +19,13 @@ from conftest import ARCH_VARIANTS, tiny_model
 from llmfs.model import GenerationConfig, KVCache
 
 
+@pytest.mark.showcase(
+    pins="that token-at-a-time decoding with a cache reproduces a full forward pass at "
+    "every position",
+    why="Training never exercises the cache, so nothing else in the suite would catch "
+    "a stale offset or a double-rotated key. The model would train perfectly and "
+    "generate subtly wrong text.",
+)
 @pytest.mark.parametrize("overrides", ARCH_VARIANTS)
 def test_incremental_decode_matches_full_forward(overrides: dict) -> None:
     """Token-at-a-time with a cache == full forward pass, at every position."""
@@ -109,6 +116,13 @@ def test_generation_beyond_block_size_rejected() -> None:
         model.generate(prompt, GenerationConfig(max_new_tokens=10))
 
 
+@pytest.mark.showcase(
+    pins="that a single-token decode step reaches SDPA with attn_mask=None",
+    why="The one test here that checks *speed* rather than an answer. Passing a mask "
+    "disqualifies SDPA from its fused kernels and drops it onto the math backend; "
+    "when q_len == 1 that mask is all-True and therefore pure cost. Its absence let "
+    "a 30% regression sit behind a green suite for weeks.",
+)
 def test_decode_step_passes_no_attn_mask(monkeypatch: pytest.MonkeyPatch) -> None:
     """A single-token decode step must reach SDPA with ``attn_mask=None``.
 
@@ -142,6 +156,13 @@ def test_decode_step_passes_no_attn_mask(monkeypatch: pytest.MonkeyPatch) -> Non
     assert all(mask is None for mask in seen), "decode step built a mask it does not need"
 
 
+@pytest.mark.showcase(
+    pins="that a multi-token block against a filled cache still gets a real mask, and "
+    "that its *interior* queries agree with a full forward pass",
+    why="The speculative-verification shape. The q_len == 1 fast path must not swallow "
+    "it — and checking only the final position would pass regardless, because that "
+    "one query is correct even with no mask at all.",
+)
 def test_multi_token_verify_step_still_masks() -> None:
     """The speculative-verification shape (q_len > 1 against a filled cache) still needs
     a real bottom-right aligned mask — the q_len == 1 shortcut must not swallow it."""

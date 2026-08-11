@@ -1,28 +1,25 @@
 import Footer from "./components/Footer";
 import Masthead from "./components/Masthead";
 import Ablations from "./pages/Ablations";
+import Architecture from "./pages/Architecture";
 import Chapter from "./pages/Chapter";
 import Efficiency from "./pages/Efficiency";
 import Front from "./pages/Front";
 import Reproduction from "./pages/Reproduction";
 import Rope from "./pages/Rope";
 import Scaling from "./pages/Scaling";
+import Tests from "./pages/Tests";
 import { type Route, useRoute } from "./router";
 
 /**
- * `Legacy` used to live here: a wrapper that re-pointed the pre-redesign token names at
- * Broadsheet's, so `#/ablations` could render in the new ink without being rewritten.
- * It went out with that rewrite, along with the `.legacy-page` block at the foot of
- * `styles.css` — the last of the old design system in the tree.
+ * Two things used to live here and are worth recording as gone.
+ *
+ * `Legacy` re-pointed the pre-redesign token names at Broadsheet's so `#/ablations`
+ * could render in the new ink without being rewritten; it went out with that rewrite.
+ * `Placeholder` kept the router honest while `#/architecture` and `#/tests` were
+ * outstanding — every route resolves to a real page now, so the switch below is
+ * exhaustive over `Route` with nothing standing in for anything.
  */
-function Placeholder({ title }: { title: string }) {
-  return (
-    <div className="shell" style={{ paddingTop: "var(--space-8)" }}>
-      <p style={{ font: "400 19px/1.62 var(--font-body)" }}>{title} — not built yet.</p>
-    </div>
-  );
-}
-
 function Page({ route }: { route: Route }) {
   switch (route.kind) {
     case "front":
@@ -32,9 +29,9 @@ function Page({ route }: { route: Route }) {
     case "rope":
       return <Rope />;
     case "architecture":
-      return <Placeholder title="The architecture page" />;
+      return <Architecture />;
     case "tests":
-      return <Placeholder title="The test-suite page" />;
+      return <Tests />;
     case "reproduction":
       return <Reproduction />;
     case "ablations":

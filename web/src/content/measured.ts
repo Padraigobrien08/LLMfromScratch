@@ -1,16 +1,17 @@
 /**
- * Measured results, generated from `results/*.json`. Do not hand-edit.
+ * Measured results, generated from `results/*.json`.
  *
- *     llmfs-export-web
- *
- * Every figure here was produced by a run whose artifact is committed in `results/`,
- * and `tests/test_web_export.py` asserts this file is still what the generator emits.
+ * Every figure here was produced by a run whose artifact is committed in `results/`.
  * A page that imports from here cannot quote a number the repository does not hold;
  * a page that retypes one can, which is why nothing on the site should retype one.
+ *
+ * Do not hand-edit — regenerate with `llmfs-export-web`. `tests/test_web_export.py`
+ * asserts this file is still what the generator emits, so a stale copy fails CI
+ * rather than shipping.
  */
 export const MEASURED = {
   "tests": {
-    "python": 340,
+    "python": 345,
     "browser": 97
   },
   "reproduction": {

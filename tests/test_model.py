@@ -54,6 +54,12 @@ def test_weight_tying_shares_storage() -> None:
     assert untied.num_params() > tied.num_params()
 
 
+@pytest.mark.showcase(
+    pins="that both roles of a tied embedding matrix contribute to its one gradient",
+    why="Weight tying is easy to implement as a copy rather than a share. The model "
+    "then trains, converges, and quietly optimises the output head against an input "
+    "table that never receives its half of the signal.",
+)
 def test_tying_couples_gradients() -> None:
     """Both roles of the shared matrix must contribute to the one gradient."""
     model = tiny_model(tie_embeddings=True)

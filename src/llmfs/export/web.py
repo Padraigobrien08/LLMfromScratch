@@ -6,13 +6,16 @@ The site was outside that guarantee, and drifted exactly as you would expect —
 ``projectState.ts`` said 223 Python tests and 69 browser tests long after both had
 moved, because a number typed into a second language is a number nobody re-derives.
 
-So the figures cross the boundary as generated code:
+So the figures cross the boundary as generated code — one generator, three outputs,
+because the alternative is three generators that drift apart:
 
-    results/*.json  ->  llmfs-export-web  ->  web/src/content/measured.ts
+    results/*.json    ->                        ->  web/src/content/measured.ts
+    pytest collection ->  llmfs-export-web      ->  web/src/content/testShowcase.ts
+    configs/*.yaml    ->                        ->  web/src/content/architecture.ts
 
-``tests/test_web_export.py`` asserts the committed module is what this generator
+``tests/test_web_export.py`` asserts each committed module is what this generator
 produces, which turns a stale export into a CI failure rather than a confident wrong
-number on a page. The site imports ``MEASURED`` instead of restating it.
+number on a page. The site imports them instead of restating them.
 
 This is a repository tool, not library code: it reads the working tree (``results/``,
 the test suites) rather than the installed package, and it writes into ``web/``.
@@ -34,12 +37,16 @@ import shutil
 import statistics
 import subprocess
 import sys
+import tempfile
 from pathlib import Path
 from typing import Any
 
 ROOT = Path(__file__).resolve().parents[3]
 RESULTS = ROOT / "results"
-OUT = ROOT / "web" / "src" / "content" / "measured.ts"
+CONTENT = ROOT / "web" / "src" / "content"
+OUT = CONTENT / "measured.ts"
+SHOWCASE_OUT = CONTENT / "testShowcase.ts"
+ARCHITECTURE_OUT = CONTENT / "architecture.ts"
 
 # Pre-registered in the header comment of `configs/gpt2-124m.yaml` and in
 # `docs/reproduction.md`, before the run. It is a *commitment*, not a measurement, so it
@@ -47,18 +54,26 @@ OUT = ROOT / "web" / "src" / "content" / "measured.ts"
 # sites by `test_target_loss_matches_where_it_was_pre_registered`.
 TARGET_LOSS = 3.29
 
-HEADER = """\
-/**
- * Measured results, generated from `results/*.json`. Do not hand-edit.
- *
- *     llmfs-export-web
- *
- * Every figure here was produced by a run whose artifact is committed in `results/`,
- * and `tests/test_web_export.py` asserts this file is still what the generator emits.
- * A page that imports from here cannot quote a number the repository does not hold;
- * a page that retypes one can, which is why nothing on the site should retype one.
- */
-"""
+MEASURED_NOTE = """\
+Measured results, generated from `results/*.json`.
+
+Every figure here was produced by a run whose artifact is committed in `results/`.
+A page that imports from here cannot quote a number the repository does not hold;
+a page that retypes one can, which is why nothing on the site should retype one."""
+
+
+def header(note: str) -> str:
+    """The banner every generated module carries, with its own reason for existing."""
+    body = "\n".join(f" * {line}".rstrip() for line in note.splitlines())
+    return (
+        "/**\n"
+        f"{body}\n"
+        " *\n"
+        " * Do not hand-edit — regenerate with `llmfs-export-web`. `tests/test_web_export.py`\n"
+        " * asserts this file is still what the generator emits, so a stale copy fails CI\n"
+        " * rather than shipping.\n"
+        " */\n"
+    )
 
 
 def load(name: str) -> dict[str, Any]:
@@ -72,25 +87,46 @@ def point(report: dict[str, Any], world_size: int) -> dict[str, Any]:
 # --------------------------------------------------------------------------- counting
 
 
-def count_python_tests(root: Path = ROOT) -> int:
-    """Collect the suite and count it, rather than parsing the files ourselves.
+def collect_python_tests(root: Path = ROOT) -> tuple[int, list[dict[str, Any]]]:
+    """Collect the suite once, and take both answers the site needs from it.
 
     Parametrisation means the number of test *functions* is not the number of test
     *cases*, and a hand-rolled counter would be a second, wrong implementation of
     pytest's collection rules. Collection is cheap and it is the definition.
+
+    The showcase rows come out of the same run rather than a second one — they are the
+    same question asked of the same items, and two collections could disagree only by
+    being taken at different moments, which is the whole failure mode this file exists
+    to remove.
     """
-    proc = subprocess.run(
-        [sys.executable, "-m", "pytest", "tests", "--collect-only", "-q", "-p", "no:cacheprovider"],
-        cwd=root,
-        capture_output=True,
-        text=True,
-        check=True,
-    )
+    with tempfile.TemporaryDirectory() as tmp:
+        showcase = Path(tmp) / "showcase.json"
+        proc = subprocess.run(
+            [
+                sys.executable,
+                "-m",
+                "pytest",
+                "tests",
+                "--collect-only",
+                "-q",
+                "-p",
+                "no:cacheprovider",
+                "-p",
+                "llmfs.export.showcase",
+                f"--showcase-json={showcase}",
+            ],
+            cwd=root,
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+        rows = json.loads(showcase.read_text()) if showcase.exists() else []
+
     # The quiet reporter ends with per-file counts, one `path: n` line each.
     counts = re.findall(r"^tests/\S+\.py: (\d+)$", proc.stdout, flags=re.MULTILINE)
     if not counts:
         raise RuntimeError(f"could not parse pytest collection output:\n{proc.stdout[-2000:]}")
-    return sum(int(n) for n in counts)
+    return sum(int(n) for n in counts), rows
 
 
 def count_browser_tests(root: Path = ROOT) -> int | None:
@@ -401,21 +437,141 @@ def _speculative(payload: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+# ------------------------------------------------------------------- architecture
+
+
+ARCHITECTURES = {"gpt2": "gpt2-124m.yaml", "llama": "llama-124m.yaml"}
+
+# The fields the architecture page states. Deliberately not `asdict` of the whole
+# dataclass: the page is about the shape of the model, and dropping `dropout` or
+# `init_std` in front of a reader would be padding a table to look thorough.
+CONFIG_FIELDS = [
+    "vocab_size",
+    "n_layer",
+    "n_head",
+    "n_kv_head",
+    "n_embd",
+    "block_size",
+    "norm",
+    "pos_emb",
+    "mlp",
+    "tie_embeddings",
+    "bias",
+    "mlp_ratio",
+    "mlp_hidden_multiple_of",
+    "norm_eps",
+    "rope_theta",
+]
+
+
+def build_architecture() -> str:
+    """The two shipped configs, resolved through the repository's own loader.
+
+    Through the loader, not a YAML read, and that distinction is the entire reason this
+    is generated rather than typed. `llama-124m.yaml` never states `n_layer` and
+    `gpt2-124m.yaml` never states `n_kv_head` — the first inherits via `_base_`, the
+    second is filled in by `ModelConfig.__post_init__`. Only the resolved `ModelConfig`
+    has the values the page needs, and reconstructing them by hand would be
+    reimplementing inheritance and defaulting in a second language, wrongly.
+    """
+    from llmfs.config import load_config
+
+    configs = {}
+    for name, filename in ARCHITECTURES.items():
+        cfg = load_config(ROOT / "configs" / filename).model
+        configs[name] = {
+            "config": {_camel(f): getattr(cfg, f) for f in CONFIG_FIELDS},
+            "headDim": cfg.head_dim,
+            "mlpHidden": cfg.mlp_hidden,
+            "source": f"configs/{filename}",
+        }
+
+    return render(
+        configs,
+        name="ARCHITECTURES",
+        note=(
+            "The two shipped model configs, resolved through `llmfs.config.load_config`.\n"
+            "\n"
+            "Through the loader, so `_base_` inheritance and every default have already\n"
+            "been applied. A page that re-read the YAML would be reimplementing the loader;\n"
+            "a page that typed these in would be guessing at what the loader does."
+        ),
+    )
+
+
+def _camel(field: str) -> str:
+    head, *rest = field.split("_")
+    return head + "".join(word.title() for word in rest)
+
+
+# ----------------------------------------------------------------------- showcase
+
+
+def build_showcase(rows: list[dict[str, Any]]) -> str:
+    """The marked tests, as the page's rows.
+
+    See `llmfs.export.showcase` for why they come from collection rather than from a
+    hand-written list. The counts travel with them: "run against all ten architecture
+    variants" is a much stronger sentence than the same claim without a number, and it
+    is one nobody has to keep true by hand.
+    """
+    return render(
+        rows,
+        name="TEST_SHOWCASE",
+        note=(
+            "The tests carrying `@pytest.mark.showcase`, collected by pytest itself.\n"
+            "\n"
+            "Renaming or deleting one of them changes this file, so the page cannot go on\n"
+            "advertising a guarantee the suite no longer provides. `cases` is how many\n"
+            "parametrised runs stand behind the claim."
+        ),
+    )
+
+
 # ----------------------------------------------------------------------------- render
 
 
-def render(payload: dict[str, Any]) -> str:
+def render(payload: Any, *, name: str, note: str) -> str:
     """JSON is a subset of TypeScript, so the literal needs no separate serialiser.
 
     ``as const`` is what makes it worth generating a module rather than a data file: the
     site gets literal types, so a page that reads `MEASURED.scaling.points[0].efficiency`
     is checked at build time against what the generator actually emitted.
     """
-    return f"{HEADER}export const MEASURED = {json.dumps(payload, indent=2)} as const;\n"
+    return f"{header(note)}export const {name} = {json.dumps(payload, indent=2)} as const;\n"
 
 
 def build(*, python_tests: int, browser_tests: int) -> str:
-    return render(build_payload(python_tests=python_tests, browser_tests=browser_tests))
+    return render(
+        build_payload(python_tests=python_tests, browser_tests=browser_tests),
+        name="MEASURED",
+        note=MEASURED_NOTE,
+    )
+
+
+def resolve_browser_tests() -> int:
+    """The vitest count, or the one already committed if there is no Node toolchain."""
+    browser_tests = count_browser_tests()
+    if browser_tests is not None:
+        return browser_tests
+    committed = committed_browser_tests()
+    if committed is None:
+        raise SystemExit(
+            "no browser test count available: run `npm ci --prefix web` so vitest can "
+            "enumerate the suite, or generate this file on a machine that has it"
+        )
+    print(f"vitest unavailable — carrying the committed browser count ({committed})")
+    return committed
+
+
+def build_all() -> dict[Path, str]:
+    """Every generated module, keyed by where it belongs."""
+    python_tests, showcase_rows = collect_python_tests()
+    return {
+        OUT: build(python_tests=python_tests, browser_tests=resolve_browser_tests()),
+        SHOWCASE_OUT: build_showcase(showcase_rows),
+        ARCHITECTURE_OUT: build_architecture(),
+    }
 
 
 def main(argv: list[str] | None = None) -> None:
@@ -423,33 +579,28 @@ def main(argv: list[str] | None = None) -> None:
     parser.add_argument(
         "--check",
         action="store_true",
-        help="do not write; exit 1 if the committed module is stale",
+        help="do not write; exit 1 if any committed module is stale",
     )
     args = parser.parse_args(argv)
 
-    python_tests = count_python_tests()
-    browser_tests = count_browser_tests()
-    if browser_tests is None:
-        browser_tests = committed_browser_tests()
-        if browser_tests is None:
-            raise SystemExit(
-                "no browser test count available: run `npm ci --prefix web` so vitest can "
-                "enumerate the suite, or generate this file on a machine that has it"
-            )
-        print(f"vitest unavailable — carrying the committed browser count ({browser_tests})")
-
-    module = build(python_tests=python_tests, browser_tests=browser_tests)
+    modules = build_all()
 
     if args.check:
-        current = OUT.read_text() if OUT.exists() else ""
-        if current != module:
-            raise SystemExit(f"{OUT.relative_to(ROOT)} is stale — run llmfs-export-web")
-        print(f"{OUT.relative_to(ROOT)} is up to date")
+        stale = [
+            path.relative_to(ROOT)
+            for path, text in modules.items()
+            if (path.read_text() if path.exists() else "") != text
+        ]
+        if stale:
+            names = ", ".join(str(p) for p in stale)
+            raise SystemExit(f"stale, run llmfs-export-web: {names}")
+        print(f"{len(modules)} generated modules are up to date")
         return
 
-    OUT.parent.mkdir(parents=True, exist_ok=True)
-    OUT.write_text(module)
-    print(f"wrote {OUT.relative_to(ROOT)}  ({python_tests} python, {browser_tests} browser tests)")
+    for path, text in modules.items():
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(text)
+        print(f"wrote {path.relative_to(ROOT)}")
 
 
 if __name__ == "__main__":

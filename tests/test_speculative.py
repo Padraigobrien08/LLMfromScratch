@@ -80,6 +80,12 @@ def prompt():
 # ------------------------------------------------------- the losslessness invariant
 
 
+@pytest.mark.showcase(
+    pins="that speculative decoding reproduces greedy decoding token for token",
+    why="The whole contract. An implementation that were merely *close* would not be a "
+    "faster decoder — it would be a different model, and every benchmark measuring "
+    "it would be measuring the wrong thing.",
+)
 @pytest.mark.parametrize("k", [1, 2, 4, 8])
 def test_output_is_identical_to_greedy_decoding(model, prompt, k) -> None:
     """The whole contract. Any difference here is a correctness bug."""

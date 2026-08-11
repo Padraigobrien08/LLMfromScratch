@@ -65,6 +65,12 @@ artifacts = ["src/llmfs/viz/template.html"]
 testpaths = ["tests"]
 addopts = "-q"
 filterwarnings = ["ignore::DeprecationWarning"]
+markers = [
+    # Read by `llmfs.export.showcase`, which turns the marked tests into the site's
+    # `#/tests` page. Registered here as well as in the plugin so an ordinary run — which
+    # does not load it — does not warn about a mark it has no reason to know about.
+    "showcase(pins, why): show this test on the site, with what it pins and the bug it catches",
+]
 
 [tool.ruff]
 line-length = 100

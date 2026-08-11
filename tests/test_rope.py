@@ -31,6 +31,12 @@ def _rotate(rope: RotaryEmbedding, x: torch.Tensor, pos: int) -> torch.Tensor:
     return out.view(-1)
 
 
+@pytest.mark.showcase(
+    pins="that <R(q, m), R(k, n)> depends only on m - n, to 1e-6",
+    why="It is the entire point of rotary embeddings and no shape check implies it. A "
+    "rotation applied to the wrong axis still produces the right-shaped tensor and a "
+    "model that trains — just one with no usable notion of distance.",
+)
 def test_relative_position_property(rope: RotaryEmbedding) -> None:
     """<R(q, m), R(k, n)> depends only on m - n."""
     q = torch.randn(16, dtype=torch.float64)

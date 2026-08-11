@@ -5,27 +5,36 @@
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Attention explorer — llmfs</title>
 <style>
+  /* Broadsheet's palette and proportions, restated rather than imported.
+     This page is a single self-contained file with no build step, no CDN and no
+     backend — a test asserts it references nothing external — so it cannot pull in
+     the site's stylesheet or its webfont. The serif stack below is the nearest
+     system equivalent to Source Serif 4: the point is that a reader arriving here
+     from the site does not feel they have left it. */
   :root {
     color-scheme: light dark;
-    --bg: #fbfbfd;
-    --panel: #ffffff;
-    --border: #e2e5ec;
-    --text: #14161c;
-    --muted: #6a7180;
-    --accent: #2f5fe0;
-    --grid-line: #eef0f5;
-    --shadow: 0 1px 2px rgba(16, 20, 30, .05), 0 8px 24px rgba(16, 20, 30, .05);
+    --bg: #f3f2f2;
+    --panel: #f8f4f4;
+    --border: rgba(32, 30, 29, .16);
+    --text: #201e1d;
+    --muted: #7d7979;
+    --accent: #0088b0;
+    --accent-2: #d6006c;
+    --grid-line: rgba(32, 30, 29, .10);
+    --shadow: 0 1px 2px rgba(32, 30, 29, .05), 0 8px 24px rgba(32, 30, 29, .05);
     --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+    --serif: "Source Serif 4", "Iowan Old Style", Georgia, "Times New Roman", serif;
   }
   @media (prefers-color-scheme: dark) {
     :root {
-      --bg: #0c0e13;
-      --panel: #14171f;
-      --border: #262b36;
-      --text: #e8eaf0;
-      --muted: #939bab;
-      --accent: #6f95ff;
-      --grid-line: #1c212b;
+      --bg: #171615;
+      --panel: #201e1d;
+      --border: rgba(243, 242, 242, .18);
+      --text: #f3f2f2;
+      --muted: #9c9796;
+      --accent: #35b6d8;
+      --accent-2: #ff5ea4;
+      --grid-line: rgba(243, 242, 242, .10);
       --shadow: 0 1px 2px rgba(0, 0, 0, .4), 0 8px 24px rgba(0, 0, 0, .3);
     }
   }
@@ -34,13 +43,42 @@
     margin: 0;
     background: var(--bg);
     color: var(--text);
-    font: 15px/1.55 ui-sans-serif, system-ui, -apple-system, "Segoe UI", Inter, sans-serif;
+    font: 16px/1.6 var(--serif);
     -webkit-font-smoothing: antialiased;
   }
   .wrap { max-width: 1360px; margin: 0 auto; padding: 32px 24px 72px; }
 
+  .masthead-bar { height: 7px; background: var(--text); }
+  .masthead-row {
+    display: flex; align-items: baseline; justify-content: space-between;
+    gap: 24px; flex-wrap: wrap; padding: 14px 0 8px;
+  }
+  .wordmark { display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; }
+  .wordmark a { font: 600 25px/1 var(--serif); letter-spacing: -.015em; color: var(--text); text-decoration: none; }
+  .wordmark-sub {
+    font: 400 12px/1 var(--serif); letter-spacing: .1em;
+    text-transform: uppercase; color: var(--muted);
+  }
+  .masthead-nav { display: flex; align-items: baseline; flex-wrap: wrap; column-gap: 20px; row-gap: 8px; }
+  .masthead-nav a {
+    font: 400 14px/1 var(--serif); color: var(--text); text-decoration: none;
+    border-bottom: 1px solid transparent;
+  }
+  .masthead-nav a:hover { border-bottom-color: var(--accent); }
+  .masthead-nav a[aria-current="page"] { border-bottom-color: var(--text); font-weight: 600; }
+  .rule-heavy { height: 3px; background: var(--text); }
+  .rule-hair { height: 1px; background: var(--border); }
+  .dateline {
+    display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap;
+    padding: 6px 0; font: 400 11.5px/1 var(--serif);
+    letter-spacing: .08em; text-transform: uppercase; color: var(--muted);
+  }
   header { margin-bottom: 24px; }
-  h1 { font-size: 22px; font-weight: 640; margin: 0 0 6px; letter-spacing: -.01em; }
+  .kicker {
+    font: 600 11.5px/1 var(--serif); letter-spacing: .1em; text-transform: uppercase;
+    color: var(--accent-2); margin: 22px 0 8px;
+  }
+  h1 { font: 600 34px/1.15 var(--serif); margin: 0 0 8px; letter-spacing: -.02em; }
   .sub { color: var(--muted); font-size: 14px; margin: 0; }
   .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 14px; }
   .chip {
@@ -137,9 +175,29 @@
 </style>
 </head>
 <body>
+<div class="masthead-bar"></div>
 <div class="wrap">
 
   <header>
+    <div class="masthead-row">
+      <div class="wordmark">
+        <a href="../">LLMfromScratch</a>
+        <span class="wordmark-sub">A laboratory notebook</span>
+      </div>
+      <nav class="masthead-nav" aria-label="Sections">
+        <a href="../">Front page</a>
+        <a href="../#/reproduction">Results</a>
+        <a href="../#/architecture">Architecture</a>
+        <a href="../#/tests">Tests</a>
+        <a href="#" aria-current="page">Attention</a>
+        <a href="https://github.com/Padraigobrien08/LLMfromScratch" target="_blank" rel="noopener">GitHub &#8599;</a>
+      </nav>
+    </div>
+    <div class="rule-heavy"></div>
+    <div class="dateline" id="dateline"></div>
+    <div class="rule-hair"></div>
+
+    <p class="kicker">Separate page &middot; every weight in the model</p>
     <h1>Attention explorer</h1>
     <p class="sub">Every attention weight in a from-scratch decoder, per layer and per head.</p>
     <div class="chips" id="chips"></div>
@@ -253,6 +311,23 @@
       W: bytes, L, H, T,
       at: (l, h, q, k) => bytes[((l * H + h) * T + q) * T + k] / 255,
     });
+  }
+
+  // ---- masthead ------------------------------------------------------------
+  /* The dateline rail carries what *this page* can vouch for. The site's version
+     prints test counts, which are generated from a pytest collection this export
+     knows nothing about — so rather than hardcode a number that would rot, it states
+     the model on the page. Everything here comes out of the embedded payload. */
+  function dateline() {
+    const m = BOOT.model || {};
+    const items = [
+      "Padraig O'Brien",
+      m.params != null ? (m.params / 1e6).toFixed(1) + "M parameters" : null,
+      m.val_loss != null ? "val loss " + m.val_loss.toFixed(3) : null,
+      "Built by CI from a model CI trains",
+      "MIT",
+    ].filter(Boolean);
+    $("dateline").innerHTML = items.map((v) => `<span>${v}</span>`).join("");
   }
 
   // ---- header chips ------------------------------------------------------
@@ -519,6 +594,7 @@
     if (current) { headGrid(); drawFocus(); strip(); }
   });
 
+  dateline();
   chips();
   controls();
   paintRamp();

@@ -65,14 +65,14 @@ const DEEP_END: Array<Omit<Stop, "numeral" | "cta">> = [
     kicker: "The deep end",
     title: "The stack, block by block",
     blurb:
-      "One Transformer class, two architectures, decided entirely by config. Click a block for its shape, its parameters and the test that pins it.",
+      "One Transformer class, two architectures, decided entirely by config. Click a block for its shape, its share of the parameter budget, and the test that pins it.",
     href: href({ kind: "architecture" } as Route),
   },
   {
     kicker: "The deep end",
     title: "What the suite actually asserts",
     blurb:
-      "Eleven tests and the specific bug each one exists to catch — the ones that would otherwise survive into a training run.",
+      "Not a test count — the specific claims a dozen of them make, and the bug each one exists to catch. Collected from the tests themselves, so a rename cannot leave the page lying.",
     href: href({ kind: "tests" } as Route),
   },
 ];

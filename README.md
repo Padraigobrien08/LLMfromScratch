@@ -38,7 +38,7 @@ what is built and verified, and what is designed but not yet run.
 
 | Pillar | Status |
 | --- | --- |
-| Package, config system, data pipeline, trainer, CI | **Done** — 340 tests green, end-to-end verified |
+| Package, config system, data pipeline, trainer, CI | **Done** — 345 tests green, end-to-end verified |
 | Modern architecture (RoPE, RMSNorm, SwiGLU, GQA, KV cache) | **Done** — hand-implemented, property-tested |
 | GPT-2 124M reproduction on FineWeb-Edu | **Done** — 3.0503 val loss, [docs/reproduction.md](docs/reproduction.md) |
 | Ablation study (12 arms × 3 seeds) | **Done** — [docs/ablations.md](docs/ablations.md), 39 runs, 7.6 GPU-h |
@@ -47,7 +47,7 @@ what is built and verified, and what is designed but not yet run.
 | Fault-tolerance design doc | **Done** — [docs/fault-tolerance.md](docs/fault-tolerance.md) |
 | Multi-GPU scaling report | **Done** — [docs/scaling.md](docs/scaling.md), 95.1% efficiency on 8 GPUs, 1.54 PFLOP/s |
 | Interactive attention visualization | **Done** — [live](https://padraigobrien08.github.io/LLMfromScratch/attention/), auto-deployed from CI |
-| Interactive site (explainer, four results plates, RoPE explorer) | **Done** — [live](https://padraigobrien08.github.io/LLMfromScratch/); every figure reads a committed artifact |
+| Interactive site (explainer, four results plates, architecture, tests) | **Done** — [live](https://padraigobrien08.github.io/LLMfromScratch/); every figure reads a generated artifact |
 | Deferred work, scoped and costed | [docs/roadmap.md](docs/roadmap.md) — fused dequant kernel, flash-compatible verify mask, multi-node |
 
 No results are reported below that have not been measured. Sections describing
@@ -495,6 +495,18 @@ explanation rather than a chart with a tooltip on it:
   drawn through the two points it was fitted to. Press *reveal* and the other two land on
   it, within 0.4 and 0.85 points, having been predicted before they were run.
 
+Two pages exist to answer the question a researcher asks next — *is any of this
+actually held down?* **The architecture page** puts the nine blocks of the stack down
+one column with a GPT-2 / Llama tab and a detail panel: every parameter count comes
+from a calculator pinned exactly to the real `Transformer` across twelve
+configurations, every config value from resolving the shipped YAML through the
+repository's own loader, and every "what holds it" line names a test that was read
+before it was cited — two blocks say they have no property test, because they do not.
+**The test page** refuses to lead with a test count and shows a dozen claims instead:
+what each test asserts and the bug it exists to catch. Those rows are collected from
+`@pytest.mark.showcase` by pytest itself, so a rename cannot leave the page
+advertising a guarantee the suite no longer provides.
+
 **"How a language model actually works"** is the on-ramp: eight steps from a sentence
 you type to a model that predicts what comes next, assuming no prior knowledge, with
 something to poke at rather than take on faith at each one. Type text and watch the
@@ -569,7 +581,10 @@ npm install --prefix web && npm run dev --prefix web
 Every attention weight in the model, per layer and per head, in a page you can click
 through. Built by CI from a model CI trains, and deployed to GitHub Pages on every
 push to `main` — so the hosted page always reflects the current code rather than a
-stale artifact.
+stale artifact. It carries the same masthead, dateline and typography as the rest of
+the site, restated rather than imported: it stays a single self-contained file, so it
+cannot pull in the site's stylesheet or its webfont, and a test asserts it references
+nothing external at all.
 
 ```bash
 llmfs-viz --checkpoint out/debug/best.pt --out site/attention.html
@@ -646,7 +661,7 @@ src/llmfs/
   ablation/   sweep runner, paired-seed analysis, tables and plots
   bench/      training + inference throughput, memory, cost, provenance
 configs/      gpt2-124m, llama-124m, debug, and 11 single-axis ablation arms
-tests/        340 tests — component correctness, config validation, end-to-end training
+tests/        345 tests — component correctness, config validation, end-to-end training
 web/          the interactive site: explainer, RoPE explorer, ablations (97 tests)
 scripts/      GPU pod automation, and the exporters that pin the site to the model
 docs/         index, reproduction protocol, results write-ups, fault-tolerance design

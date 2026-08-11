@@ -10,6 +10,11 @@ from llmfs.model import ModelConfig, Transformer
 from llmfs.model.attention import CausalSelfAttention, build_causal_mask, repeat_kv
 
 
+@pytest.mark.showcase(
+    pins="that perturbing token t leaves every position < t bitwise unchanged",
+    why="An off-by-one in the mask makes the loss look *better*, because the model is "
+    "peeking at the answer. Nothing downstream of a loss curve can catch that.",
+)
 @pytest.mark.parametrize("overrides", ARCH_VARIANTS)
 def test_causality(overrides: dict) -> None:
     """Changing token t must not alter the hidden states at any position < t.
@@ -30,6 +35,13 @@ def test_causality(overrides: dict) -> None:
     assert not torch.allclose(baseline[:, t:], after[:, t:]), "position t should have changed"
 
 
+@pytest.mark.showcase(
+    pins="that with n_kv_head == n_head, grouped-query attention is numerically "
+    "identical to plain multi-head attention",
+    why="Same weights, same inputs, so the grouping code is the only difference. It "
+    "turns the repeat/interleave logic — the easiest thing in GQA to get subtly "
+    "wrong — into a difference that has to be exactly zero.",
+)
 def test_gqa_reduces_to_mha() -> None:
     """With n_kv_head == n_head, GQA must be numerically identical to plain MHA.
 
@@ -58,6 +70,13 @@ def test_gqa_shrinks_kv_cache() -> None:
     assert mha.make_cache(1).nbytes() == 8 * mqa.make_cache(1).nbytes()
 
 
+@pytest.mark.showcase(
+    pins="that the weight-exporting eager path computes what the fused kernel computes",
+    why="The attention visualizer reads its maps from the eager path. If the two ever "
+    "disagreed it would be drawing weights the model never used — and a picture that "
+    "has quietly drifted from the code is worse than no picture, because nothing "
+    "about it looks wrong.",
+)
 @pytest.mark.parametrize("n_kv_head", [1, 2, 4])
 def test_eager_matches_sdpa(n_kv_head: int) -> None:
     """The weight-exporting eager path must compute the same thing as the fused kernel.
@@ -100,6 +119,12 @@ def test_attention_weights_are_causal_and_normalised() -> None:
         assert weights[..., upper].abs().max() == 0, "attends to the future"
 
 
+@pytest.mark.showcase(
+    pins="that the causal mask is bottom-right aligned, not top-left",
+    why="torch's is_causal=True is top-left aligned, which is silently wrong whenever "
+    "the query block is shorter than the key sequence — that is, on every single "
+    "decode step. It would let the newest token see only the oldest keys.",
+)
 def test_build_causal_mask_is_bottom_right_aligned() -> None:
     """During decode the query block sits at the end of the key sequence.
 

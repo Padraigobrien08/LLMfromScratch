@@ -20,12 +20,16 @@ import pytest
 
 from conftest import ARCH_VARIANTS
 from llmfs.export.web import (
+    ARCHITECTURE_OUT,
     OUT,
     ROOT,
+    SHOWCASE_OUT,
     TARGET_LOSS,
     build,
+    build_architecture,
+    build_showcase,
+    collect_python_tests,
     committed_browser_tests,
-    count_python_tests,
 )
 
 PROJECT_STATE = ROOT / "web" / "src" / "content" / "projectState.ts"
@@ -53,7 +57,7 @@ def test_committed_measured_module_is_fresh(committed: str) -> None:
     browser = committed_browser_tests()
     assert browser is not None, "the committed module must carry a browser test count"
 
-    fresh = build(python_tests=count_python_tests(), browser_tests=browser)
+    fresh = build(python_tests=collect_python_tests()[0], browser_tests=browser)
     assert committed == fresh, (
         "web/src/content/measured.ts is stale — run `llmfs-export-web` and commit it. "
         "Adding or removing a test changes the count the site prints."
@@ -92,7 +96,7 @@ def test_readme_status_table_states_the_live_test_count() -> None:
     count has to be true at the source.
     """
     readme = (ROOT / "README.md").read_text()
-    count = count_python_tests()
+    count = collect_python_tests()[0]
     assert f"{count} tests green" in readme, (
         f"README.md does not say '{count} tests green' — the suite has {count} tests"
     )
@@ -128,3 +132,108 @@ def test_the_site_does_not_retype_the_reproduction_loss() -> None:
         assert "3.0503" not in code and "3.05," not in code, (
             f"{path.name} restates the reproduction loss — import it from measured.ts"
         )
+
+
+def test_committed_test_showcase_is_fresh() -> None:
+    """The `#/tests` page's rows come from collection, so they cannot outlive the tests.
+
+    Renaming a showcased test, deleting it, or editing what it claims to pin all change
+    what the plugin emits. Without this the page would keep advertising a guarantee the
+    suite no longer provides, which is a worse failure than having no page: it is a
+    specific, checkable claim that has quietly stopped being true.
+    """
+    _, rows = collect_python_tests()
+    assert rows, "no tests carry @pytest.mark.showcase — the page would be empty"
+    assert SHOWCASE_OUT.read_text() == build_showcase(rows), (
+        "web/src/content/testShowcase.ts is stale — run `llmfs-export-web` and commit it"
+    )
+
+
+def test_every_showcased_test_says_what_it_pins_and_why() -> None:
+    """A row with no `why` is a directory listing entry, which is what this page is not."""
+    _, rows = collect_python_tests()
+    for row in rows:
+        assert row["pins"].strip(), f"{row['name']} is marked but says nothing about what it pins"
+        assert row["why"].strip(), f"{row['name']} is marked but gives no reason to exist"
+        assert row["cases"] >= 1
+
+
+def test_committed_architecture_module_is_fresh() -> None:
+    """The architecture page's config values, resolved by the repository's own loader.
+
+    `llama-124m.yaml` never states `n_layer` and `gpt2-124m.yaml` never states
+    `n_kv_head`; the first inherits through `_base_` and the second is filled in by
+    `ModelConfig.__post_init__`. A page that read the YAML directly would show blanks or
+    guesses for exactly the fields a reader would check.
+    """
+    assert ARCHITECTURE_OUT.read_text() == build_architecture(), (
+        "web/src/content/architecture.ts is stale — run `llmfs-export-web` and commit it"
+    )
+
+
+def test_the_architecture_export_resolves_what_the_yaml_leaves_unsaid() -> None:
+    """The property that makes going through the loader necessary rather than tidy."""
+    llama = (ROOT / "configs" / "llama-124m.yaml").read_text()
+    gpt2 = (ROOT / "configs" / "gpt2-124m.yaml").read_text()
+    assert "n_layer" not in llama, "the inheritance this test guards no longer applies"
+    assert "n_kv_head" not in gpt2, "the defaulting this test guards no longer applies"
+
+    module = ARCHITECTURE_OUT.read_text()
+    body = re.search(r"export const ARCHITECTURES = (\{.*\}) as const;\n\Z", module, re.S)
+    assert body is not None
+    resolved = json.loads(body.group(1))
+    assert resolved["llama"]["config"]["nLayer"] == resolved["gpt2"]["config"]["nLayer"]
+    assert resolved["gpt2"]["config"]["nKvHead"] == resolved["gpt2"]["config"]["nHead"]
+    assert resolved["llama"]["config"]["nKvHead"] == 4
+
+
+def test_every_test_the_architecture_page_names_actually_exists() -> None:
+    """The architecture page's whole argument is *this is pinned*, so its claims are the
+    worst possible place to be wrong.
+
+    This is the mechanical half: every test named in `blocks.ts` must exist. It cannot
+    check that the named test asserts what the sentence beside it says — only reading
+    does that, and one sentence here was already wrong on the first pass
+    (`test_gpt2_124m_parameter_count` uses vocab_size 50257, counts *non-embedding*
+    parameters, and asserts a range, so it does not pin the exact figures the page
+    prints; the real pin is the browser-side fixture test, which is what it now names).
+    What this does catch is the failure that arrives later: a test renamed or deleted
+    while the page goes on citing it.
+    """
+    blocks = (ROOT / "web" / "src" / "content" / "blocks.ts").read_text()
+    named = re.findall(r'test:\s*"([^"]+)"', blocks)
+    assert named, "blocks.ts names no tests at all"
+
+    collected = {node.split("[")[0] for node in _collected_node_ids()}
+    for name in named:
+        if "::" in name:
+            assert f"tests/{name}" in collected, f"blocks.ts cites {name}, which no longer exists"
+        else:
+            assert (ROOT / name).exists(), f"blocks.ts cites {name}, which is not a file"
+
+
+def _collected_node_ids() -> list[str]:
+    import subprocess
+    import sys
+
+    # `-o addopts=` clears the ini's own `-q`; without it this inherits `-qq`, which
+    # switches the reporter to per-file counts and lists no node ids at all.
+    proc = subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "pytest",
+            "tests",
+            "--collect-only",
+            "-q",
+            "-o",
+            "addopts=",
+            "-p",
+            "no:cacheprovider",
+        ],
+        cwd=ROOT,
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+    return [line.strip() for line in proc.stdout.splitlines() if "::" in line]
