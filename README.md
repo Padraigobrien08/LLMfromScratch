@@ -40,6 +40,7 @@ what is built and verified, and what is designed but not yet run.
 | Multi-GPU scaling report | **Done** — [docs/scaling.md](docs/scaling.md), 95.1% efficiency on 8 GPUs, 1.54 PFLOP/s |
 | Interactive attention visualization | **Done** — [live](https://padraigobrien08.github.io/LLMfromScratch/attention/), auto-deployed from CI |
 | Interactive site (explainer, RoPE explorer, ablation playground) | **Done** — [live](https://padraigobrien08.github.io/LLMfromScratch/); the playground renders the published sweep |
+| Deferred work, scoped and costed | [docs/roadmap.md](docs/roadmap.md) — fused dequant kernel, flash-compatible verify mask, multi-node |
 
 No results are reported below that have not been measured. Sections describing
 pending work say so.
