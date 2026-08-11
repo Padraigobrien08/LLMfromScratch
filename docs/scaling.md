@@ -232,6 +232,13 @@ comparison needed, and none of the confounds one would carry.
 | 2 | 262,144 | 185,087 | 1,363,111 | 170,389 | **92.1%** | 1.8e-05 |
 | 1 | 131,072 | 184,618 | 1,270,772 | 158,847 | **86.0%** | 2.4e-05 |
 
+![Accumulation sweep](../results/comm-sweep.png)
+
+The left panel distinguishes the two points the model was **fitted** to from the two it
+**predicted**, because which is which is the entire argument — anyone can draw a curve
+through data after collecting it. The predicted points sitting slightly *below* the curve is
+the residual described above: the model over-predicts efficiency at low amortisation.
+
 Monotonic, and steep at the bottom: with one all-reduce per micro-batch, efficiency falls
 to 86.0%. The mechanism is confirmed — communication is what the accumulation was hiding.
 

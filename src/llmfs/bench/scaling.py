@@ -667,7 +667,123 @@ def main_comm_report(argv: list[str] | None = None) -> None:
     parser = argparse.ArgumentParser(description="Merge a communication sweep into a table.")
     parser.add_argument("reports", nargs="+", help="comm-accum*.json files")
     parser.add_argument("--pivot-world-size", type=int, default=8)
+    parser.add_argument("--plot", type=str, default=None, help="write a PNG here")
     args = parser.parse_args(argv)
 
     loaded = [json.loads(Path(p).read_text()) for p in args.reports]
     print(comm_table(loaded, pivot_world_size=args.pivot_world_size))
+    if args.plot and plot_comm_sweep(loaded, Path(args.plot), args.pivot_world_size):
+        print(f"\nwrote {args.plot}")
+
+
+def fit_amortisation(
+    losses: dict[int, float], using: tuple[int, int] = (8, 4)
+) -> tuple[float, float] | None:
+    """Fit ``loss = a + b/accum`` to exactly two accumulation points.
+
+    Deliberately two, not least-squares over all of them. The point of the model is that it
+    was fitted to the accum 8 and 4 measurements and then *predicted* accum 2 and 1 before
+    those existed. Fitting to everything would destroy that: a curve through four points is
+    a description, whereas a curve through two that lands on the other two is a test.
+    """
+    hi, lo = using
+    if hi not in losses or lo not in losses:
+        return None
+    b = (losses[lo] - losses[hi]) / (1 / lo - 1 / hi)
+    return losses[hi] - b / hi, b
+
+
+def plot_comm_sweep(reports: list[dict[str, Any]], path: Path, pivot_world_size: int = 8) -> bool:
+    """Efficiency against gradient accumulation, with the fit and what it predicted.
+
+    The left panel is the finding; the right decomposes it. Points used to fit the model are
+    drawn differently from the ones it predicted, because which is which is the whole
+    argument — anyone can draw a curve through their data afterwards.
+    """
+    try:
+        import matplotlib
+
+        matplotlib.use("Agg")
+        import matplotlib.pyplot as plt
+    except ImportError:
+        return False
+
+    eff: dict[int, float] = {}
+    for report in reports:
+        pivot = next(
+            (p for p in report.get("points", []) if p["world_size"] == pivot_world_size), None
+        )
+        if pivot and not pivot.get("error") and pivot.get("grad_accum_steps"):
+            eff[pivot["grad_accum_steps"]] = pivot["efficiency"] * 100
+    if len(eff) < 3:
+        return False
+
+    losses = {a: 100 - e for a, e in eff.items()}
+    fit = fit_amortisation(losses)
+    accums = sorted(eff)
+
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(11.5, 4.4))
+
+    fitted_on, predicted = (8, 4), [a for a in accums if a not in (8, 4)]
+    ax1.plot(
+        [a for a in accums if a in fitted_on],
+        [eff[a] for a in accums if a in fitted_on],
+        "o",
+        ms=9,
+        color="tab:blue",
+        label="measured (used to fit)",
+        zorder=3,
+    )
+    ax1.plot(
+        predicted,
+        [eff[a] for a in predicted],
+        "s",
+        ms=9,
+        color="tab:red",
+        label="measured (predicted first)",
+        zorder=3,
+    )
+    if fit:
+        a0, b = fit
+        xs = [accums[0] * (accums[-1] / accums[0]) ** (i / 100) for i in range(101)]
+        ax1.plot(
+            xs,
+            [100 - (a0 + b / x) for x in xs],
+            "--",
+            color="0.4",
+            label=f"$100-(a+b/k)$,  a={a0:.2f}, b={b:.2f}",
+        )
+    ax1.set_xscale("log", base=2)
+    ax1.set_xticks(accums)
+    ax1.get_xaxis().set_major_formatter(matplotlib.ticker.ScalarFormatter())
+    ax1.set_xlabel(
+        "gradient accumulation at 8 GPUs\n(all-reduces amortised over this many micro-batches)"
+    )
+    ax1.set_ylabel("scaling efficiency (%)")
+    ax1.set_title("Communication is what accumulation hides")
+    ax1.grid(alpha=0.3)
+    ax1.legend(fontsize=8, loc="lower right")
+
+    if fit:
+        a0, b = fit
+        ax2.bar(
+            [str(a) for a in accums], [a0] * len(accums), color="0.6", label=f"fixed: {a0:.2f} pts"
+        )
+        ax2.bar(
+            [str(a) for a in accums],
+            [losses[a] - a0 for a in accums],
+            bottom=[a0] * len(accums),
+            color="tab:orange",
+            label="per-all-reduce, /accum",
+        )
+        ax2.set_ylabel("efficiency lost (percentage points)")
+        ax2.set_xlabel("gradient accumulation at 8 GPUs")
+        ax2.set_title("Where the loss comes from")
+        ax2.legend(fontsize=8)
+        ax2.grid(alpha=0.3, axis="y")
+
+    fig.tight_layout()
+    path.parent.mkdir(parents=True, exist_ok=True)
+    fig.savefig(path, dpi=150)
+    plt.close(fig)
+    return True
