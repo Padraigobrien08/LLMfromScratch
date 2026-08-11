@@ -196,6 +196,27 @@ def test_reproduction_headline_matches_its_artifacts() -> None:
     assert hella["n_evaluated"] == 10042, "the full HellaSwag validation set"
 
 
+# ------------------------------------------------------------------ docs index
+
+
+def test_docs_index_headlines_match_their_artifacts() -> None:
+    """``docs/README.md`` restates one headline per document so a reader can choose which to
+    open. Restating a figure is exactly how drift starts, so the index is pinned like any
+    other document rather than trusted because it is only an index.
+
+    The checks above cannot cover it: they are parametrized over every world size and every
+    quantization scheme, and the index quotes one row from each. So it gets its own.
+    """
+    repro, hella = load("reproduction.json"), load("hellaswag.json")
+    must_appear(f"{repro['loss']:.4f}", "docs/README.md")
+    must_appear(f"{hella['acc_norm']:.4f}", "docs/README.md")
+    must_appear(f"{hella['gpt2_124m_reference_acc_norm']}", "docs/README.md")
+
+    p8 = point(load("scaling-5090x8.json"), 8)
+    must_appear(f"{p8['efficiency'] * 100:.1f}%", "docs/README.md")
+    must_appear("no NVLink", "docs/README.md")
+
+
 # ------------------------------------------------------- tables, cell by cell
 #
 # Substring checks above prove a figure appears *somewhere* in a document, which catches the
