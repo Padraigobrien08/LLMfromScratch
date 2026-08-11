@@ -9,6 +9,7 @@ import { useState } from "react";
  * what the model actually attended to is one link away, in the real explorer.
  */
 type Sentence = {
+  label: string;
   words: string[];
   /** word index → the earlier words that resolve it, plus why. */
   links: Record<number, { on: number[]; why: string }>;
@@ -18,6 +19,7 @@ type Sentence = {
 
 const SENTENCES: Sentence[] = [
   {
+    label: "Ambiguous “it”",
     words: ["The", "trophy", "didn't", "fit", "in", "the", "suitcase", "because", "it", "was", "too", "big"],
     links: {
       8: { on: [1], why: "“it” is the trophy — swap “big” for “small” and it becomes the suitcase." },
@@ -27,6 +29,7 @@ const SENTENCES: Sentence[] = [
     initial: 8,
   },
   {
+    label: "Pronouns",
     words: ["Dorothy", "lived", "in", "Kansas", ",", "and", "she", "missed", "her", "home"],
     links: {
       6: { on: [0], why: "“she” refers back to Dorothy, four tokens earlier." },
@@ -36,6 +39,7 @@ const SENTENCES: Sentence[] = [
     initial: 6,
   },
   {
+    label: "Agreement",
     words: ["The", "key", "to", "the", "cabinets", "was", "rusty", "and", "would", "not", "turn"],
     links: {
       5: { on: [1], why: "“was”, not “were” — the verb agrees with “key”, not with “cabinets”." },
@@ -55,40 +59,43 @@ export default function AttentionIntuition() {
   const highlighted = new Set(link?.on ?? []);
 
   return (
-    <div className="card">
-      <div className="controls" style={{ marginBottom: 14 }}>
-        {SENTENCES.map((_, i) => (
+    <div className="figure-panel">
+      <div className="fig-row" style={{ marginBottom: "var(--space-4)" }}>
+        {SENTENCES.map((s, i) => (
           <button
-            key={i}
+            key={s.label}
+            className={`btn btn-sm ${which === i ? "btn-primary" : "btn-secondary"}`}
             onClick={() => {
               setWhich(i);
               setSelected(SENTENCES[i]!.initial);
             }}
             aria-pressed={which === i}
-            style={{
-              fontSize: 13,
-              background: which === i ? "var(--accent)" : "var(--bg)",
-              borderColor: which === i ? "var(--accent)" : "var(--border)",
-              color: which === i ? "#fff" : "var(--text)",
-            }}
           >
-            {["Ambiguous “it”", "Pronouns", "Agreement"][i]}
+            {s.label}
           </button>
         ))}
       </div>
 
-      <p className="small muted" style={{ margin: "0 0 10px" }}>
+      <p className="fig-note" style={{ margin: "0 0 var(--space-3)" }}>
         The underlined words cannot be understood on their own. Click one.
       </p>
 
-      <p style={{ fontSize: 20, lineHeight: 2, margin: "0 0 14px", maxWidth: "none" }}>
+      <p className="sentence">
         {sentence.words.map((w, i) => {
           const isTarget = targets.includes(i);
           const isSelected = selected === i;
           const isSource = highlighted.has(i);
+          const classes = [
+            "sentence-word",
+            isTarget ? "sentence-word-target" : "",
+            isSelected ? "sentence-word-selected" : isSource ? "sentence-word-source" : "",
+          ]
+            .filter(Boolean)
+            .join(" ");
           return (
             <span key={i}>
               <span
+                className={classes}
                 onClick={() => isTarget && setSelected(i)}
                 role={isTarget ? "button" : undefined}
                 tabIndex={isTarget ? 0 : undefined}
@@ -97,21 +104,6 @@ export default function AttentionIntuition() {
                     e.preventDefault();
                     setSelected(i);
                   }
-                }}
-                style={{
-                  padding: "2px 5px",
-                  borderRadius: 5,
-                  cursor: isTarget ? "pointer" : "default",
-                  textDecoration: isTarget ? "underline dotted" : "none",
-                  textUnderlineOffset: 5,
-                  background: isSelected
-                    ? "var(--accent)"
-                    : isSource
-                      ? "color-mix(in srgb, var(--accent) 22%, transparent)"
-                      : "transparent",
-                  color: isSelected ? "#fff" : "inherit",
-                  fontWeight: isSelected || isSource ? 600 : 400,
-                  transition: "background .12s",
                 }}
               >
                 {w}
@@ -122,21 +114,7 @@ export default function AttentionIntuition() {
         })}
       </p>
 
-      {link && (
-        <div className="callout" style={{ margin: 0 }}>
-          <p className="small" style={{ margin: 0 }}>
-            {link.why}
-          </p>
-        </div>
-      )}
-
-      <p className="small muted" style={{ margin: "14px 0 0" }}>
-        A model that reads strictly left to right with no memory cannot do this — by the time
-        it reaches “it”, the trophy is gone. Attention is the mechanism that lets every token
-        pull information from any earlier token, and learn <i>which</i> ones are worth pulling
-        from. These particular links are linguistic illustrations, not model output; what this
-        repository's model actually attended to is in the attention explorer.
-      </p>
+      {link && <p className="sentence-why">{link.why}</p>}
     </div>
   );
 }

@@ -34,17 +34,18 @@ export default function SamplingDemo() {
   };
 
   return (
-    <div className="card">
-      <div className="controls" style={{ marginBottom: 14 }}>
-        <label className="field">
+    <div className="figure-panel">
+      <div className="fig-row fig-row-wide">
+        <label className="field field-inline">
           after the token
           <select
+            className="input input-sm mono"
+            style={{ fontSize: 14 }}
             value={contextIndex}
             onChange={(e) => {
               setContextIndex(Number(e.target.value));
               setDraws([]);
             }}
-            style={{ fontFamily: "var(--mono)" }}
           >
             {entries.map((e, i) => (
               <option key={e.context} value={i}>
@@ -53,124 +54,59 @@ export default function SamplingDemo() {
             ))}
           </select>
         </label>
-        <button onClick={draw} className="primary">
+        <button className="btn btn-primary" onClick={draw}>
           Draw a token
         </button>
-        {draws.length > 0 && <button onClick={() => setDraws([])}>Clear</button>}
+        <button className="btn btn-ghost" onClick={() => setDraws([])}>
+          Clear
+        </button>
       </div>
 
-      <div className="controls" style={{ marginBottom: 6 }}>
-        <label className="field" style={{ flex: "1 1 210px" }}>
+      <div className="fig-grid fig-grid-narrow" style={{ marginBottom: "var(--space-2)" }}>
+        <label className="field">
           temperature
-          <input
-            type="range"
-            min={0}
-            max={2}
-            step={0.05}
-            value={temperature}
-            onChange={(e) => setTemperature(Number(e.target.value))}
-            style={{ flex: 1 }}
-          />
-          <b style={{ fontFamily: "var(--mono)", minWidth: 34 }}>{temperature.toFixed(2)}</b>
+          <input type="range" min={0} max={2} step={0.05} value={temperature}
+            onChange={(e) => setTemperature(Number(e.target.value))} />
+          <b style={{ minWidth: 38 }}>{temperature.toFixed(2)}</b>
         </label>
-        <label className="field" style={{ flex: "1 1 190px" }}>
+        <label className="field">
           top-k
-          <input
-            type="range"
-            min={0}
-            max={entry.candidates.length}
-            step={1}
-            value={topK ?? 0}
-            onChange={(e) => setTopK(Number(e.target.value) === 0 ? null : Number(e.target.value))}
-            style={{ flex: 1 }}
-          />
-          <b style={{ fontFamily: "var(--mono)", minWidth: 30 }}>{topK ?? "off"}</b>
+          <input type="range" min={0} max={entry.candidates.length} step={1} value={topK ?? 0}
+            onChange={(e) => setTopK(Number(e.target.value) === 0 ? null : Number(e.target.value))} />
+          <b style={{ minWidth: 32 }}>{topK ?? "off"}</b>
         </label>
-        <label className="field" style={{ flex: "1 1 190px" }}>
+        <label className="field">
           top-p
-          <input
-            type="range"
-            min={0}
-            max={1}
-            step={0.01}
-            value={topP ?? 1}
-            onChange={(e) => setTopP(Number(e.target.value) === 1 ? null : Number(e.target.value))}
-            style={{ flex: 1 }}
-          />
-          <b style={{ fontFamily: "var(--mono)", minWidth: 30 }}>{topP?.toFixed(2) ?? "off"}</b>
+          <input type="range" min={0} max={1} step={0.01} value={topP ?? 1}
+            onChange={(e) => setTopP(Number(e.target.value) === 1 ? null : Number(e.target.value))} />
+          <b style={{ minWidth: 32 }}>{topP?.toFixed(2) ?? "off"}</b>
         </label>
       </div>
 
-      <p className="small muted" style={{ margin: "0 0 12px" }}>
+      <p className="fig-note" style={{ margin: "0 0 var(--space-3)" }}>
         {keptCount} of {scored.length} candidates survive the cutoffs.{" "}
         {entry.distinct_followers > entry.candidates.length && (
           <>
-            This token had <b>{entry.distinct_followers}</b> distinct followers in the corpus; the{" "}
+            This token had {entry.distinct_followers} distinct followers in the corpus; the{" "}
             {entry.candidates.length} shown cover {(entry.covered * 100).toFixed(0)}% of its
             occurrences.
           </>
         )}
       </p>
 
-      {draws.length > 0 && (
-        <p
-          style={{
-            font: "15px var(--mono)",
-            background: "var(--panel-alt)",
-            border: "1px solid var(--border)",
-            borderRadius: 8,
-            padding: "10px 12px",
-            margin: "0 0 14px",
-            whiteSpace: "pre-wrap",
-          }}
-        >
-          <span className="muted">{entry.context}</span>
-          {draws.join("")}
-        </p>
-      )}
+      <p className="draws">
+        <span style={{ color: "var(--color-neutral-600)" }}>{entry.context}</span>
+        {draws.join("")}
+      </p>
 
-      <div style={{ display: "grid", gap: 3 }}>
+      <div className="candidates">
         {ordered.map((s) => (
-          <div
-            key={s.id}
-            style={{
-              display: "grid",
-              gridTemplateColumns: "116px 1fr 62px",
-              alignItems: "center",
-              gap: 10,
-              opacity: s.kept ? 1 : 0.32,
-            }}
-          >
-            <code
-              style={{
-                fontSize: 12,
-                background: "none",
-                border: "none",
-                padding: 0,
-                whiteSpace: "pre",
-                overflow: "hidden",
-                textOverflow: "ellipsis",
-              }}
-            >
-              {JSON.stringify(s.text)}
-            </code>
-            <div style={{ background: "var(--grid-line)", borderRadius: 3, height: 15 }}>
-              <div
-                style={{
-                  width: `${(s.prob / maxProb) * 100}%`,
-                  height: "100%",
-                  background: s.kept ? "var(--accent)" : "var(--muted)",
-                  borderRadius: 3,
-                  transition: "width .12s",
-                }}
-              />
+          <div key={s.id} className={`candidate ${s.kept ? "" : "candidate-dropped"}`}>
+            <code>{JSON.stringify(s.text)}</code>
+            <div className="candidate-track">
+              <div className="candidate-bar" style={{ width: `${(s.prob / maxProb) * 100}%` }} />
             </div>
-            <span
-              className="small"
-              style={{ fontFamily: "var(--mono)", textAlign: "right", color: "var(--muted)" }}
-            >
-              {(s.prob * 100).toFixed(1)}%
-            </span>
+            <span className="candidate-pct">{(s.prob * 100).toFixed(1)}%</span>
           </div>
         ))}
       </div>

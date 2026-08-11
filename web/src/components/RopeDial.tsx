@@ -1,6 +1,8 @@
 const SIZE = 92;
 const R = 33;
 const C = SIZE / 2;
+/** The wedge is drawn well inside the arms, so both stay legible where they cross. */
+const WEDGE_R = 20.5;
 
 /** Wrap into (-π, π] so the drawn wedge is always the short way round. */
 function wrap(a: number): number {
@@ -30,10 +32,10 @@ export default function RopeDial({ index, angleQ, angleK, freq, contribution }: 
   const [kx, ky] = pt(angleK, R);
 
   const delta = wrap(angleQ - angleK);
-  const [wx, wy] = pt(angleK, R * 0.62);
-  const [wx2, wy2] = pt(angleK + delta, R * 0.62);
+  const [wx, wy] = pt(angleK, WEDGE_R);
+  const [wx2, wy2] = pt(angleK + delta, WEDGE_R);
   // y is inverted on screen, so a positive (counter-clockwise) delta is sweep=0.
-  const wedge = `M ${C} ${C} L ${wx} ${wy} A ${R * 0.62} ${R * 0.62} 0 0 ${
+  const wedge = `M ${C} ${C} L ${wx} ${wy} A ${WEDGE_R} ${WEDGE_R} 0 0 ${
     delta > 0 ? 0 : 1
   } ${wx2} ${wy2} Z`;
 
@@ -44,13 +46,13 @@ export default function RopeDial({ index, angleQ, angleK, freq, contribution }: 
     <div>
       <svg viewBox={`0 0 ${SIZE} ${SIZE}`} width="100%" role="img"
         aria-label={`Dimension pair ${index}, angle between q and k ${delta.toFixed(2)} radians`}>
-        <circle cx={C} cy={C} r={R} fill="var(--panel-alt)" stroke="var(--border)" />
-        <path d={wedge} fill="var(--accent)" opacity={0.18} />
-        <line x1={C} y1={C} x2={kx} y2={ky} stroke="var(--accent-2)" strokeWidth={2.2}
+        <circle cx={C} cy={C} r={R} fill="var(--color-bg)" stroke="var(--color-neutral-300)" />
+        <path d={wedge} fill="var(--color-accent)" opacity={0.2} />
+        <line x1={C} y1={C} x2={kx} y2={ky} stroke="var(--color-accent-2)" strokeWidth={2.2}
           strokeLinecap="round" />
-        <line x1={C} y1={C} x2={qx} y2={qy} stroke="var(--accent)" strokeWidth={2.2}
+        <line x1={C} y1={C} x2={qx} y2={qy} stroke="var(--color-accent)" strokeWidth={2.2}
           strokeLinecap="round" />
-        <circle cx={C} cy={C} r={2} fill="var(--muted)" />
+        <circle cx={C} cy={C} r={2} fill="var(--color-neutral-600)" />
       </svg>
       <div className="dial-label">
         pair {index}
@@ -62,8 +64,8 @@ export default function RopeDial({ index, angleQ, angleK, freq, contribution }: 
             : `${(period / 1000).toFixed(0)}k tok/turn`}
         <br />
         {/* Categorical, not semantic: a positive contribution to a logit is not
-            "good", and green would say otherwise. */}
-        <span style={{ color: contribution >= 0 ? "var(--accent)" : "var(--accent-2)" }}>
+            "good", so this is the page's cyan/magenta pairing, not a red/green one. */}
+        <span className={contribution >= 0 ? "dial-positive" : "dial-negative"}>
           {contribution >= 0 ? "+" : ""}
           {contribution.toFixed(3)}
         </span>

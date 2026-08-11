@@ -1,320 +1,1071 @@
-/* Design tokens are lifted from src/llmfs/viz/template.html so the site and the
-   standalone attention explorer read as one thing rather than two projects. */
+/* The site's own layer, built entirely on the Broadsheet tokens imported in main.tsx.
+   Broadsheet owns every colour, space, radius and shadow; nothing below invents one.
+   What lives here is the type scale the design specifies (the system ships tokens for
+   colour and space but not for type), the shell and page classes, and — at the foot —
+   the alias block that keeps the not-yet-redesigned ablation playground rendering. */
+
 :root {
-  color-scheme: light dark;
-  --bg: #fbfbfd;
-  --panel: #ffffff;
-  --panel-alt: #f6f7fa;
-  --border: #e2e5ec;
-  --text: #14161c;
-  --muted: #6a7180;
-  --accent: #2f5fe0;
-  --accent-2: #d1467a;
-  --good: #1a8a5a;
-  --warn: #b4761a;
-  --grid-line: #eef0f5;
-  --shadow: 0 1px 2px rgba(16, 20, 30, 0.05), 0 8px 24px rgba(16, 20, 30, 0.05);
-  --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
-  --maxw: 1080px;
+  /* Monospace is used for all numerals, ids, config keys and code. */
+  --mono: ui-monospace, Menlo, monospace;
+
+  /* The measure the masthead, every page and the footer share. */
+  --column: 1180px;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --bg: #0c0e13;
-    --panel: #14171f;
-    --panel-alt: #191d26;
-    --border: #262b36;
-    --text: #e8eaf0;
-    --muted: #939bab;
-    --accent: #6f95ff;
-    --accent-2: #ff87b2;
-    --good: #4cc38a;
-    --warn: #e0a340;
-    --grid-line: #1c212b;
-    --shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 8px 24px rgba(0, 0, 0, 0.3);
-  }
-}
-
-* {
-  box-sizing: border-box;
-}
-
-body {
-  margin: 0;
-  background: var(--bg);
-  color: var(--text);
-  font: 15px/1.55 ui-sans-serif, system-ui, -apple-system, "Segoe UI", Inter, sans-serif;
-  -webkit-font-smoothing: antialiased;
-}
-
+/* Broadsheet already sets the ground, the ink and the serif on <body>; these are the
+   page's own conventions on top of it. */
 a {
-  color: var(--accent);
+  color: var(--color-accent-700);
   text-decoration: none;
 }
 a:hover {
+  color: var(--color-accent-800);
   text-decoration: underline;
 }
-
-code {
-  font: 0.9em var(--mono);
-  background: var(--panel-alt);
-  border: 1px solid var(--border);
-  border-radius: 4px;
-  padding: 1px 5px;
+input[type="range"] {
+  accent-color: var(--color-accent);
+}
+input[type="checkbox"] {
+  accent-color: var(--color-accent);
+  width: 15px;
+  height: 15px;
+}
+::selection {
+  background: var(--color-accent-200);
 }
 
-/* ---- shell ---- */
-.nav {
-  position: sticky;
-  top: 0;
-  z-index: 10;
-  background: color-mix(in srgb, var(--bg) 88%, transparent);
-  backdrop-filter: saturate(180%) blur(10px);
-  border-bottom: 1px solid var(--border);
+body {
+  min-height: 100vh;
 }
-.nav-inner {
-  max-width: var(--maxw);
+
+/* ── the shared measure ─────────────────────────────────────────────────────── */
+
+.shell {
+  max-width: var(--column);
   margin: 0 auto;
-  padding: 11px 20px;
+  padding: 0 var(--space-6);
+}
+
+/* ── masthead ───────────────────────────────────────────────────────────────── */
+
+.masthead-bar {
+  height: 7px;
+  background: var(--color-text);
+}
+
+.masthead-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-6);
+  padding: var(--space-3) 0 var(--space-2);
+  flex-wrap: wrap;
+}
+
+.wordmark {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+.wordmark a {
+  font: var(--font-heading-weight) 25px/1 var(--font-heading);
+  letter-spacing: -0.015em;
+  color: var(--color-text);
+}
+.wordmark a:hover {
+  text-decoration: none;
+}
+.wordmark-sub {
+  font: 400 12px/1 var(--font-body);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--color-neutral-600);
+}
+
+.masthead-nav {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  column-gap: var(--space-4);
+  row-gap: var(--space-2);
+}
+.masthead-nav a {
+  font: 400 13px/1 var(--font-body);
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: var(--color-neutral-600);
+  /* Transparent rather than absent, so the active item's rule does not shift the row. */
+  border-bottom: 2px solid transparent;
+  padding-bottom: 3px;
+}
+.masthead-nav a:hover {
+  color: var(--color-accent-700);
+  text-decoration: none;
+}
+.masthead-nav a[aria-current="page"] {
+  font-weight: var(--font-heading-weight);
+  color: var(--color-accent-700);
+  border-bottom-color: var(--color-accent);
+}
+
+/* The one place rules print: the thick/thin pair around the dateline rail. */
+.rule-heavy {
+  height: 2px;
+  background: var(--color-text);
+}
+.rule-hair {
+  height: 1px;
+  background: var(--color-divider);
+}
+
+.dateline {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+  padding: 6px 0;
+  font: 400 11.5px/1 var(--font-body);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-neutral-700);
+}
+
+/* ── footer ─────────────────────────────────────────────────────────────────── */
+
+.site-footer {
+  padding-top: var(--space-8);
+  padding-bottom: var(--space-8);
+}
+.site-footer .rule-heavy {
+  margin-bottom: var(--space-3);
+}
+.footer-row {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+  font: 400 14px/1.6 var(--font-body);
+  color: var(--color-neutral-700);
+}
+
+/* ── the plate numeral ──────────────────────────────────────────────────────── */
+
+/* Broadsheet's `.cmyk-num` prints a figure as three misregistered process plates over
+   the white of the sheet; the construction needs the paper span and the three plate
+   repeats (see the system's own stylesheet). Sizing is per-instance, so it is set by
+   the caller — this only carries what every instance shares. */
+.plate-num {
+  display: block;
+  font-family: var(--font-heading);
+  font-weight: var(--font-heading-weight);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── shared page furniture ──────────────────────────────────────────────────── */
+
+.page {
+  padding-top: var(--space-8);
+}
+
+/* Kickers are cyan — the interactive ink — except where a section is deliberately
+   the second spot, which is the magenta one. Never both in the same component. */
+.kicker {
+  font: var(--font-heading-weight) 11px/1 var(--font-body);
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--color-accent-700);
+  margin: 0 0 var(--space-3);
+}
+.kicker-2 {
+  color: var(--color-accent-2-700);
+}
+
+.section-label {
+  font: var(--font-heading-weight) 15px/1 var(--font-body);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  margin: var(--space-2) 0 var(--space-6);
+}
+
+.mono {
+  font-family: var(--mono);
+}
+.num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── front page ─────────────────────────────────────────────────────────────── */
+
+.front-headline {
+  font: var(--font-heading-weight) clamp(42px, 6vw, 86px) / 0.98 var(--font-heading);
+  letter-spacing: -0.025em;
+  margin: 0 0 var(--space-4);
+  max-width: 20ch;
+  text-wrap: balance;
+}
+
+.standfirst-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: var(--space-6);
+  max-width: 96ch;
+  margin: 0 0 var(--space-8);
+}
+.standfirst {
+  font: 400 20px/1.55 var(--font-body);
+  margin: 0;
+  text-wrap: pretty;
+}
+.standfirst-secondary {
+  font: 400 17px/1.6 var(--font-body);
+  color: var(--color-neutral-800);
+  margin: 0;
+  text-wrap: pretty;
+}
+
+.figure-strip {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--space-8);
+  padding: 0 0 var(--space-8);
+}
+.figure-strip .plate-num {
+  font-size: clamp(34px, 4.4vw, 58px);
+  line-height: 1;
+  letter-spacing: -0.03em;
+}
+.figure-strip figcaption {
+  font: 400 12px/1.4 var(--font-body);
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--color-neutral-700);
+  margin-top: 6px;
+  max-width: 22ch;
+}
+
+.path {
+  list-style: none;
+  margin: 0 0 var(--space-8);
+  padding: 0;
+  display: grid;
+  gap: var(--space-6);
+}
+.path-item {
+  display: grid;
+  grid-template-columns: 104px minmax(0, 1fr) auto;
+  gap: var(--space-6);
+  align-items: baseline;
+  padding-bottom: var(--space-6);
+  border-bottom: 1px solid var(--color-divider);
+}
+.path-num .plate-num {
+  font-size: 46px;
+  line-height: 1;
+  letter-spacing: -0.04em;
+}
+.path-kicker {
+  margin: 0 0 8px;
+  letter-spacing: 0.15em;
+}
+.path-title {
+  font: var(--font-heading-weight) clamp(24px, 2.4vw, 32px) / 1.12 var(--font-heading);
+  letter-spacing: -0.015em;
+  margin: 0 0 8px;
+  max-width: 30ch;
+}
+/* The whole title is a link, printed in the page's own ink: the row already carries
+   its call to action on the right, and a title that only reveals itself as clickable
+   on hover costs the design nothing. */
+.path-title a {
+  color: inherit;
+}
+.path-blurb {
+  font: 400 17px/1.55 var(--font-body);
+  color: var(--color-neutral-800);
+  margin: 0;
+  max-width: 62ch;
+  text-wrap: pretty;
+}
+.path-cta {
+  font: var(--font-heading-weight) 13px/1 var(--font-body);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.status-note {
+  font: 400 17px/1.55 var(--font-body);
+  color: var(--color-neutral-800);
+  max-width: 66ch;
+  margin: 0 0 var(--space-4);
+}
+.status-table {
+  margin: 0 0 var(--space-8);
+}
+.status-pillar {
+  font-size: 16px;
+}
+.status-state {
+  font-size: 15px;
+  color: var(--color-neutral-700);
+}
+
+.illustrative {
+  background: var(--color-accent-2-100);
+  padding: var(--space-4) var(--space-6);
+  border-radius: var(--radius-md);
+  max-width: 900px;
+  margin: 0 0 var(--space-8);
+}
+.illustrative-title {
+  font: var(--font-heading-weight) 24px/1.15 var(--font-heading);
+  margin: 0 0 var(--space-2);
+}
+.illustrative-note {
+  font: 400 16px/1.55 var(--font-body);
+  color: var(--color-neutral-800);
+  max-width: 64ch;
+  margin: 0 0 var(--space-3);
+}
+.verdict-better {
+  font-size: 15px;
+  color: var(--color-accent-700);
+}
+.verdict-noise {
+  font-size: 15px;
+  color: var(--color-neutral-600);
+}
+
+/* Below this the three-column path row has nowhere left to go: the numeral moves
+   above its kicker and the call to action drops under the blurb. */
+@media (max-width: 700px) {
+  .path-item {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--space-2);
+  }
+  .path-cta {
+    justify-self: start;
+  }
+}
+
+/* ── chapters ───────────────────────────────────────────────────────────────── */
+
+.chapter-rail {
+  display: flex;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+  padding: 0 0 var(--space-6);
+  border-bottom: 1px solid var(--color-divider);
+  margin-bottom: var(--space-8);
+}
+.chapter-rail a {
+  font: var(--font-heading-weight) 14px/1 var(--mono);
+  padding: 7px 11px;
+  border-radius: var(--radius-md);
+  color: var(--color-neutral-600);
+}
+.chapter-rail a:hover {
+  color: var(--color-accent-700);
+  text-decoration: none;
+}
+.chapter-rail a[aria-current="page"] {
+  background: var(--color-text);
+  color: var(--color-bg);
+}
+
+.chapter-title {
+  font: var(--font-heading-weight) clamp(34px, 4.6vw, 64px) / 1.03 var(--font-heading);
+  letter-spacing: -0.022em;
+  margin: 0 0 var(--space-4);
+  max-width: 24ch;
+  text-wrap: balance;
+}
+
+.prose {
+  font: 400 19px/1.62 var(--font-body);
+  max-width: 66ch;
+  margin: 0 0 var(--space-4);
+}
+.prose-secondary {
+  font: 400 16px/1.6 var(--font-body);
+  color: var(--color-neutral-800);
+  max-width: 66ch;
+  margin: 0 0 var(--space-3);
+}
+.prose-caveat {
+  font: 400 15px/1.6 var(--font-body);
+  color: var(--color-neutral-700);
+  max-width: 66ch;
+  margin: 0;
+}
+.prose code,
+.prose-secondary code,
+.prose-caveat code {
+  font-family: var(--mono);
+  font-size: 0.92em;
+}
+
+.chapter-foot {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-4);
+  margin: var(--space-8) 0 0;
+  padding: var(--space-4) 0;
+  border-top: 2px solid var(--color-text);
+}
+.chapter-foot a {
+  font: var(--font-heading-weight) 13px/1.4 var(--font-body);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.chapter-foot a:last-child {
+  text-align: right;
+}
+
+/* Below this the eight-item rail would wrap to three lines and push the chapter's
+   own headline off the screen; scrolling it sideways keeps the chrome one line. */
+@media (max-width: 700px) {
+  .chapter-rail {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+  }
+}
+
+.chapter {
+  padding-top: var(--space-6);
+}
+.two-col {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: var(--space-6);
+  max-width: 1000px;
+  margin: 0 0 var(--space-6);
+}
+.column-title {
+  font: var(--font-heading-weight) 25px/1.15 var(--font-heading);
+  margin: 0 0 var(--space-2);
+}
+.chapter-handoff {
+  margin: 0 0 var(--space-6);
+}
+.chapter-handoff a {
+  font: var(--font-heading-weight) 18px/1 var(--font-body);
+  letter-spacing: 0.02em;
+}
+.sweep-facts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: var(--space-6);
+  /* 1000, not the handoff's 960: at 960 the four facts break 3 + 1, which reads as an
+     accident rather than as a row. */
+  max-width: 1000px;
+  margin: var(--space-6) 0;
+}
+.sweep-facts .plate-num {
+  font-size: 44px;
+  line-height: 1;
+  letter-spacing: -0.03em;
+}
+.sweep-fact-label {
+  font: 400 15px/1.5 var(--font-body);
+  color: var(--color-neutral-800);
+  margin: 8px 0 0;
+}
+
+/* ── figures ────────────────────────────────────────────────────────────────── */
+
+/* The one deliberate departure from "no boxes": an interactive figure is a discrete
+   instrument, not a layout container. It is the only surface on the page, and it
+   never wraps prose. */
+.figure-label {
+  font: 400 11px/1 var(--font-body);
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--color-neutral-600);
+  margin: var(--space-8) 0 var(--space-2);
+}
+.figure-panel {
+  background: var(--color-neutral-100);
+  border-radius: var(--radius-md);
+  padding: var(--space-4);
+  margin: 0 0 var(--space-4);
+}
+
+.eyebrow {
+  font: var(--font-heading-weight) 10.5px/1 var(--font-body);
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+  color: var(--color-neutral-600);
+  margin: 0 0 6px;
+}
+
+.readout {
+  font: var(--font-heading-weight) 26px/1 var(--mono);
+  font-variant-numeric: tabular-nums;
+}
+.readout-sm {
+  font-size: 22px;
+}
+
+.fig-row {
+  display: flex;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+  margin-bottom: var(--space-3);
+}
+.fig-row-wide {
+  gap: var(--space-4);
+  align-items: center;
+}
+.fig-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: var(--space-4);
+  margin-bottom: var(--space-3);
+}
+.fig-grid-narrow {
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+}
+.fig-stats {
+  display: flex;
+  gap: var(--space-8);
+  flex-wrap: wrap;
+  align-items: flex-end;
+}
+.fig-note {
+  font: 400 14px/1.5 var(--font-body);
+  color: var(--color-neutral-700);
+  margin: var(--space-2) 0 0;
+}
+
+.field {
   display: flex;
   align-items: center;
-  gap: 20px;
-  flex-wrap: wrap;
+  gap: 10px;
+  font-size: 15px;
+  color: var(--color-neutral-700);
 }
-.brand {
-  font-weight: 640;
-  letter-spacing: -0.01em;
-  color: var(--text);
+.field-inline {
+  display: inline-flex;
+  white-space: nowrap;
+  gap: 8px;
 }
-.brand:hover {
-  text-decoration: none;
+.field input[type="range"] {
+  flex: 1;
 }
-.nav-links {
-  display: flex;
-  gap: 4px;
-  flex-wrap: wrap;
-  margin-left: auto;
+.field b {
+  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
+  color: var(--color-text);
 }
-.nav-links a {
-  color: var(--muted);
+
+/* Broadsheet's `.btn` and `.input` at the size figures use them; states are the
+   system's own and are left alone. */
+.btn-sm {
   font-size: 14px;
-  padding: 5px 10px;
-  border-radius: 7px;
+  padding: 5px 11px;
 }
-.nav-links a:hover {
-  background: var(--panel-alt);
-  text-decoration: none;
-  color: var(--text);
-}
-.nav-links a.active {
-  color: var(--text);
-  background: var(--panel-alt);
-  font-weight: 550;
+.input-sm {
+  width: auto;
+  min-height: 0;
+  padding: 4px 8px;
 }
 
-main {
-  max-width: var(--maxw);
+/* ── figure 1: the tokenizer ────────────────────────────────────────────────── */
+
+.token-input {
+  font: 15px var(--mono);
+  resize: vertical;
+}
+.token-strip {
+  margin-top: var(--space-3);
+  font: 15px/2 var(--mono);
+  /* Six tints, cycled. Five are ramp steps; the yellow is mixed from the process ink
+     because the system carries no yellow ramp — the tint the design asks for, still
+     derived from a token rather than typed in as a hex. */
+  --tint-0: var(--color-accent-200);
+  --tint-1: var(--color-accent-2-200);
+  --tint-2: var(--color-neutral-200);
+  --tint-3: color-mix(in srgb, var(--color-process-yellow) 38%, var(--color-bg));
+  --tint-4: var(--color-accent-300);
+  --tint-5: var(--color-accent-2-300);
+}
+.token {
+  padding: 3px 2px;
+  border-radius: var(--radius-sm);
+  white-space: pre-wrap;
+  box-shadow: inset 0 -2px 0 var(--color-neutral-400);
+}
+.token-0 { background: var(--tint-0); }
+.token-1 { background: var(--tint-1); }
+.token-2 { background: var(--tint-2); }
+.token-3 { background: var(--tint-3); }
+.token-4 { background: var(--tint-4); }
+.token-5 { background: var(--tint-5); }
+
+/* ── figure 2: the parameter budget ─────────────────────────────────────────── */
+
+.param-total .plate-num {
+  font-size: clamp(38px, 4.6vw, 58px);
+  line-height: 1;
+  letter-spacing: -0.03em;
+}
+.param-detail {
+  font: 400 15px/1.5 var(--mono);
+  color: var(--color-neutral-700);
+  margin: 6px 0 var(--space-4);
+}
+.param-bar {
+  display: flex;
+  height: 22px;
+  gap: 1px;
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+.param-swatch {
+  display: inline-block;
+  width: 11px;
+  height: 11px;
+  border-radius: var(--radius-sm);
+}
+
+/* ── figure 3: attention intuition ──────────────────────────────────────────── */
+
+.sentence {
+  font: 400 clamp(22px, 2.4vw, 30px) / 2 var(--font-heading);
+  margin: 0 0 var(--space-3);
+}
+.sentence-word {
+  padding: 2px 5px;
+  border-radius: var(--radius-sm);
+}
+.sentence-word-target {
+  cursor: pointer;
+  text-decoration: underline dotted;
+  text-underline-offset: 6px;
+}
+.sentence-word-source {
+  background: var(--color-accent-200);
+  font-weight: var(--font-heading-weight);
+}
+.sentence-word-selected {
+  background: var(--color-accent);
+  color: var(--color-bg);
+  font-weight: var(--font-heading-weight);
+}
+/* The one border in the design, and it is a pull-quote marker rather than a box. */
+.sentence-why {
+  font: 400 17px/1.5 var(--font-body);
+  color: var(--color-neutral-800);
+  margin: 0;
+  padding-left: var(--space-3);
+  border-left: 3px solid var(--color-accent);
+}
+
+/* ── figure 4: the sampler ──────────────────────────────────────────────────── */
+
+.draws {
+  font: 15px/1.6 var(--mono);
+  background: var(--color-bg);
+  border-radius: var(--radius-md);
+  padding: 10px 12px;
+  margin: 0 0 var(--space-3);
+  white-space: pre-wrap;
+  min-height: 1.6em;
+}
+.candidates {
+  display: grid;
+  gap: 3px;
+}
+.candidate {
+  display: grid;
+  grid-template-columns: 120px 1fr 62px;
+  align-items: center;
+  gap: 10px;
+}
+.candidate-dropped {
+  opacity: 0.34;
+}
+.candidate code {
+  font-size: 13px;
+  white-space: pre;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.candidate-track {
+  background: var(--color-neutral-200);
+  border-radius: var(--radius-sm);
+  height: 14px;
+}
+.candidate-bar {
+  height: 100%;
+  border-radius: var(--radius-sm);
+  background: var(--color-accent);
+}
+.candidate-dropped .candidate-bar {
+  background: var(--color-neutral-500);
+}
+.candidate-pct {
+  font: 13px var(--mono);
+  text-align: right;
+  color: var(--color-neutral-700);
+}
+
+/* ── figure 5: perplexity ───────────────────────────────────────────────────── */
+
+.ppl-total .plate-num {
+  font-size: clamp(38px, 4.6vw, 58px);
+  line-height: 1;
+  letter-spacing: -0.03em;
+}
+.ppl-sentence {
+  font: 400 18px/1.55 var(--font-body);
+  margin: var(--space-2) 0 var(--space-4);
+  max-width: 60ch;
+}
+.loss-marks {
+  display: grid;
+  gap: 2px;
+}
+.loss-mark {
+  display: grid;
+  grid-template-columns: 150px 62px 1fr;
+  gap: 10px;
+  align-items: baseline;
+  text-align: left;
+  border: none;
+  cursor: pointer;
+  padding: 8px 10px;
+  border-radius: var(--radius-md);
+  background: transparent;
+  font-family: var(--font-body);
+  color: var(--color-text);
+}
+.loss-mark-current {
+  background: var(--color-accent-100);
+}
+.loss-mark-label {
+  font: var(--font-heading-weight) 16px/1.3 var(--font-body);
+}
+.loss-mark-loss {
+  font: 14px var(--mono);
+  color: var(--color-neutral-700);
+}
+.loss-mark-note {
+  font: 400 15px/1.4 var(--font-body);
+  color: var(--color-neutral-700);
+}
+
+@media (max-width: 560px) {
+  .candidate {
+    grid-template-columns: 90px 1fr 52px;
+  }
+  .loss-mark {
+    grid-template-columns: 1fr auto;
+  }
+  .loss-mark-note {
+    grid-column: 1 / -1;
+  }
+}
+
+/* ── the deep end: shared page furniture ────────────────────────────────────── */
+
+.page-headline {
+  font: var(--font-heading-weight) clamp(36px, 5vw, 70px) / 1.01 var(--font-heading);
+  letter-spacing: -0.025em;
+  margin: 0 0 var(--space-4);
+  max-width: 22ch;
+  text-wrap: balance;
+}
+.page-standfirst {
+  font: 400 20px/1.55 var(--font-body);
+  max-width: 70ch;
+  margin: 0 0 var(--space-8);
+}
+.section-h2 {
+  font: var(--font-heading-weight) clamp(26px, 2.8vw, 36px) / 1.12 var(--font-heading);
+  letter-spacing: -0.018em;
+  margin: 0 0 var(--space-3);
+}
+.figure-title {
+  font: var(--font-heading-weight) 22px/1.2 var(--font-heading);
+  margin: 0 0 6px;
+}
+.note-wide {
+  font: 400 17px/1.6 var(--font-body);
+  color: var(--color-neutral-800);
+  max-width: 70ch;
+  margin: 0 0 var(--space-4);
+}
+.caveat-wide {
+  font: 400 15px/1.6 var(--font-body);
+  color: var(--color-neutral-700);
+  max-width: 70ch;
+  margin: 0;
+}
+.closing-cols {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: var(--space-6);
+  max-width: 1000px;
+  padding-bottom: var(--space-8);
+}
+.closing-cols p {
+  margin: 0;
+}
+
+/* ── the RoPE explorer ──────────────────────────────────────────────────────── */
+
+.ruler {
+  width: 100%;
+  display: block;
+  user-select: none;
+}
+/* Cursor and touch only — the focus ring is the design system's own
+   `:focus-visible`, and is deliberately not restyled here. `touch-action: none` sits
+   on the handles rather than the whole ruler so a drag on a pill still never scrolls
+   the page, while a touch anywhere else can pan the rail below. */
+.handle {
+  cursor: grab;
+  touch-action: none;
+}
+.handle:active {
+  cursor: grabbing;
+}
+
+/* A 1000-unit axis scaled into a 320px phone puts the pills at 14px and their labels
+   below legibility. Below the breakpoint the rail holds a readable width and the
+   panel scrolls sideways instead — the same answer the chapter rail gives. */
+.ruler-scroll {
+  overflow-x: auto;
+}
+@media (max-width: 700px) {
+  .ruler {
+    min-width: 560px;
+  }
+}
+
+.readouts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: var(--space-8);
+  margin: 0 0 var(--space-8);
+}
+.readout-xl {
+  font: var(--font-heading-weight) clamp(32px, 3.6vw, 48px) / 1 var(--mono);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+}
+.readout-md {
+  font: var(--font-heading-weight) 24px/1 var(--mono);
+  font-variant-numeric: tabular-nums;
+}
+/* Cyan while the spread is floating-point noise, magenta if it ever were not. */
+.spread-holding {
+  color: var(--color-accent-700);
+}
+.spread-moving {
+  color: var(--color-accent-2-700);
+}
+.tracker-sentence {
+  font: 400 16px/1.55 var(--font-body);
+  color: var(--color-neutral-800);
+  max-width: 52ch;
+  margin: var(--space-2) 0 0;
+}
+.readout-pair {
+  display: flex;
+  gap: var(--space-8);
+  margin-top: var(--space-4);
+}
+
+.dials {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
+  gap: var(--space-3);
+  margin: 0 0 var(--space-3);
+}
+.dial-label {
+  font: 11px/1.35 var(--mono);
+  color: var(--color-neutral-600);
+  text-align: center;
+  margin-top: 2px;
+}
+.dial-positive {
+  color: var(--color-accent-700);
+}
+.dial-negative {
+  color: var(--color-accent-2-700);
+}
+
+.decay-plot {
+  width: 100%;
+  display: block;
+  background: var(--color-neutral-100);
+  border-radius: var(--radius-md);
+}
+
+/* ══ legacy alias layer ══════════════════════════════════════════════════════
+   `#/ablations` is deliberately untouched until the sweep's page is redesigned, and
+   it is written against the old token names. Rather than keep a second design system
+   alive beside Broadsheet, the old names are re-pointed at Broadsheet tokens: one
+   palette, two vocabularies. Everything below this line goes when that page does. */
+
+.legacy-page {
+  --bg: var(--color-bg);
+  --panel: var(--color-neutral-100);
+  --panel-alt: var(--color-neutral-200);
+  --border: var(--color-divider);
+  --text: var(--color-text);
+  --muted: var(--color-neutral-600);
+  --accent: var(--color-accent);
+  --accent-2: var(--color-accent-2);
+  /* Categorical, not semantic: cyan reads as the measured improvement and magenta as
+     the regression, which is the pairing the rest of the site uses. */
+  --good: var(--color-accent-700);
+  --warn: var(--color-accent-2-700);
+  --grid-line: var(--color-neutral-200);
+  --shadow: var(--shadow-sm);
+
+  max-width: var(--column);
   margin: 0 auto;
-  padding: 30px 20px 90px;
+  padding: var(--space-6) var(--space-6) var(--space-8);
 }
 
-/* ---- type ---- */
-h1 {
+.legacy-page h1 {
   font-size: 28px;
-  font-weight: 660;
   letter-spacing: -0.02em;
   margin: 0 0 8px;
 }
-h2 {
+.legacy-page h2 {
   font-size: 19px;
-  font-weight: 620;
   letter-spacing: -0.01em;
   margin: 34px 0 10px;
 }
-h3 {
+.legacy-page h3 {
   font-size: 15px;
-  font-weight: 620;
   margin: 0 0 6px;
 }
-.lede {
+.legacy-page code {
+  font: 0.9em var(--mono);
+  background: var(--panel-alt);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 1px 5px;
+}
+.legacy-page .lede {
   color: var(--muted);
   font-size: 16px;
   margin: 0 0 4px;
   max-width: 68ch;
 }
-p {
+.legacy-page p {
   max-width: 72ch;
 }
-.muted {
+.legacy-page .muted {
   color: var(--muted);
 }
-.small {
+.legacy-page .small {
   font-size: 13px;
 }
-
-.eyebrow {
+.legacy-page .eyebrow {
   font-size: 12px;
   text-transform: uppercase;
   letter-spacing: 0.07em;
   color: var(--muted);
-  font-weight: 600;
+  font-weight: var(--font-heading-weight);
   margin: 0 0 4px;
 }
-
-/* ---- panels ---- */
-.card {
+.legacy-page .card {
   background: var(--panel);
   border: 1px solid var(--border);
-  border-radius: 12px;
-  box-shadow: var(--shadow);
+  border-radius: var(--radius-lg);
   padding: 18px;
   margin: 16px 0;
+  gap: 0;
 }
-.grid2 {
+.legacy-page .grid2 {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
   gap: 16px;
 }
-
-.chip {
+.legacy-page .chip {
   display: inline-flex;
   align-items: center;
   gap: 6px;
   font: 12px/1 var(--mono);
   padding: 6px 9px;
-  border-radius: 6px;
+  border-radius: var(--radius-lg);
   background: var(--panel);
   border: 1px solid var(--border);
   color: var(--muted);
 }
-.chip b {
-  color: var(--text);
-  font-weight: 600;
-}
-
-/* ---- controls ---- */
-.controls {
+.legacy-page .controls {
   display: flex;
   gap: 14px;
   flex-wrap: wrap;
   align-items: center;
 }
-button,
-select {
+.legacy-page button,
+.legacy-page select {
   font: inherit;
   font-size: 14px;
   padding: 7px 12px;
   color: var(--text);
   background: var(--bg);
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: var(--radius-lg);
   cursor: pointer;
 }
-button:hover {
+.legacy-page button:hover {
   border-color: var(--accent);
 }
-button.primary {
-  background: var(--accent);
-  border-color: var(--accent);
-  color: #fff;
-  font-weight: 550;
-}
-button.primary:hover {
-  filter: brightness(1.06);
-}
-label.field {
+.legacy-page label.field {
   display: inline-flex;
   align-items: center;
   gap: 7px;
   font-size: 13px;
   color: var(--muted);
 }
-input[type="range"] {
-  accent-color: var(--accent);
-}
-input[type="checkbox"] {
-  accent-color: var(--accent);
-  width: 15px;
-  height: 15px;
-}
-
-/* ---- readouts ---- */
-.readout {
-  font: 600 30px/1.1 var(--mono);
+.legacy-page .readout {
+  font: var(--font-heading-weight) 30px/1.1 var(--mono);
   letter-spacing: -0.02em;
   font-variant-numeric: tabular-nums;
 }
-.readout.sm {
-  font-size: 19px;
-}
-.statrow {
-  display: flex;
-  gap: 26px;
-  flex-wrap: wrap;
-}
-
-table {
+.legacy-page table {
   border-collapse: collapse;
   width: 100%;
   font-size: 14px;
 }
-th,
-td {
+.legacy-page th,
+.legacy-page td {
   text-align: left;
   padding: 7px 10px;
   border-bottom: 1px solid var(--border);
 }
-th {
+.legacy-page th {
   font-size: 12px;
   text-transform: uppercase;
   letter-spacing: 0.06em;
   color: var(--muted);
-  font-weight: 600;
+  font-weight: var(--font-heading-weight);
 }
-td.num {
+.legacy-page td.num {
   font-family: var(--mono);
   font-variant-numeric: tabular-nums;
   text-align: right;
 }
-
-.callout {
+.legacy-page .callout {
   border-left: 3px solid var(--accent);
   background: var(--panel-alt);
-  border-radius: 0 8px 8px 0;
+  border-radius: 0 var(--radius-lg) var(--radius-lg) 0;
   padding: 12px 16px;
   margin: 16px 0;
 }
-.callout.warn {
+.legacy-page .callout.warn {
   border-left-color: var(--warn);
-}
-
-/* ---- ruler ---- */
-.ruler {
-  width: 100%;
-  touch-action: none;
-  user-select: none;
-  display: block;
-}
-.handle {
-  cursor: grab;
-}
-.handle:active {
-  cursor: grabbing;
-}
-.handle:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 3px;
-  border-radius: 4px;
-}
-
-.dials {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(94px, 1fr));
-  gap: 10px;
-}
-.dial-label {
-  font: 10px/1.3 var(--mono);
-  color: var(--muted);
-  text-align: center;
-  margin-top: 2px;
 }

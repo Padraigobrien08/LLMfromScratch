@@ -95,7 +95,14 @@ export default function PositionRuler({ maxPos, m, n, gapLocked, onChange }: Pro
       onPointerUp={onPointerUp}
       onPointerCancel={onPointerUp}
     >
-      <line x1={PAD} y1={AXIS_Y} x2={W - PAD} y2={AXIS_Y} stroke="var(--border)" strokeWidth={2} />
+      <line
+        x1={PAD}
+        y1={AXIS_Y}
+        x2={W - PAD}
+        y2={AXIS_Y}
+        stroke="var(--color-neutral-400)"
+        strokeWidth={2}
+      />
       {ticks.map((t) => (
         <g key={t}>
           <line
@@ -103,14 +110,14 @@ export default function PositionRuler({ maxPos, m, n, gapLocked, onChange }: Pro
             y1={AXIS_Y}
             x2={x(t)}
             y2={AXIS_Y + 7}
-            stroke="var(--border)"
+            stroke="var(--color-neutral-400)"
             strokeWidth={2}
           />
           <text
             x={x(t)}
             y={AXIS_Y + 22}
             fontSize={11}
-            fill="var(--muted)"
+            fill="var(--color-neutral-600)"
             textAnchor="middle"
             fontFamily="var(--mono)"
           >
@@ -125,10 +132,10 @@ export default function PositionRuler({ maxPos, m, n, gapLocked, onChange }: Pro
         y1={AXIS_Y}
         x2={x(Math.max(m, n))}
         y2={AXIS_Y}
-        stroke="var(--accent)"
-        strokeWidth={4}
+        stroke="var(--color-accent)"
+        strokeWidth={5}
         strokeLinecap="round"
-        opacity={0.35}
+        opacity={0.4}
       />
 
       {(
@@ -136,8 +143,8 @@ export default function PositionRuler({ maxPos, m, n, gapLocked, onChange }: Pro
           // Stacked on two rows rather than one: a small gap is the interesting
           // case, and on one row the two pills would cover each other exactly when
           // the reader most wants to see both.
-          { which: "n", pos: n, label: "K", color: "var(--accent-2)", y: AXIS_Y - 66 },
-          { which: "m", pos: m, label: "Q", color: "var(--accent)", y: AXIS_Y - 28 },
+          { which: "n", pos: n, label: "K", color: "var(--color-accent-2)", y: AXIS_Y - 66 },
+          { which: "m", pos: m, label: "Q", color: "var(--color-accent)", y: AXIS_Y - 28 },
         ] as const
       ).map((h) => (
         <g
@@ -160,23 +167,16 @@ export default function PositionRuler({ maxPos, m, n, gapLocked, onChange }: Pro
             stroke={h.color}
             strokeWidth={2}
           />
-          <rect
-            x={x(h.pos) - 21}
-            y={h.y - 12}
-            width={42}
-            height={26}
-            rx={7}
-            fill={h.color}
-            stroke="var(--panel)"
-            strokeWidth={2}
-          />
+          {/* rx=2 is --radius-md: nothing in this design is rounder than 2px except
+              the gap line's cap. */}
+          <rect x={x(h.pos) - 23} y={h.y - 12} width={46} height={26} rx={2} fill={h.color} />
           <text
             x={x(h.pos)}
             y={h.y + 5}
             fontSize={13}
-            fill="#fff"
+            fill="var(--color-bg)"
             textAnchor="middle"
-            fontWeight={640}
+            fontWeight={600}
             fontFamily="var(--mono)"
             pointerEvents="none"
           >
@@ -185,9 +185,9 @@ export default function PositionRuler({ maxPos, m, n, gapLocked, onChange }: Pro
           </text>
           {/* A generous invisible target: the visible pill is too small to grab on a phone. */}
           <rect
-            x={x(h.pos) - 26}
+            x={x(h.pos) - 28}
             y={h.y - 18}
-            width={52}
+            width={56}
             height={44}
             fill="transparent"
             pointerEvents="all"

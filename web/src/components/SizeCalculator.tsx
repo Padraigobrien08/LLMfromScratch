@@ -1,5 +1,6 @@
 import { useState } from "react";
 
+import PlateNumeral from "./PlateNumeral";
 import {
   GPT2_124M,
   LLAMA_124M,
@@ -19,13 +20,14 @@ const PRESETS: Array<[string, SizeConfig]> = [
   ["Ablation baseline", { ...GPT2_124M, nLayer: 8, nHead: 8, nKvHead: 8, nEmbd: 512, blockSize: 512 }],
 ];
 
+/** Where the budget goes, in the order the model spends it. */
 const PARTS = [
-  ["tokenEmbedding", "Token embedding", "var(--accent)"],
-  ["positionEmbedding", "Position embedding", "var(--accent-2)"],
-  ["attention", "Attention", "var(--good)"],
-  ["feedForward", "Feed-forward", "var(--warn)"],
-  ["norms", "Norms", "var(--muted)"],
-  ["lmHead", "Output head", "#8b5cf6"],
+  ["tokenEmbedding", "Token embedding", "var(--color-accent)"],
+  ["positionEmbedding", "Position embedding", "var(--color-accent-2)"],
+  ["attention", "Attention", "var(--color-accent-700)"],
+  ["feedForward", "Feed-forward", "var(--color-process-yellow)"],
+  ["norms", "Norms", "var(--color-neutral-500)"],
+  ["lmHead", "Output head", "var(--color-accent-2-700)"],
 ] as const;
 
 /** n_embd must divide by n_head, and n_head by n_kv_head — same rules as ModelConfig. */
@@ -52,80 +54,96 @@ export default function SizeCalculator() {
   const flops = flopsPerToken(cfg, seqLen);
   const cache = kvCacheBytes(cfg, seqLen, batch);
 
+  const costs: Array<[string, string]> = [
+    ["Weights in bf16", formatBytes(p.total * 2)],
+    ["KV cache", formatBytes(cache)],
+    ["FLOPs / token", `${((flops.dense + flops.attention) / 1e9).toFixed(2)}G`],
+    [
+      "of which attention",
+      `${((flops.attention / (flops.dense + flops.attention)) * 100).toFixed(1)}%`,
+    ],
+  ];
+
   return (
-    <div className="card">
-      <div className="controls" style={{ marginBottom: 14 }}>
-        {PRESETS.map(([name, preset]) => (
-          <button
-            key={name}
-            onClick={() => setCfg(preset)}
-            style={{ fontSize: 13 }}
-            aria-pressed={JSON.stringify(preset) === JSON.stringify(cfg)}
-          >
-            {name}
-          </button>
-        ))}
+    <div className="figure-panel">
+      <div className="fig-row">
+        {PRESETS.map(([name, preset]) => {
+          const current = JSON.stringify(preset) === JSON.stringify(cfg);
+          return (
+            <button
+              key={name}
+              className={`btn btn-sm ${current ? "btn-primary" : "btn-secondary"}`}
+              onClick={() => setCfg(preset)}
+              aria-pressed={current}
+            >
+              {name}
+            </button>
+          );
+        })}
       </div>
 
-      <div className="grid2" style={{ gap: 12, marginBottom: 16 }}>
+      <div className="fig-grid">
         <label className="field">
           layers
           <input type="range" min={1} max={48} value={cfg.nLayer}
-            onChange={(e) => set("nLayer", Number(e.target.value))} style={{ flex: 1 }} />
-          <b style={{ fontFamily: "var(--mono)", minWidth: 26 }}>{cfg.nLayer}</b>
+            onChange={(e) => set("nLayer", Number(e.target.value))} />
+          <b style={{ minWidth: 28 }}>{cfg.nLayer}</b>
         </label>
         <label className="field">
           width
           <input type="range" min={128} max={4096} step={64} value={cfg.nEmbd}
-            onChange={(e) => set("nEmbd", Number(e.target.value))} style={{ flex: 1 }} />
-          <b style={{ fontFamily: "var(--mono)", minWidth: 42 }}>{cfg.nEmbd}</b>
+            onChange={(e) => set("nEmbd", Number(e.target.value))} />
+          <b style={{ minWidth: 44 }}>{cfg.nEmbd}</b>
         </label>
       </div>
 
-      <div className="controls" style={{ marginBottom: 16 }}>
-        <label className="field">
+      <div className="fig-row fig-row-wide" style={{ marginBottom: "var(--space-4)" }}>
+        <label className="field field-inline">
           heads
-          <select value={cfg.nHead} onChange={(e) => set("nHead", Number(e.target.value))}>
+          <select className="input input-sm" value={cfg.nHead}
+            onChange={(e) => set("nHead", Number(e.target.value))}>
             {divisorsOf(cfg.nEmbd, 64).map((d) => (
               <option key={d} value={d}>{d}</option>
             ))}
           </select>
         </label>
-        <label className="field">
+        <label className="field field-inline">
           kv heads
-          <select value={cfg.nKvHead} onChange={(e) => set("nKvHead", Number(e.target.value))}>
+          <select className="input input-sm" value={cfg.nKvHead}
+            onChange={(e) => set("nKvHead", Number(e.target.value))}>
             {divisorsOf(cfg.nHead, cfg.nHead).map((d) => (
               <option key={d} value={d}>{d}</option>
             ))}
           </select>
         </label>
-        <label className="field">
+        <label className="field field-inline">
           mlp
-          <select value={cfg.mlp} onChange={(e) => set("mlp", e.target.value as SizeConfig["mlp"])}>
+          <select className="input input-sm" value={cfg.mlp}
+            onChange={(e) => set("mlp", e.target.value as SizeConfig["mlp"])}>
             <option value="gelu">GELU</option>
             <option value="swiglu">SwiGLU</option>
           </select>
         </label>
-        <label className="field">
+        <label className="field field-inline">
           positions
-          <select value={cfg.posEmb}
+          <select className="input input-sm" value={cfg.posEmb}
             onChange={(e) => set("posEmb", e.target.value as SizeConfig["posEmb"])}>
             <option value="learned">learned</option>
             <option value="rope">RoPE</option>
             <option value="none">none</option>
           </select>
         </label>
-        <label className="field">
+        <label className="field field-inline">
           <input type="checkbox" checked={cfg.tieEmbeddings}
             onChange={(e) => set("tieEmbeddings", e.target.checked)} />
           tie embeddings
         </label>
-        <label className="field">
+        <label className="field field-inline">
           <input type="checkbox" checked={cfg.bias}
             onChange={(e) => set("bias", e.target.checked)} />
           bias terms
         </label>
-        <label className="field">
+        <label className="field field-inline">
           <input type="checkbox" checked={cfg.norm === "rmsnorm"}
             onChange={(e) => set("norm", e.target.checked ? "rmsnorm" : "layernorm")} />
           RMSNorm
@@ -133,12 +151,14 @@ export default function SizeCalculator() {
       </div>
 
       <p className="eyebrow">Total parameters</p>
-      <div className="readout">{formatCount(p.total)}</div>
-      <p className="small muted" style={{ margin: "2px 0 14px" }}>
+      <div className="param-total">
+        <PlateNumeral value={formatCount(p.total)} />
+      </div>
+      <p className="param-detail">
         {p.total.toLocaleString()} · head dim {headDim(cfg)} · feed-forward width {mlpHidden(cfg)}
       </p>
 
-      <div style={{ display: "flex", height: 26, borderRadius: 6, overflow: "hidden", gap: 1 }}>
+      <div className="param-bar">
         {PARTS.map(([key, label, color]) =>
           p[key] > 0 ? (
             <div key={key} title={`${label}: ${formatCount(p[key])}`}
@@ -146,65 +166,47 @@ export default function SizeCalculator() {
           ) : null,
         )}
       </div>
-      <table style={{ marginTop: 12 }}>
+
+      <table className="table" style={{ marginTop: "var(--space-3)" }}>
         <tbody>
           {PARTS.map(([key, label, color]) => (
             <tr key={key}>
-              <td style={{ width: 18 }}>
-                <span style={{ display: "inline-block", width: 10, height: 10, borderRadius: 2,
-                  background: color }} />
+              <td style={{ width: 20 }}>
+                <span className="param-swatch" style={{ background: color }} />
               </td>
-              <td>{label}</td>
-              <td className="num">{formatCount(p[key])}</td>
-              <td className="num muted">{((p[key] / p.total) * 100).toFixed(1)}%</td>
+              <td style={{ fontSize: 16 }}>{label}</td>
+              <td className="mono num">{formatCount(p[key])}</td>
+              <td className="mono num" style={{ color: "var(--color-neutral-600)" }}>
+                {((p[key] / p.total) * 100).toFixed(1)}%
+              </td>
             </tr>
           ))}
         </tbody>
       </table>
 
-      <div className="grid2" style={{ marginTop: 18, gap: 12 }}>
+      <div className="fig-grid" style={{ marginTop: "var(--space-4)", marginBottom: 0 }}>
         <label className="field">
           context
           <input type="range" min={128} max={32768} step={128} value={seqLen}
-            onChange={(e) => setSeqLen(Number(e.target.value))} style={{ flex: 1 }} />
-          <b style={{ fontFamily: "var(--mono)", minWidth: 48 }}>{seqLen}</b>
+            onChange={(e) => setSeqLen(Number(e.target.value))} />
+          <b style={{ minWidth: 50 }}>{seqLen}</b>
         </label>
         <label className="field">
           batch
           <input type="range" min={1} max={64} value={batch}
-            onChange={(e) => setBatch(Number(e.target.value))} style={{ flex: 1 }} />
-          <b style={{ fontFamily: "var(--mono)", minWidth: 26 }}>{batch}</b>
+            onChange={(e) => setBatch(Number(e.target.value))} />
+          <b style={{ minWidth: 28 }}>{batch}</b>
         </label>
       </div>
 
-      <div className="statrow" style={{ marginTop: 12 }}>
-        <div>
-          <p className="eyebrow">Weights in bf16</p>
-          <div className="readout sm">{formatBytes(p.total * 2)}</div>
-        </div>
-        <div>
-          <p className="eyebrow">KV cache</p>
-          <div className="readout sm">{formatBytes(cache)}</div>
-        </div>
-        <div>
-          <p className="eyebrow">FLOPs / token</p>
-          <div className="readout sm">
-            {((flops.dense + flops.attention) / 1e9).toFixed(2)}G
+      <div className="fig-stats" style={{ marginTop: "var(--space-4)" }}>
+        {costs.map(([label, value]) => (
+          <div key={label}>
+            <p className="eyebrow">{label}</p>
+            <div className="readout readout-sm">{value}</div>
           </div>
-        </div>
-        <div>
-          <p className="eyebrow">of which attention</p>
-          <div className="readout sm">
-            {((flops.attention / (flops.dense + flops.attention)) * 100).toFixed(1)}%
-          </div>
-        </div>
+        ))}
       </div>
-      <p className="small muted" style={{ margin: "10px 0 0" }}>
-        Drag the context slider and watch the last two move: attention's cost grows with
-        sequence length while everything else stays flat, which is why long context is hard
-        and why the KV cache — the thing grouped-query attention shrinks — is what decides
-        how many users fit on one GPU.
-      </p>
     </div>
   );
 }

@@ -51,39 +51,35 @@ export default function DecayPlot({ q, k, theta, d, maxD }: Props) {
   const gridXs = [0, maxD * 0.25, maxD * 0.5, maxD * 0.75, maxD];
 
   return (
-    <svg viewBox={`0 0 ${W} ${H}`} width="100%" role="img"
+    <svg className="decay-plot" viewBox={`0 0 ${W} ${H}`} role="img"
       aria-label="Attention logit as a function of relative offset">
       {gridYs.map((y) => (
         <g key={y}>
-          <line x1={PAD_L} y1={sy(y)} x2={W - PAD_R} y2={sy(y)} stroke="var(--grid-line)" />
-          <text x={PAD_L - 8} y={sy(y) + 4} fontSize={11} fill="var(--muted)" textAnchor="end"
-            fontFamily="var(--mono)">
+          <line x1={PAD_L} y1={sy(y)} x2={W - PAD_R} y2={sy(y)} stroke="var(--color-neutral-200)" />
+          <text x={PAD_L - 8} y={sy(y) + 4} fontSize={11} fill="var(--color-neutral-600)"
+            textAnchor="end" fontFamily="var(--mono)">
             {y.toFixed(2)}
           </text>
         </g>
       ))}
       {gridXs.map((x) => (
-        <text key={x} x={sx(x)} y={H - 12} fontSize={11} fill="var(--muted)" textAnchor="middle"
-          fontFamily="var(--mono)">
+        <text key={x} x={sx(x)} y={H - 12} fontSize={11} fill="var(--color-neutral-600)"
+          textAnchor="middle" fontFamily="var(--mono)">
           {Math.round(x)}
         </text>
       ))}
-      {lo < 0 && hi > 0 && (
-        <line x1={PAD_L} y1={sy(0)} x2={W - PAD_R} y2={sy(0)} stroke="var(--border)"
-          strokeWidth={1.5} />
-      )}
 
-      <path d={line} fill="none" stroke="var(--accent)" strokeWidth={2} strokeLinejoin="round" />
+      <path d={line} fill="none" stroke="var(--color-accent)" strokeWidth={2}
+        strokeLinejoin="round" />
 
       {absD <= maxD && (
         <g>
-          <line x1={sx(absD)} y1={PAD_T} x2={sx(absD)} y2={H - PAD_B} stroke="var(--accent-2)"
-            strokeWidth={1.5} strokeDasharray="4 3" />
-          <circle cx={sx(absD)} cy={sy(current)} r={5} fill="var(--accent-2)"
-            stroke="var(--panel)" strokeWidth={2} />
+          <line x1={sx(absD)} y1={PAD_T} x2={sx(absD)} y2={H - PAD_B}
+            stroke="var(--color-accent-2)" strokeWidth={1.5} strokeDasharray="4 3" />
+          <circle cx={sx(absD)} cy={sy(current)} r={5} fill="var(--color-accent-2)"
+            stroke="var(--color-neutral-100)" strokeWidth={2} />
         </g>
       )}
-
     </svg>
   );
 }

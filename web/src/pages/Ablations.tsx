@@ -11,6 +11,7 @@ import {
   meanCurve,
   resolveSelection,
 } from "../lib/ablations";
+import { fetchAblations } from "../lib/ablationsData";
 
 const REPO = "https://github.com/Padraigobrien08/LLMfromScratch/blob/main";
 
@@ -40,19 +41,9 @@ export default function Ablations() {
   const [selected, setSelected] = useState<string[]>([]);
 
   useEffect(() => {
-    const url = `${import.meta.env.BASE_URL}data/ablations.json`;
-    fetch(url)
-      .then((r) => {
-        // A missing file is the expected state before the sweep has run, not a
-        // failure — but the status code alone cannot detect it. The Vite dev server
-        // and any host with an SPA fallback answer a missing path with index.html
-        // and a 200, so the content type is what actually distinguishes "not
-        // published yet" from "published and broken".
-        if (r.status === 404) return null;
-        if (!r.ok) throw new Error(`${r.status} ${r.statusText}`);
-        if (!(r.headers.get("content-type") ?? "").includes("application/json")) return null;
-        return r.json();
-      })
+    // The load itself lives in lib/ablationsData.ts, because the front page's
+    // illustrative preview keys off exactly the same answer.
+    fetchAblations()
       .then((payload: Payload | null) =>
         setState(payload ? { status: "ready", payload } : { status: "absent" }),
       )
