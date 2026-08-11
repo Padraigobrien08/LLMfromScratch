@@ -87,6 +87,13 @@ def peak_flops(device: torch.device, dtype: torch.dtype) -> float | None:
         "a100": 312e12 if bf16 else 19.5e12,
         "l40": 181e12 if bf16 else 90.5e12,
         "4090": 165e12 if bf16 else 82.6e12,
+        # No "5090" entry, deliberately. MFU is only meaningful against the vendor's dense
+        # peak, and the figure most often quoted for the RTX 5090 — 209.5 TFLOP/s dense
+        # bf16 — is contradicted by measurement: an 8192^3 bf16 matmul on one reached
+        # 234.7 TFLOP/s (docs/scaling.md), and nothing can exceed its own peak. Entering
+        # 209.5 would have reported 96% MFU for the 8x5090 scaling run. Until a figure can
+        # be confirmed, returning None is correct: it makes the metric absent rather than
+        # wrong, and callers already handle None by omitting MFU.
         "a10g": 125e12 if bf16 else 31.2e12,
         "t4": 65e12 if bf16 else 8.1e12,
     }

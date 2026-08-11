@@ -30,7 +30,7 @@ what is built and verified, and what is designed but not yet run.
 
 | Pillar | Status |
 | --- | --- |
-| Package, config system, data pipeline, trainer, CI | **Done** — 274 tests green, end-to-end verified |
+| Package, config system, data pipeline, trainer, CI | **Done** — 298 tests green, end-to-end verified |
 | Modern architecture (RoPE, RMSNorm, SwiGLU, GQA, KV cache) | **Done** — hand-implemented, property-tested |
 | GPT-2 124M reproduction on FineWeb-Edu | **Done** — 3.0503 val loss, [docs/reproduction.md](docs/reproduction.md) |
 | Ablation study (12 arms × 3 seeds) | **Done** — [docs/ablations.md](docs/ablations.md), 39 runs, 7.6 GPU-h |
@@ -390,12 +390,17 @@ is floating-point reduction order, not drift. Verifying it first required all-re
 logged training loss, which had been rank 0's own micro-batches: correct optimisation, but
 a number that described one Nth of the batch and got noisier as the world grew.
 
-Two things reported against the flattering framing. **MFU is `null` everywhere** and stays
-that way: `peak_flops()` has no `sm_120` entry, and a spec-sheet figure yields >95% MFU at
-202 TFLOP/s achieved, which cannot be right — so the table reports achieved TFLOP/s, which
-needs no vendor claim. And **97% of the 8-GPU run was not training**: ~690s of fixed
-overhead (probably per-bucket compile under DDP) against 18.5s of stepping, which is why my
-own 10-minute estimate for the sweep became 39.
+**A full training step runs at 86% of a bare matmul.** Rather than paste a spec-sheet peak
+into the MFU column, the card was benchmarked on the same pod: an 8192³ bf16 matmul reached
+**234.7 TFLOP/s**. Against that measured ceiling the training step extracts 86.1% at 1 GPU
+falling to 81.9% at 8 — the same 4-point cost as the scaling loss, denominated in the
+hardware's own capability. It also settles why `mfu` is `null` everywhere: the figure most
+often quoted for a 5090 is 209.5 TFLOP/s, and *we measured above it*, so it cannot be the
+peak — entering it would have reported 96% MFU. That column stays absent rather than wrong.
+
+And **97% of the 8-GPU run was not training**: ~690s of fixed overhead (probably per-bucket
+compile under DDP) against 18.5s of stepping, which is why my own 10-minute estimate for the
+sweep became 39.
 
 ### Quantization and speculative decoding
 
@@ -584,7 +589,7 @@ src/llmfs/
   ablation/   sweep runner, paired-seed analysis, tables and plots
   bench/      training + inference throughput, memory, cost, provenance
 configs/      gpt2-124m, llama-124m, debug, and 11 single-axis ablation arms
-tests/        274 tests — component correctness, config validation, end-to-end training
+tests/        298 tests — component correctness, config validation, end-to-end training
 web/          the interactive site: explainer, RoPE explorer, ablations (69 tests)
 scripts/      GPU pod automation, and the exporters that pin the site to the model
 docs/         reproduction protocol, fault-tolerance design

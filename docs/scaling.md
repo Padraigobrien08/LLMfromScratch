@@ -143,24 +143,46 @@ means anyone reusing the harness should raise it further rather than economise.
 
 ---
 
-## What MFU would require
+## Utilisation, and why `mfu` is null
 
-Every `mfu` field in the results file is `null`, and it is left that way on purpose.
+Every `mfu` field in the results file is `null`, and it stays that way. MFU needs a
+peak-FLOP/s figure and `peak_flops()` has no entry for `sm_120`. Rather than guess one, the
+card was benchmarked directly on the same pod — a 8192³ bf16 matmul, the same probe
+`bootstrap.sh` runs:
 
-MFU needs a peak-FLOP/s figure for the device, and `peak_flops()` has no entry for
-`sm_120`. Adding one from a spec sheet would be worse than the null: at 202 TFLOP/s
-achieved per card, one commonly quoted RTX 5090 dense BF16 figure yields an MFU above 95%,
-which cannot be right. A wrong denominator would produce a wrong, *publishable-looking*
-number.
+**234.7 TFLOP/s measured.**
 
-So the table reports **achieved TFLOP/s** instead, which needs no vendor claim — it is
-`tokens_per_sec x flops_per_token`, both measured or derived from the model. The formula is
-validated by reproducing three figures this repository already published, exactly: the
-H100 reproduction's 44.1% MFU, the H100 benchmark's 41.5%, and the 4090's 77.9%.
+That single number does two things. First it justifies the refusal: a commonly quoted RTX
+5090 dense bf16 peak is 209.5 TFLOP/s, and **we measured above it**, so that figure cannot
+be the peak for this operation. Had it been pasted into the table it would have produced an
+MFU of 96% — a wrong number that looks publishable. The implied true peak is ≥ 234.7, and
+if it is the ~419 TFLOP/s that a doubled fp16-accumulate rate would suggest, MFU would be
+**48.2%** — squarely in line with the H100 reproduction's 44.1%.
 
-The right fix is to use the **measured** matmul ceiling as the denominator. `bootstrap.sh`
-already benchmarks a large bf16 matmul on every pod, so the honest peak is available; it
-simply is not plumbed into MFU yet.
+Second, it supports a metric that needs no vendor claim at all: what fraction of the card's
+*own measured matmul throughput* does a full training step extract?
+
+| GPUs | achieved per GPU | of measured ceiling |
+| --- | --- | --- |
+| 1 | 202.1 TFLOP/s | **86.1%** |
+| 2 | 199.2 | 84.9% |
+| 4 | 196.2 | 83.6% |
+| 8 | 192.2 | **81.9%** |
+
+**A complete training step — attention, SwiGLU, RMSNorm, optimiser, all-reduce — runs at
+86% of what the card manages on a bare matmul.** There is very little left on the table.
+The 4090 measured the same way gives 78.9%, so this is not an artefact of one card.
+
+That column also re-expresses the scaling result in a way that shows where the cost lands:
+86.1% → 81.9% is a 4.2-point loss going from 1 GPU to 8, the same fact as the 4.9% per-GPU
+throughput drop, but denominated in the hardware's own capability rather than in the
+single-GPU baseline.
+
+**This is not MFU and is not comparable to the 44.1% figure** quoted for the reproduction.
+MFU is conventionally computed against the vendor's theoretical dense peak; this is computed
+against a measured microbenchmark, which is a lower and more forgiving denominator. Mixing
+the two in one table would be the sort of quiet apples-to-oranges comparison this document
+exists to avoid — hence a separate column with a different name, and `mfu` left null.
 
 ---
 
