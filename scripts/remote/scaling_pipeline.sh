@@ -26,6 +26,11 @@ LIMIT_DOCS="${SCALING_LIMIT_DOCS:-40000}"
 STEPS="${SCALING_STEPS:-50}"
 WARMUP="${SCALING_WARMUP:-15}"
 WORLD_SIZES="${SCALING_WORLD_SIZES:-1,2,4,8}"
+# Extra config overrides, applied to every world size. Needed when the GPU count is not a
+# power of two: tokens_per_step must be divisible by micro_batch x block_size x world_size
+# for *each* point, and a 7-GPU box cannot run the default 512-sequence batch at all.
+# Whatever is set here is held constant across the sweep, so the points stay comparable.
+EXTRA_SET="${SCALING_SET:-}"
 CONFIG="${SCALING_CONFIG:-gpt2-124m}"
 # Names the output file. Two pods (NVLink vs PCIe) are measured in this study, and an
 # unlabelled scaling.json from the second would silently overwrite the first.
@@ -73,12 +78,14 @@ do_scaling() {
     --out-dir "$WORKDIR/out/scaling" \
     --out "$RESULTS/scaling-$LABEL.json" \
     --label "$LABEL" \
-    --set "data.data_dir=$DATA_DIR"
+    --set "data.data_dir=$DATA_DIR" \
+    ${EXTRA_SET:+--set "$EXTRA_SET"}
 }
 
 # ------------------------------------------------------------------------- driver
 
-say "scaling pipeline starting (label: $LABEL)"
+say "scaling pipeline starting (label: $LABEL, world sizes: $WORLD_SIZES)"
+[[ -n "$EXTRA_SET" ]] && say "extra override applied to every point: $EXTRA_SET"
 nvidia-smi --query-gpu=index,name,memory.total --format=csv,noheader || true
 
 gpu_count=$(nvidia-smi --query-gpu=index --format=csv,noheader 2>/dev/null | wc -l)

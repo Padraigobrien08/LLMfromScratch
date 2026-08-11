@@ -76,9 +76,55 @@ def validate_overrides(config: str, world_sizes: tuple[int, ...], extra: list[st
 
     probe = base_overrides("scaling-validate", "out/scaling", max(2, len(world_sizes) + 1))
     try:
-        load_config(config, probe + extra)
+        cfg = load_config(config, probe + extra)
     except Exception as exc:  # noqa: BLE001 - re-raised as a clean message
         raise SystemExit(f"config '{config}' rejected the scaling overrides: {exc}") from exc
+
+    check_divisibility(cfg, world_sizes)
+
+
+def check_divisibility(cfg: Any, world_sizes: tuple[int, ...]) -> None:
+    """Every requested world size must divide the effective batch exactly.
+
+    ``grad_accum_steps`` demands that ``tokens_per_step`` be divisible by
+    ``micro_batch x block_size x world_size``, and a world size that fails it raises
+    inside the trainer — one rank at a time, after torchrun has launched, on a rented
+    machine. Non-powers-of-two are where this bites: 524,288 tokens is 512 sequences, and
+    512 has no factor of 7, so a 7-GPU box cannot run the default batch at all and no
+    choice of micro_batch changes that.
+
+    So it is checked here, before anything launches, with the arithmetic needed to fix it.
+    """
+    from math import lcm
+
+    bad = []
+    for ws in world_sizes:
+        try:
+            cfg.grad_accum_steps(ws)
+        except ValueError:
+            bad.append(ws)
+    if not bad:
+        return
+
+    unit = cfg.data.micro_batch_size * cfg.data.block_size * lcm(*world_sizes)
+    workable = (cfg.train.tokens_per_step // unit) * unit
+    # Underscore separators, because the suggestion is meant to be pasted onto a command
+    # line where a comma would be read as an argument separator.
+    detail = (
+        f"try --set train.tokens_per_step={workable:_} "
+        f"({workable // cfg.data.block_size} sequences), which divides evenly for every "
+        f"requested world size"
+        if workable
+        else "no smaller multiple exists; drop the offending world sizes or lower micro_batch"
+    )
+
+    raise SystemExit(
+        f"world size(s) {bad} cannot divide the effective batch: tokens_per_step="
+        f"{cfg.train.tokens_per_step:,} is not divisible by micro_batch "
+        f"({cfg.data.micro_batch_size}) x block_size ({cfg.data.block_size}) x world_size. "
+        f"{detail}. Hold whatever you choose constant across every point, or the "
+        f"comparison measures two different optimisations."
+    )
 
 
 @dataclass

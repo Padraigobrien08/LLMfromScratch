@@ -215,3 +215,32 @@ def test_cli_validates_before_running_anything(monkeypatch: pytest.MonkeyPatch) 
         main(["--config", "debug", "--world-sizes", "1", "--steps", "3", "--warmup", "1",
               "--set", "optim.not_a_field=1"])
     assert launched == [], "nothing may be launched once the config is known to be bad"
+
+
+def test_non_power_of_two_world_size_is_rejected_locally() -> None:
+    """A 7-GPU box cannot run a 512-sequence batch: 512 has no factor of 7, and no choice
+    of micro_batch changes that. This must fail here, not inside the trainer after
+    torchrun has launched on a machine that bills by the minute."""
+    with pytest.raises(SystemExit) as excinfo:
+        validate_overrides("gpt2-124m", (1, 2, 4, 7), [])
+    message = str(excinfo.value)
+    assert "[7]" in message
+    # The error has to carry the arithmetic to fix it, not just the complaint.
+    assert "tokens_per_step=458_752" in message
+    assert "," not in message.split("--set")[1].split()[0], "pasteable: no comma in the value"
+
+
+def test_suggested_batch_actually_divides_every_requested_world_size() -> None:
+    """The suggestion is only useful if it works — so follow it and check."""
+    validate_overrides("gpt2-124m", (1, 2, 4, 7), ["train.tokens_per_step=458752"])
+
+
+def test_powers_of_two_pass_with_the_default_batch() -> None:
+    validate_overrides("gpt2-124m", (1, 2, 4, 8), [])
+
+
+def test_divisibility_check_warns_it_must_be_held_constant() -> None:
+    """Changing tokens_per_step for only the awkward world size would make the sweep
+    compare two different optimisations. The message has to say so."""
+    with pytest.raises(SystemExit, match="constant across every point"):
+        validate_overrides("gpt2-124m", (1, 7), [])
