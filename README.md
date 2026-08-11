@@ -37,7 +37,7 @@ what is built and verified, and what is designed but not yet run.
 | Efficiency benchmarks (throughput, memory, KV cache) | **Done** — H100 training, 4090 inference; the cache sweep found a 30% bug, below |
 | Quantization + speculative decoding | **Done** — [docs/efficiency.md](docs/efficiency.md), measured on CUDA |
 | Fault-tolerance design doc | **Done** — [docs/fault-tolerance.md](docs/fault-tolerance.md) |
-| Multi-GPU scaling report | DDP wired; **scaling run pending** |
+| Multi-GPU scaling report | **Done** — [docs/scaling.md](docs/scaling.md), 95.1% efficiency on 8 GPUs, 1.54 PFLOP/s |
 | Interactive attention visualization | **Done** — [live](https://padraigobrien08.github.io/LLMfromScratch/attention/), auto-deployed from CI |
 | Interactive site (explainer, RoPE explorer, ablation playground) | **Done** — [live](https://padraigobrien08.github.io/LLMfromScratch/); the playground renders the published sweep |
 
@@ -352,6 +352,50 @@ suite. Two now do, both mutation-checked.
 Batching is where the cache is unambiguously worth it, because it is what makes a batch
 affordable at all: **16.5× throughput from batch 1 to 16** (219 → 3,622 tok/s) for
 216 MiB of cache.
+
+### Multi-GPU scaling
+
+**[Full report: docs/scaling.md](docs/scaling.md)** — 8× RTX 5090, no NVLink.
+
+| GPUs | grad accum | tokens/sec | efficiency | achieved | max Δloss vs 1 GPU |
+| --- | --- | --- | --- | --- | --- |
+| 1 | 32 | 185,928 | — | 202 TFLOP/s | baseline |
+| 2 | 16 | 366,469 | 98.6% | 398 TFLOP/s | 1.6e-05 |
+| 4 | 8 | 721,904 | 97.1% | 785 TFLOP/s | 1.4e-05 |
+| 8 | 4 | **1,414,340** | **95.1%** | **1,538 TFLOP/s** | 4.4e-05 |
+
+**95.1% at 8 GPUs over the worst interconnect in the building.** `nvidia-smi topo -m` is
+recorded in the results file: no NVLink, and a dual-socket box where GPUs 0–3 and 4–7 sit
+on different NUMA nodes, so the 8-way all-reduce crosses the inter-socket link. Per-GPU
+throughput still fell only 4.9%.
+
+That is `no_sync` earning its place. At world size 8 gradient accumulation is 4, and only
+the last micro-step syncs — one all-reduce per four micro-batches, so communication is
+amortised over 4× the compute. The honest reading is **the interconnect barely matters at
+this scale**, not that PCIe rivals NVLink; a 124M model with a 0.5M-token batch does enough
+arithmetic per step to hide a slow collective.
+
+**The throughput is the easy half.** The claim worth checking is that eight GPUs still take
+the *same* optimisation steps as one — `tokens_per_step` is fixed in tokens and accumulation
+is derived from it, which the accum column shows working. The loss at step 1:
+
+```
+1 GPU: 10.951740264892578      4 GPU: 10.951740264892578
+2 GPU: 10.951740264892578      8 GPU: 10.951739311218262
+```
+
+Identical to sixteen significant figures at 1, 2 and 4 GPUs. Over 50 steps the largest
+divergence is 4.4e-05 against a loss of ~8.6, and it does not grow with world size — that
+is floating-point reduction order, not drift. Verifying it first required all-reducing the
+logged training loss, which had been rank 0's own micro-batches: correct optimisation, but
+a number that described one Nth of the batch and got noisier as the world grew.
+
+Two things reported against the flattering framing. **MFU is `null` everywhere** and stays
+that way: `peak_flops()` has no `sm_120` entry, and a spec-sheet figure yields >95% MFU at
+202 TFLOP/s achieved, which cannot be right — so the table reports achieved TFLOP/s, which
+needs no vendor claim. And **97% of the 8-GPU run was not training**: ~690s of fixed
+overhead (probably per-bucket compile under DDP) against 18.5s of stepping, which is why my
+own 10-minute estimate for the sweep became 39.
 
 ### Quantization and speculative decoding
 

@@ -351,12 +351,22 @@ def run(
     report = ScalingReport(config=config, steps=steps, warmup=warmup, label=label)
     report.topology = capture_topology()
 
+    # capture() takes a device and calls torch.device() on it, so passing None raised a
+    # TypeError that an over-broad `except` then turned into an empty provenance dict. The
+    # 8x 5090 run shipped with "provenance": {} — no commit, no torch version, no GPU name
+    # — in a repository whose central claim is that every result traces to a commit. A
+    # failure here is now recorded and printed rather than swallowed.
     try:
+        import torch
+
         from ..utils.provenance import capture
 
-        report.provenance = capture(None, measure=False)
-    except Exception:  # noqa: BLE001
-        report.provenance = {}
+        device = "cuda" if torch.cuda.is_available() else "cpu"
+        report.provenance = capture(device, measure=False)
+        report.provenance["gpu_count"] = torch.cuda.device_count() if device == "cuda" else 0
+    except Exception as exc:  # noqa: BLE001 - recorded, not hidden
+        report.provenance = {"error": f"{type(exc).__name__}: {exc}"}
+        print(f"[warn] provenance capture FAILED: {exc}", flush=True)
 
     baseline_losses: list[float] = []
     baseline_throughput: float | None = None

@@ -1,0 +1,197 @@
+# Multi-GPU scaling
+
+Eight RTX 5090s, no NVLink, reaching **95.1% scaling efficiency** and **1.54 PFLOP/s** of
+useful training compute — while taking provably the same optimisation steps as one GPU.
+
+Measured with `llmfs-scaling`, which runs the **real trainer** at each world size via
+`torchrun` rather than a synthetic benchmark loop. That is deliberate: a hand-written loop
+would measure a program nobody trains with, and would omit the two things most likely to
+spoil scaling — the gradient all-reduce and the optimiser step.
+
+```bash
+./scripts/gpu.sh scaling 5090x8
+```
+
+---
+
+## Results
+
+8× RTX 5090 (32 GiB, `sm_120`), torch 2.8.0+cu128, `gpt2-124m` at a 524,288-token batch,
+50 steps per point with the first 15 discarded as warmup, medians over the remaining 35.
+
+| GPUs | grad accum | tokens/sec | per GPU | ms/step | speedup | efficiency | achieved | max Δloss vs 1 GPU |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| 1 | 32 | 185,928 | 185,928 | 2,819.8 | 1.00× | — | 202 TFLOP/s | baseline |
+| 2 | 16 | 366,469 | 183,234 | 1,430.6 | 1.97× | **98.6%** | 398 TFLOP/s | 1.6e-05 |
+| 4 | 8 | 721,904 | 180,476 | 726.3 | 3.88× | **97.1%** | 785 TFLOP/s | 1.4e-05 |
+| 8 | 4 | **1,414,340** | 176,793 | 370.7 | **7.61×** | **95.1%** | **1,538 TFLOP/s** | 4.4e-05 |
+
+![Scaling](../results/scaling-5090x8.png)
+
+`achieved` is derived from the model's own `flops_per_token` (1.087 GFLOP/token at 1024
+context), not from a vendor spec — see [MFU](#what-mfu-would-require) below.
+
+---
+
+## The optimisation is unchanged, and that is the claim that matters
+
+A scaling report that only reports throughput is answering the easy question. The hard one
+is whether eight GPUs are still training the *same model*, because the fast ways to be
+wrong here — dropping the accumulation, letting each rank optimise its own shard, syncing
+the wrong tensor — all make the throughput number *better*.
+
+`tokens_per_step` is fixed at 524,288 **in tokens**, and gradient accumulation is derived
+from it, the micro-batch and the world size. The accum column shows that working: 32, 16,
+8, 4 as the world size doubles. The product is held constant, so the effective batch never
+moves and eight GPUs take the same optimisation steps as one, only faster.
+
+The evidence is the loss at step 1, across the four independent runs:
+
+```
+1 GPU: 10.951740264892578
+2 GPU: 10.951740264892578
+4 GPU: 10.951740264892578
+8 GPU: 10.951739311218262
+```
+
+Identical to sixteen significant figures at 1, 2 and 4 GPUs; differing in the last two
+digits at 8. Over all 50 steps the largest divergence is **4.4e-05** against a loss of
+~8.6 — five parts per million — and it does not grow with world size (1.6e-05, 1.4e-05,
+4.4e-05). A real bug would show *drift*: a delta compounding step over step. This is
+floating-point reduction order, which is the irreducible amount of difference.
+
+That check required fixing something first. Only the *eval* loss was being all-reduced;
+the logged training loss was rank 0's own micro-batches — one Nth of the effective batch —
+so it got noisier as the world grew and a multi-GPU curve could not be compared against a
+single-GPU one at all. The optimisation was always correct, since DDP averages the
+gradients regardless; the logged number simply did not describe the batch that had been
+trained on.
+
+---
+
+## 95% on PCIe, and why that is not luck
+
+There is **no NVLink on this machine.** `nvidia-smi topo -m` is recorded verbatim in the
+results file, and it is worse than a flat PCIe fabric: this is a dual-socket box with GPUs
+0–3 on NUMA node 0 and 4–7 on node 1. Every cross-group pair reads `SYS` — PCIe *plus* the
+inter-socket link. So the 8-GPU all-reduce traverses the slowest path the topology offers,
+and per-GPU throughput still fell only **4.9%**.
+
+The reason is gradient accumulation, and specifically `no_sync`. DDP all-reduces gradients
+on every backward pass by default. During accumulation only the last micro-step needs to
+sync, so the other `grad_accum - 1` run under `model.no_sync()`:
+
+```python
+sync = micro_step == self.grad_accum_steps - 1
+ctx = model.no_sync() if (self.dist.enabled and not sync) else nullcontext()
+```
+
+At world size 8 the accumulation is 4, so there is **one all-reduce per four micro-batches**
+— the communication is amortised over 4× the compute. The trainer's comment claimed this
+was "the difference between communication-bound and compute-bound." That is no longer a
+claim: 95.1% over the worst interconnect in the building is the number behind it.
+
+The corollary is the honest one. **This result says the interconnect barely matters at this
+scale**, not that PCIe is as good as NVLink. A 124M model with a 0.5M-token batch does
+enough arithmetic per optimiser step to hide a slow all-reduce. Scale the model up or the
+batch down and that stops being true.
+
+---
+
+## Where the efficiency goes
+
+Efficiency falls **1.5–2 points per doubling**: 98.6 → 97.1 → 95.1, i.e. −1.45, −1.48,
+−1.98. Close to linear in `log2(N)`, which is the shape to expect when the cost is a
+ring/tree all-reduce whose depth grows logarithmically with rank count.
+
+The slight steepening into 8 GPUs is where the NUMA boundary first has to be crossed: at 4
+GPUs the group fits inside one socket (`NODE`), at 8 it does not (`SYS`). One point of
+extra loss is a cheap price for crossing sockets, and it is the only place in this data
+where the topology is visible at all.
+
+Extrapolating the trend, 16 GPUs on this fabric would land near 93%. That is an
+extrapolation from three points, not a measurement.
+
+---
+
+## The wall clock is compile, not stepping
+
+Worth knowing before anyone budgets a sweep like this, and it surprised me:
+
+| GPUs | run wall-clock | of which stepping | fixed overhead |
+| --- | --- | --- | --- |
+| 1 | 174.5s | 141.0s (80.8%) | 33.5s |
+| 2 | 758.9s | 71.5s (9.4%) | 687.3s |
+| 4 | 725.6s | 36.3s (5.0%) | 689.3s |
+| 8 | 709.4s | 18.5s (2.6%) | **690.9s** |
+
+At world size 8, **97% of the run was not training.** And the overhead is near-constant at
+~690s for every multi-rank run while being only 33s for single-rank — a 20× jump between
+one rank and two, then flat.
+
+The likely cause is `torch.compile` under DDP: inductor's DDPOptimizer splits the graph at
+gradient-bucket boundaries and compiles each subgraph separately, so a distributed run
+compiles several graphs where a single-GPU run compiles one. The flatness across 2, 4 and 8
+fits that — the same number of subgraphs, compiled in parallel across ranks. **This is a
+hypothesis consistent with the timings, not something measured here**; isolating it would
+mean timing compilation directly.
+
+Two practical consequences. Estimating this sweep from stepping time gave ~10 minutes; it
+took 39.5. And since the cost is fixed per run rather than per step, **more steps are
+nearly free** — which retroactively justifies raising this sweep from 30 steps to 50, and
+means anyone reusing the harness should raise it further rather than economise.
+
+---
+
+## What MFU would require
+
+Every `mfu` field in the results file is `null`, and it is left that way on purpose.
+
+MFU needs a peak-FLOP/s figure for the device, and `peak_flops()` has no entry for
+`sm_120`. Adding one from a spec sheet would be worse than the null: at 202 TFLOP/s
+achieved per card, one commonly quoted RTX 5090 dense BF16 figure yields an MFU above 95%,
+which cannot be right. A wrong denominator would produce a wrong, *publishable-looking*
+number.
+
+So the table reports **achieved TFLOP/s** instead, which needs no vendor claim — it is
+`tokens_per_sec x flops_per_token`, both measured or derived from the model. The formula is
+validated by reproducing three figures this repository already published, exactly: the
+H100 reproduction's 44.1% MFU, the H100 benchmark's 41.5%, and the 4090's 77.9%.
+
+The right fix is to use the **measured** matmul ceiling as the denominator. `bootstrap.sh`
+already benchmarks a large bf16 matmul on every pod, so the honest peak is available; it
+simply is not plumbed into MFU yet.
+
+---
+
+## What this does not measure
+
+- **NVLink.** The planned comparison against 8 NVLink-connected A100s is now bounded by
+  this result: PCIe already achieves 95.1%, so NVLink can recover at most ~5 points. The
+  comparison is still worth making, but it can no longer be the headline, and the
+  interesting experiment moved elsewhere (below).
+- **Multi-node.** Single node only (`--nnodes=1`). Crossing hosts introduces a network an
+  order of magnitude slower than PCIe, and none of these numbers predict that.
+- **Larger models.** At 124M, compute per step is large relative to 124M gradients. A 7B
+  model changes both sides of that ratio.
+- **MFU**, as above.
+- **Quality.** No evaluation runs during a scaling sweep (`eval_interval` is set past the
+  last step), and the corpus was small enough that train and validation shards hold the
+  same 41.8M tokens. Irrelevant to throughput, and it would invalidate any loss claim
+  beyond the step-for-step equivalence above, which compares runs against each other
+  rather than against a target.
+- **Provenance**, in this particular artifact. `results/scaling-5090x8.json` has
+  `"provenance": {}` because `capture()` was called with `None` and an over-broad `except`
+  swallowed the TypeError. So this file records no commit, torch version or GPU name. Fixed
+  afterwards — a failure now records the error and prints a warning instead of silently
+  producing an empty dict. The run was `gpt2-124m` on torch 2.8.0+cu128, 8× RTX 5090
+  `sm_120`, from `main` at the time of the run.
+
+## The sharper experiment this suggests
+
+If 95.1% holds because accumulation amortises communication 4×, then the way to *see*
+communication is to vary that amortisation directly — at fixed world size 8, sweep
+`tokens_per_step` so accumulation goes 4 → 2 → 1 and each all-reduce covers less compute.
+That isolates the communication cost on one machine, with no second pod and no confound
+from a different architecture, and it would predict where the interconnect starts to
+matter. It is a better use of the next $10 than the NVLink comparison.
