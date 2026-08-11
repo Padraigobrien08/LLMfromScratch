@@ -107,9 +107,41 @@ class ScalingReport:
     config: str
     steps: int
     warmup: int
+    label: str = ""
+    """Names this measurement, e.g. "a100x8-nvlink". Two runs on different hardware are
+    the whole point of comparing interconnects, and they must not overwrite each other."""
     points: list[ScalingPoint] = field(default_factory=list)
     provenance: dict[str, Any] = field(default_factory=dict)
+    topology: dict[str, Any] = field(default_factory=dict)
     notes: list[str] = field(default_factory=list)
+
+
+def capture_topology() -> dict[str, Any]:
+    """Record how the GPUs are actually wired together.
+
+    Scaling efficiency is largely an interconnect story, so "8 GPUs" is not a sufficient
+    description of the hardware — 8 cards on NVLink and 8 on PCIe are different machines
+    for this purpose. ``nvidia-smi topo -m`` is the evidence, kept raw so the claim can be
+    checked rather than taken on trust, plus a derived flag for the summary table.
+    """
+    try:
+        proc = subprocess.run(
+            ["nvidia-smi", "topo", "-m"], capture_output=True, text=True, timeout=30
+        )
+    except (OSError, subprocess.SubprocessError):
+        return {}
+    if proc.returncode != 0:
+        return {}
+
+    matrix = proc.stdout
+    # NV1/NV2/... in the matrix means a direct NVLink between that pair. "PIX"/"PHB"/"SYS"
+    # are PCIe routes of decreasing quality.
+    has_nvlink = any(f"NV{n}" in matrix for n in range(1, 19))
+    return {
+        "nvidia_smi_topo_m": matrix,
+        "has_nvlink": has_nvlink,
+        "interconnect": "NVLink" if has_nvlink else "PCIe",
+    }
 
 
 def read_metrics(path: Path) -> list[dict[str, Any]]:
@@ -267,9 +299,11 @@ def run(
     warmup: int = 10,
     out_dir: Path = Path("out/scaling"),
     extra_overrides: list[str] | None = None,
+    label: str = "",
 ) -> ScalingReport:
     extra_overrides = extra_overrides or []
-    report = ScalingReport(config=config, steps=steps, warmup=warmup)
+    report = ScalingReport(config=config, steps=steps, warmup=warmup, label=label)
+    report.topology = capture_topology()
 
     try:
         from ..utils.provenance import capture
@@ -426,6 +460,12 @@ def main(argv: list[str] | None = None) -> None:
         help="logged steps to discard before taking medians (compile and autotune)",
     )
     parser.add_argument("--out-dir", type=str, default="out/scaling")
+    parser.add_argument(
+        "--label",
+        type=str,
+        default="",
+        help='names this measurement, e.g. "a100x8-nvlink"; keeps two runs from colliding',
+    )
     parser.add_argument("--out", type=str, default="results/scaling.json")
     parser.add_argument(
         "--set",
@@ -490,6 +530,7 @@ def main(argv: list[str] | None = None) -> None:
         warmup=args.warmup,
         out_dir=Path(args.out_dir),
         extra_overrides=args.overrides,
+        label=args.label,
     )
     if skipped:
         report.notes.append(f"skipped world sizes {skipped}: only {available} device(s) visible")

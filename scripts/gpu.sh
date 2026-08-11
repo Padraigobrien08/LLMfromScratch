@@ -29,7 +29,7 @@
 #   ./scripts/gpu.sh data ablation      # just the corpus (hours)
 #   ./scripts/gpu.sh sweep              # launch the ablation sweep, detached
 #   ./scripts/gpu.sh repro              # launch the 124M reproduction, detached
-#   ./scripts/gpu.sh scaling            # multi-GPU scaling report (needs 2+ GPUs)
+#   ./scripts/gpu.sh scaling LABEL      # multi-GPU scaling report (needs 2+ GPUs)
 #   ./scripts/gpu.sh autostop [min]     # best-effort: stop the pod N min after the job ends
 #   ./scripts/gpu.sh stop               # stop the pod now, from this machine (reliable)
 #   ./scripts/gpu.sh mirror [min]       # mirror checkpoints to persistent storage
@@ -388,7 +388,16 @@ cmd_fetch_checkpoints() {
 cmd_scaling() {
   # Multi-GPU scaling. Unlike `bench` this needs a corpus, because it measures the real
   # training step — but only a small one, since 30 steps is under 16M tokens.
-  bold "launching scaling measurement"
+  #
+  # The label names the output file. It matters because this study measures two pods —
+  # NVLink and PCIe — and an unlabelled result from the second would overwrite the first.
+  local label="${1:-}"
+  [[ -n "$label" ]] || die "usage: gpu.sh scaling <label>   e.g. 'a100x8' or '4090x8'
+  The label names results/scaling-<label>.json. Two pods are compared in this study,
+  so an unlabelled run would overwrite the other one's results."
+
+  bold "launching scaling measurement (label: $label)"
+  SCALING_EXTRA="SCALING_LABEL=$label ${SCALING_EXTRA:-}"
   scp -q -P "$GPU_PORT" -i "$GPU_KEY" \
     "$REPO_ROOT/scripts/remote/scaling_pipeline.sh" \
     "$GPU_USER@$GPU_HOST:$GPU_WORKDIR/scaling_pipeline.sh"

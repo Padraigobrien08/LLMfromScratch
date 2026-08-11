@@ -23,6 +23,9 @@ STEPS="${SCALING_STEPS:-30}"
 WARMUP="${SCALING_WARMUP:-10}"
 WORLD_SIZES="${SCALING_WORLD_SIZES:-1,2,4,8}"
 CONFIG="${SCALING_CONFIG:-gpt2-124m}"
+# Names the output file. Two pods (NVLink vs PCIe) are measured in this study, and an
+# unlabelled scaling.json from the second would silently overwrite the first.
+LABEL="${SCALING_LABEL:-unlabelled}"
 
 mkdir -p "$MARKERS" "$RESULTS"
 cd "$REPO" || exit 1
@@ -64,13 +67,14 @@ do_scaling() {
     --steps "$STEPS" \
     --warmup "$WARMUP" \
     --out-dir "$WORKDIR/out/scaling" \
-    --out "$RESULTS/scaling.json" \
+    --out "$RESULTS/scaling-$LABEL.json" \
+    --label "$LABEL" \
     --set "data.data_dir=$DATA_DIR"
 }
 
 # ------------------------------------------------------------------------- driver
 
-say "scaling pipeline starting"
+say "scaling pipeline starting (label: $LABEL)"
 nvidia-smi --query-gpu=index,name,memory.total --format=csv,noheader || true
 
 gpu_count=$(nvidia-smi --query-gpu=index --format=csv,noheader 2>/dev/null | wc -l)
