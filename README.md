@@ -369,11 +369,26 @@ recorded in the results file: no NVLink, and a dual-socket box where GPUs 0–3 
 on different NUMA nodes, so the 8-way all-reduce crosses the inter-socket link. Per-GPU
 throughput still fell only 4.9%.
 
-That is `no_sync` earning its place. At world size 8 gradient accumulation is 4, and only
-the last micro-step syncs — one all-reduce per four micro-batches, so communication is
-amortised over 4× the compute. The honest reading is **the interconnect barely matters at
-this scale**, not that PCIe rivals NVLink; a 124M model with a 0.5M-token batch does enough
-arithmetic per step to hide a slow collective.
+That is `no_sync` earning its place — and it was tested rather than asserted. Holding the
+world size at 8 and varying the batch so accumulation goes 8 → 4 → 2 → 1:
+
+| accum @ 8 GPUs | tokens/step | 8 GPU tok/s | efficiency |
+| --- | --- | --- | --- |
+| 8 | 1,048,576 | 1,440,267 | 96.6% |
+| 4 | 524,288 | 1,410,960 | 95.2% ← control, reproduces the row above to 0.24% |
+| 2 | 262,144 | 1,363,111 | 92.1% |
+| 1 | 131,072 | 1,270,772 | **86.0%** |
+
+With one all-reduce per micro-batch, efficiency falls to 86.0%. So communication is exactly
+what the accumulation was hiding. A two-parameter fit to the accum 8 and 4 points —
+`loss = 1.975 + 11.134/accum` percentage points — predicted the other two **before they were
+measured**, to within 0.85 points across a further 4× range.
+
+The honest reading is therefore **the interconnect matters exactly as much as the batch
+fails to hide it**. At the reproduction's configuration a perfect interconnect could recover
+about 2.8 points, which is why the planned NVLink comparison was dropped in favour of this
+experiment: two machines would have confounded interconnect with architecture, bandwidth and
+NCCL version to chase a three-point effect.
 
 **The throughput is the easy half.** The claim worth checking is that eight GPUs still take
 the *same* optimisation steps as one — `tokens_per_step` is fixed in tokens and accumulation

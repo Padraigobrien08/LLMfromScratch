@@ -188,10 +188,11 @@ exists to avoid — hence a separate column with a different name, and `mfu` lef
 
 ## What this does not measure
 
-- **NVLink.** The planned comparison against 8 NVLink-connected A100s is now bounded by
-  this result: PCIe already achieves 95.1%, so NVLink can recover at most ~5 points. The
-  comparison is still worth making, but it can no longer be the headline, and the
-  interesting experiment moved elsewhere (below).
+- **NVLink.** Never measured, and deliberately dropped. PCIe already achieves 95.1% at the
+  reproduction's batch, and the accumulation sweep below attributes only ~2.8 of the
+  remaining points to the all-reduce itself — so a perfect interconnect could recover about
+  three points. Two different machines would have confounded interconnect with
+  architecture, memory bandwidth and NCCL version to chase that.
 - **Multi-node.** Single node only (`--nnodes=1`). Crossing hosts introduces a network an
   order of magnitude slower than PCIe, and none of these numbers predict that.
 - **Larger models.** At 124M, compute per step is large relative to 124M gradients. A 7B
@@ -202,18 +203,93 @@ exists to avoid — hence a separate column with a different name, and `mfu` lef
   same 41.8M tokens. Irrelevant to throughput, and it would invalidate any loss claim
   beyond the step-for-step equivalence above, which compares runs against each other
   rather than against a target.
-- **Provenance**, in this particular artifact. `results/scaling-5090x8.json` has
+- **Provenance**, in one artifact only. `results/scaling-5090x8.json` has
   `"provenance": {}` because `capture()` was called with `None` and an over-broad `except`
   swallowed the TypeError. So this file records no commit, torch version or GPU name. Fixed
   afterwards — a failure now records the error and prints a warning instead of silently
   producing an empty dict. The run was `gpt2-124m` on torch 2.8.0+cu128, 8× RTX 5090
-  `sm_120`, from `main` at the time of the run.
+  `sm_120`, from `main` at the time of the run. The four `results/comm-accum*.json` files,
+  measured after the fix, carry full provenance including commit `89474b8`, torch
+  2.8.0+cu128 and `gpu_count: 8`.
 
-## The sharper experiment this suggests
+## Testing the explanation, not just restating it
 
-If 95.1% holds because accumulation amortises communication 4×, then the way to *see*
-communication is to vary that amortisation directly — at fixed world size 8, sweep
-`tokens_per_step` so accumulation goes 4 → 2 → 1 and each all-reduce covers less compute.
-That isolates the communication cost on one machine, with no second pod and no confound
-from a different architecture, and it would predict where the interconnect starts to
-matter. It is a better use of the next $10 than the NVLink comparison.
+The `no_sync` account above is an *explanation*, and explanations of pleasing results
+deserve more suspicion than the results do — the KV-cache episode in
+[docs/efficiency.md](efficiency.md) was exactly a plausible story that stopped an
+investigation and hid a 30% bug for weeks.
+
+It also makes a prediction. If 95.1% holds because accumulation amortises the all-reduce
+over four micro-batches, then shrinking the amortisation should cost efficiency. So the
+world size was held at 8 and `tokens_per_step` varied, which is the only thing that moves
+the accumulation. Same machine, same 8 cards, same everything else — no interconnect
+comparison needed, and none of the confounds one would carry.
+
+| accum @ 8 GPUs | tokens/step | 1 GPU tok/s | 8 GPU tok/s | per GPU | efficiency | max Δloss |
+| --- | --- | --- | --- | --- | --- | --- |
+| 8 | 1,048,576 | 186,306 | 1,440,267 | 180,033 | **96.6%** | 1.1e-05 |
+| 4 | 524,288 | 185,182 | 1,410,960 | 176,370 | **95.2%** | 9.5e-06 |
+| 2 | 262,144 | 185,087 | 1,363,111 | 170,389 | **92.1%** | 1.8e-05 |
+| 1 | 131,072 | 184,618 | 1,270,772 | 158,847 | **86.0%** | 2.4e-05 |
+
+Monotonic, and steep at the bottom: with one all-reduce per micro-batch, efficiency falls
+to 86.0%. The mechanism is confirmed — communication is what the accumulation was hiding.
+
+**The accum=4 row is a control**, and it reproduces the independent run in the table at the
+top of this document to within **0.24%** on throughput and **0.15 points** on efficiency
+(1,410,960 vs 1,414,340 tok/s; 95.24% vs 95.09%). Two sweeps a day apart, same hardware,
+same numbers.
+
+**Single-GPU throughput barely moves**: 186,306 → 184,618 across an 8× range of batch
+size, a spread of 0.9%. That was not assumed — every batch size was run at world size 1 as
+well as 8, precisely because efficiency is a ratio and borrowing one baseline across batch
+sizes would have divided by the wrong number. It turns out the assumption would have been
+safe, which is only knowable by having measured it.
+
+### The quantitative form, predicted before it was measured
+
+With the accum 8 and 4 points in hand, the obvious model is a fixed cost plus a
+per-all-reduce cost amortised over the accumulation:
+
+```
+loss(accum) = a + b / accum          a = 1.975 pts,  b = 11.134 pts
+```
+
+fitted to those **two points only**. Its out-of-sample predictions against what was then
+unmeasured:
+
+| accum | predicted | measured | error |
+| --- | --- | --- | --- |
+| 2 | 92.46% | 92.06% | +0.40 pts |
+| 1 | 86.89% | 86.04% | +0.85 pts |
+
+Within 0.85 points across a further 4× reduction in amortisation. So the cost of
+distribution here really does decompose into ~2.0 points that do not care about
+accumulation — NUMA crossing, launch latency, the optimiser step — and ~11.1 points per
+all-reduce, paid once per optimiser step and therefore divided by the accumulation.
+
+The residual is real and worth naming rather than rounding away. The implied
+per-all-reduce cost is not quite constant:
+
+| accum | 8 | 4 | 2 | 1 |
+| --- | --- | --- | --- | --- |
+| implied `b` | 11.13 | 11.13 | 11.93 | 11.98 |
+
+It rises about 7% at low accumulation, so the model slightly *under*-predicts the cost
+there. A plausible cause is that with fewer micro-steps there is less backward computation
+for DDP to overlap the gradient reduction against, but that is a hypothesis this experiment
+does not test.
+
+### What this means for the interconnect
+
+It reframes the NVLink comparison that was originally planned. At accum 4 — the
+reproduction's configuration — communication costs 4.8 points, of which the model
+attributes ~2.8 to the all-reduce itself. **A perfect interconnect could recover at most
+those ~2.8 points.** That is the whole prize, and it is why the comparison was dropped in
+favour of this experiment: two different machines would have confounded the interconnect
+with architecture, memory bandwidth and NCCL version to chase a three-point effect.
+
+But the accum=1 row shows the same interconnect costing 14 points. **The interconnect
+matters exactly as much as the batch fails to hide it** — which is the same statement as
+"a 124M model with a 0.5M-token batch does enough arithmetic per step to hide a slow
+all-reduce", now with a coefficient attached.

@@ -1,0 +1,74 @@
+{
+  "config": "gpt2-124m",
+  "steps": 30,
+  "warmup": 10,
+  "label": "accum2",
+  "points": [
+    {
+      "world_size": 1,
+      "tokens_per_sec": 185087.4648654007,
+      "tokens_per_sec_per_gpu": 185087.4648654007,
+      "step_time_ms": 1416.3249819976045,
+      "mfu": null,
+      "grad_accum_steps": 16,
+      "samples": 20,
+      "loss_first": 10.953791618347168,
+      "loss_last": 9.291853904724121,
+      "max_loss_delta_vs_1gpu": null,
+      "speedup": 1.0,
+      "efficiency": 1.0,
+      "error": null,
+      "seconds": 63.82450613499532
+    },
+    {
+      "world_size": 8,
+      "tokens_per_sec": 1363110.9580351762,
+      "tokens_per_sec_per_gpu": 170388.86975439702,
+      "step_time_ms": 192.3130345021491,
+      "mfu": null,
+      "grad_accum_steps": 2,
+      "samples": 20,
+      "loss_first": 10.953791618347168,
+      "loss_last": 9.291851043701172,
+      "max_loss_delta_vs_1gpu": 1.811981201171875e-05,
+      "speedup": 7.364685442239201,
+      "efficiency": 0.9205856802799002,
+      "error": null,
+      "seconds": 690.1813592960025
+    }
+  ],
+  "provenance": {
+    "timestamp_utc": "2026-08-11T15:34:07Z",
+    "hostname": "12ae692d2904",
+    "platform": "Linux-6.8.0-124-generic-x86_64-with-glibc2.39",
+    "python": "3.12.3",
+    "torch": "2.8.0+cu128",
+    "device": "cuda",
+    "git_commit": "89474b8fb33161545ade87068f416af41b6c920f",
+    "git_branch": "main",
+    "git_dirty": false,
+    "gpu": "NVIDIA GeForce RTX 5090",
+    "gpu_memory_gib": 31.4,
+    "gpu_arch": "sm_120",
+    "cuda": "12.8",
+    "torch_arch_list": [
+      "sm_70",
+      "sm_75",
+      "sm_80",
+      "sm_86",
+      "sm_90",
+      "sm_100",
+      "sm_120"
+    ],
+    "bf16_supported": true,
+    "driver": "580.126.09",
+    "cpu_count": 192,
+    "gpu_count": 8
+  },
+  "topology": {
+    "nvidia_smi_topo_m": "\t\u001b[4mGPU0\tGPU1\tGPU2\tGPU3\tGPU4\tGPU5\tGPU6\tGPU7\tNIC0\tNIC1\tCPU Affinity\tNUMA Affinity\tGPU NUMA ID\u001b[0m\nGPU0\t X \tNODE\tNODE\tNODE\tSYS\tSYS\tSYS\tSYS\tNODE\tNODE\t0-47,96-143\t0\t\tN/A\nGPU1\tNODE\t X \tNODE\tNODE\tSYS\tSYS\tSYS\tSYS\tNODE\tNODE\t0-47,96-143\t0\t\tN/A\nGPU2\tNODE\tNODE\t X \tNODE\tSYS\tSYS\tSYS\tSYS\tNODE\tNODE\t0-47,96-143\t0\t\tN/A\nGPU3\tNODE\tNODE\tNODE\t X \tSYS\tSYS\tSYS\tSYS\tNODE\tNODE\t0-47,96-143\t0\t\tN/A\nGPU4\tSYS\tSYS\tSYS\tSYS\t X \tNODE\tNODE\tNODE\tSYS\tSYS\t48-95,144-191\t1\t\tN/A\nGPU5\tSYS\tSYS\tSYS\tSYS\tNODE\t X \tNODE\tNODE\tSYS\tSYS\t48-95,144-191\t1\t\tN/A\nGPU6\tSYS\tSYS\tSYS\tSYS\tNODE\tNODE\t X \tNODE\tSYS\tSYS\t48-95,144-191\t1\t\tN/A\nGPU7\tSYS\tSYS\tSYS\tSYS\tNODE\tNODE\tNODE\t X \tSYS\tSYS\t48-95,144-191\t1\t\tN/A\nNIC0\tNODE\tNODE\tNODE\tNODE\tSYS\tSYS\tSYS\tSYS\t X \tPIX\t\t\t\t\nNIC1\tNODE\tNODE\tNODE\tNODE\tSYS\tSYS\tSYS\tSYS\tPIX\t X \t\t\t\t\n\nLegend:\n\n  X    = Self\n  SYS  = Connection traversing PCIe as well as the SMP interconnect between NUMA nodes (e.g., QPI/UPI)\n  NODE = Connection traversing PCIe as well as the interconnect between PCIe Host Bridges within a NUMA node\n  PHB  = Connection traversing PCIe as well as a PCIe Host Bridge (typically the CPU)\n  PXB  = Connection traversing multiple PCIe bridges (without traversing the PCIe Host Bridge)\n  PIX  = Connection traversing at most a single PCIe bridge\n  NV#  = Connection traversing a bonded set of # NVLinks\n\nNIC Legend:\n\n  NIC0: rocep39s0f0\n  NIC1: rocep39s0f1\n\n",
+    "has_nvlink": false,
+    "interconnect": "PCIe"
+  },
+  "notes": []
+}
