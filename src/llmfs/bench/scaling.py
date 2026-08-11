@@ -611,3 +611,64 @@ def main(argv: list[str] | None = None) -> None:
 
 if __name__ == "__main__":
     main()
+
+
+# --------------------------------------------------------------- communication sweep
+
+
+def comm_table(reports: list[dict[str, Any]], pivot_world_size: int = 8) -> str:
+    """Merge the communication sweep's per-batch reports into one table.
+
+    Each report is a normal scaling report at one ``tokens_per_step``, run at world size 1
+    and ``pivot_world_size``. What the sweep is for is the relationship between the
+    accumulation count at the pivot world size and the efficiency there — i.e. whether
+    amortising the all-reduce over more compute is what buys the efficiency.
+
+    Efficiency comes from each report's own single-GPU baseline, never from another
+    report's: single-GPU throughput itself varies a little with the batch, so borrowing a
+    baseline across batch sizes would divide by the wrong number.
+    """
+    rows = []
+    for report in reports:
+        points = {p["world_size"]: p for p in report.get("points", [])}
+        pivot, base = points.get(pivot_world_size), points.get(1)
+        if not pivot or pivot.get("error"):
+            continue
+        accum = pivot.get("grad_accum_steps")
+        rows.append(
+            {
+                "accum": accum,
+                "tokens_per_step": (accum or 0) * 131_072 if accum else None,
+                "pivot_tps": pivot["tokens_per_sec"],
+                "per_gpu": pivot["tokens_per_sec_per_gpu"],
+                "base_tps": base["tokens_per_sec"] if base and not base.get("error") else None,
+                "efficiency": pivot.get("efficiency"),
+                "delta": pivot.get("max_loss_delta_vs_1gpu"),
+            }
+        )
+    rows.sort(key=lambda r: -(r["accum"] or 0))
+
+    lines = [
+        f"| accum @ {pivot_world_size} GPUs | tokens/step | 1 GPU tok/s | "
+        f"{pivot_world_size} GPU tok/s | per GPU | efficiency | max Δloss |",
+        "| --- | --- | --- | --- | --- | --- | --- |",
+    ]
+    for r in rows:
+        base = f"{r['base_tps']:,.0f}" if r["base_tps"] else "—"
+        eff = f"{r['efficiency']:.1%}" if r["efficiency"] is not None else "—"
+        delta = f"{r['delta']:.1e}" if r["delta"] is not None else "—"
+        lines.append(
+            f"| {r['accum']} | {r['tokens_per_step']:,} | {base} | "
+            f"{r['pivot_tps']:,.0f} | {r['per_gpu']:,.0f} | {eff} | {delta} |"
+        )
+    return "\n".join(lines)
+
+
+def main_comm_report(argv: list[str] | None = None) -> None:
+    parser = argparse.ArgumentParser(description="Merge a communication sweep into a table.")
+    parser.add_argument("reports", nargs="+", help="comm-accum*.json files")
+    parser.add_argument("--pivot-world-size", type=int, default=8)
+    args = parser.parse_args(argv)
+
+    loaded = [json.loads(Path(p).read_text()) for p in args.reports]
+    print(comm_table(loaded, pivot_world_size=args.pivot_world_size))

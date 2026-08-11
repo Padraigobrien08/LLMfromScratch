@@ -51,6 +51,7 @@ llmfs-ablate = "llmfs.ablation.sweep:main"
 llmfs-ablate-report = "llmfs.ablation.report:main"
 llmfs-bench = "llmfs.bench.throughput:main"
 llmfs-scaling = "llmfs.bench.scaling:main"
+llmfs-comm-report = "llmfs.bench.scaling:main_comm_report"
 llmfs-quant-eval = "llmfs.quant.evaluate:main"
 llmfs-spec-bench = "llmfs.infer.benchmark:main"
 

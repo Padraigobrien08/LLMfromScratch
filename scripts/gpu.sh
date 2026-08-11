@@ -30,6 +30,7 @@
 #   ./scripts/gpu.sh sweep              # launch the ablation sweep, detached
 #   ./scripts/gpu.sh repro              # launch the 124M reproduction, detached
 #   ./scripts/gpu.sh scaling LABEL      # multi-GPU scaling report (needs 2+ GPUs)
+#   ./scripts/gpu.sh comm-sweep         # accumulation sweep: why scaling holds up
 #   ./scripts/gpu.sh autostop [min]     # best-effort: stop the pod N min after the job ends
 #   ./scripts/gpu.sh stop               # stop the pod now, from this machine (reliable)
 #   ./scripts/gpu.sh mirror [min]       # mirror checkpoints to persistent storage
@@ -411,6 +412,20 @@ cmd_scaling() {
      bash $GPU_WORKDIR/scaling_pipeline.sh"
 }
 
+cmd_comm_sweep() {
+  # The communication-sensitivity sweep: fixed world size, varying gradient accumulation.
+  # Tests the explanation the scaling report gives for 95.1% on PCIe, rather than restating
+  # it — see scripts/remote/comm_pipeline.sh.
+  bold "launching communication sweep"
+  scp -q -P "$GPU_PORT" -i "$GPU_KEY" \
+    "$REPO_ROOT/scripts/remote/comm_pipeline.sh" \
+    "$GPU_USER@$GPU_HOST:$GPU_WORKDIR/comm_pipeline.sh"
+  ssh_run "chmod +x $GPU_WORKDIR/comm_pipeline.sh"
+  ssh_detached "comm-sweep" \
+    "GPU_WORKDIR=$GPU_WORKDIR RESULTS_DIR=$GPU_RESULTS ${COMM_EXTRA:-} \
+     bash $GPU_WORKDIR/comm_pipeline.sh"
+}
+
 cmd_autostop() {
   # Runs in its own tmux session so it never disturbs a job already in flight.
   local grace="${1:-10}"
@@ -541,6 +556,7 @@ main() {
     all)               cmd_all "$@" ;;
     bench)             cmd_bench "$@" ;;
     scaling)           cmd_scaling "$@" ;;
+    comm-sweep)        cmd_comm_sweep "$@" ;;
     autostop)          cmd_autostop "$@" ;;
     autostop-off)      cmd_autostop_off "$@" ;;
     stop)              cmd_stop "$@" ;;

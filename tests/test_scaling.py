@@ -244,3 +244,47 @@ def test_divisibility_check_warns_it_must_be_held_constant() -> None:
     compare two different optimisations. The message has to say so."""
     with pytest.raises(SystemExit, match="constant across every point"):
         validate_overrides("gpt2-124m", (1, 7), [])
+
+
+def _comm_report(accum: int, base_tps: float, pivot_tps: float) -> dict:
+    """A scaling report as the communication sweep produces one: world sizes 1 and 8 at a
+    single tokens_per_step."""
+    return {
+        "label": f"accum{accum}",
+        "points": [
+            {"world_size": 1, "tokens_per_sec": base_tps, "tokens_per_sec_per_gpu": base_tps,
+             "grad_accum_steps": accum * 8, "efficiency": 1.0, "error": None,
+             "max_loss_delta_vs_1gpu": None},
+            {"world_size": 8, "tokens_per_sec": pivot_tps, "tokens_per_sec_per_gpu": pivot_tps / 8,
+             "grad_accum_steps": accum, "efficiency": (pivot_tps / 8) / base_tps,
+             "error": None, "max_loss_delta_vs_1gpu": 4.4e-05},
+        ],
+    }
+
+
+def test_comm_table_orders_by_amortisation_and_uses_each_own_baseline() -> None:
+    """Efficiency must come from the same report's 1-GPU number. Single-GPU throughput
+    itself shifts with the batch, so borrowing a baseline across batch sizes divides by the
+    wrong denominator — which would fabricate exactly the trend the sweep is testing for."""
+    from llmfs.bench.scaling import comm_table
+
+    reports = [
+        _comm_report(accum=1, base_tps=100_000.0, pivot_tps=560_000.0),   # 70%
+        _comm_report(accum=8, base_tps=200_000.0, pivot_tps=1_600_000.0),  # 100%
+    ]
+    table = comm_table(reports)
+    rows = [line for line in table.splitlines() if line.startswith("| 1 ") or line.startswith("| 8 ")]
+    assert rows[0].startswith("| 8 "), "most-amortised row first"
+    assert "100.0%" in rows[0] and "70.0%" in rows[1]
+    # Each row's own baseline, not the other's.
+    assert "200,000" in rows[0] and "100,000" in rows[1]
+
+
+def test_comm_table_skips_failed_pivot_points() -> None:
+    from llmfs.bench.scaling import comm_table
+
+    broken = _comm_report(accum=2, base_tps=100_000.0, pivot_tps=0.0)
+    broken["points"][1]["error"] = "OOM"
+    table = comm_table([broken, _comm_report(4, 100_000.0, 700_000.0)])
+    assert "| 2 |" not in table, "a failed pivot point must not appear as a data row"
+    assert "| 4 |" in table, "the surviving point must still be reported"
