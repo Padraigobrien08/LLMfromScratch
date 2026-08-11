@@ -25,33 +25,37 @@ a real tokenizer, a parameter budget you can drag, a sampler you can turn up —
 and [every attention weight](https://padraigobrien08.github.io/LLMfromScratch/attention/) per
 layer and per head.
 
+[![The front page](docs/images/front-page.png)](https://padraigobrien08.github.io/LLMfromScratch/)
+
 Every architecture component here — rotary embeddings, RMSNorm, SwiGLU,
 grouped-query attention, the KV cache — is written by hand and covered by tests that
 assert its defining mathematical property, not just its output shape.
 
 ---
 
-## Status
+## Reproduction
 
-This repository is under active development. The table is the honest state of it:
-what is built and verified, and what is designed but not yet run.
+The trust anchor: a documented target, hit within a tolerance fixed *before* the run.
 
-| Pillar | Status |
-| --- | --- |
-| Package, config system, data pipeline, trainer, CI | **Done** — 345 tests green, end-to-end verified |
-| Modern architecture (RoPE, RMSNorm, SwiGLU, GQA, KV cache) | **Done** — hand-implemented, property-tested |
-| GPT-2 124M reproduction on FineWeb-Edu | **Done** — 3.0503 val loss, [docs/reproduction.md](docs/reproduction.md) |
-| Ablation study (12 arms × 3 seeds) | **Done** — [docs/ablations.md](docs/ablations.md), 39 runs, 7.6 GPU-h |
-| Efficiency benchmarks (throughput, memory, KV cache) | **Done** — H100 training, 4090 inference; the cache sweep found a 30% bug, below |
-| Quantization + speculative decoding | **Done** — [docs/efficiency.md](docs/efficiency.md), measured on CUDA |
-| Fault-tolerance design doc | **Done** — [docs/fault-tolerance.md](docs/fault-tolerance.md) |
-| Multi-GPU scaling report | **Done** — [docs/scaling.md](docs/scaling.md), 95.1% efficiency on 8 GPUs, 1.54 PFLOP/s |
-| Interactive attention visualization | **Done** — [live](https://padraigobrien08.github.io/LLMfromScratch/attention/), auto-deployed from CI |
-| Interactive site (explainer, four results plates, architecture, tests) | **Done** — [live](https://padraigobrien08.github.io/LLMfromScratch/); every figure reads a generated artifact |
-| Deferred work, scoped and costed | [docs/roadmap.md](docs/roadmap.md) — fused dequant kernel, flash-compatible verify mask, multi-node |
+| | achieved | target | |
+| --- | --- | --- | --- |
+| Validation loss, full 100M-token split | **3.0503** | ≤ 3.29 | **−0.2397** |
+| Perplexity | **21.12** | — | |
+| HellaSwag `acc_norm` | **0.3043** | 0.2955 (GPT-2 124M) | **+0.0088** |
 
-No results are reported below that have not been measured. Sections describing
-pending work say so.
+![Loss curve](results/reproduction_curve.png)
+
+Crossed the target at step 6,500 — 34% of the run — and kept improving. **44.1% MFU
+held flat for seven hours**, ~401,000 tokens/sec on one H100, ~$23 of GPU time.
+
+**HellaSwag is what makes the loss trustworthy.** Validation loss is measured on a
+split we chose with a tokenizer we configured; a mismatch in either would move the
+number without looking wrong. HellaSwag is a fixed public set scored against a
+published figure, so clearing both chance (0.25) and the GPT-2 124M reference is the
+independent check. Near 0.25 and the loss would have meant nothing.
+
+Protocol, target provenance, hardware, and sample generations:
+[docs/reproduction.md](docs/reproduction.md).
 
 ---
 
@@ -161,32 +165,6 @@ tmux so a dropped connection cannot kill something you are paying for.
 
 Every run writes its fully-resolved config, `metrics.jsonl`, and atomic checkpoints
 to `out/<run_name>/`. Resume with `--resume auto`.
-
----
-
-## Reproduction
-
-The trust anchor: a documented target, hit within a tolerance fixed *before* the run.
-
-| | achieved | target | |
-| --- | --- | --- | --- |
-| Validation loss, full 100M-token split | **3.0503** | ≤ 3.29 | **−0.2397** |
-| Perplexity | **21.12** | — | |
-| HellaSwag `acc_norm` | **0.3043** | 0.2955 (GPT-2 124M) | **+0.0088** |
-
-![Loss curve](results/reproduction_curve.png)
-
-Crossed the target at step 6,500 — 34% of the run — and kept improving. **44.1% MFU
-held flat for seven hours**, ~401,000 tokens/sec on one H100, ~$23 of GPU time.
-
-**HellaSwag is what makes the loss trustworthy.** Validation loss is measured on a
-split we chose with a tokenizer we configured; a mismatch in either would move the
-number without looking wrong. HellaSwag is a fixed public set scored against a
-published figure, so clearing both chance (0.25) and the GPT-2 124M reference is the
-independent check. Near 0.25 and the loss would have meant nothing.
-
-Protocol, target provenance, hardware, and sample generations:
-[docs/reproduction.md](docs/reproduction.md).
 
 ---
 
@@ -479,6 +457,9 @@ device-algorithm pair.
 plate built around a single interactive figure, chosen so that the interaction *is* the
 explanation rather than a chart with a tooltip on it:
 
+[![The reproduction plate](docs/images/reproduction-plate.png)](https://padraigobrien08.github.io/LLMfromScratch/#/reproduction)
+
+
 - **The reproduction** — the loss curve with the pre-registered target drawn across it and
   a scrubber. Drag it and the readout flips to "target met" at step 6,500, a third of the
   way in, with two thirds of the run still to go. A target hit on the last step would be a
@@ -646,6 +627,30 @@ it:
 The doc marks every claim **[implemented]**, with the test that pins it, or
 **[proposed]**, with an effort estimate — and ends with a prioritised gap list where
 the top five items total under a hundred lines.
+
+---
+
+## Status
+
+This repository is under active development. The table is the honest state of it:
+what is built and verified, and what is designed but not yet run.
+
+| Pillar | Status |
+| --- | --- |
+| Package, config system, data pipeline, trainer, CI | **Done** — 345 tests green, end-to-end verified |
+| Modern architecture (RoPE, RMSNorm, SwiGLU, GQA, KV cache) | **Done** — hand-implemented, property-tested |
+| GPT-2 124M reproduction on FineWeb-Edu | **Done** — 3.0503 val loss, [docs/reproduction.md](docs/reproduction.md) |
+| Ablation study (12 arms × 3 seeds) | **Done** — [docs/ablations.md](docs/ablations.md), 39 runs, 7.6 GPU-h |
+| Efficiency benchmarks (throughput, memory, KV cache) | **Done** — H100 training, 4090 inference; the cache sweep found a 30% bug, below |
+| Quantization + speculative decoding | **Done** — [docs/efficiency.md](docs/efficiency.md), measured on CUDA |
+| Fault-tolerance design doc | **Done** — [docs/fault-tolerance.md](docs/fault-tolerance.md) |
+| Multi-GPU scaling report | **Done** — [docs/scaling.md](docs/scaling.md), 95.1% efficiency on 8 GPUs, 1.54 PFLOP/s |
+| Interactive attention visualization | **Done** — [live](https://padraigobrien08.github.io/LLMfromScratch/attention/), auto-deployed from CI |
+| Interactive site (explainer, four results plates, architecture, tests) | **Done** — [live](https://padraigobrien08.github.io/LLMfromScratch/); every figure reads a generated artifact |
+| Deferred work, scoped and costed | [docs/roadmap.md](docs/roadmap.md) — fused dequant kernel, flash-compatible verify mask, multi-node |
+
+No results are reported below that have not been measured. Sections describing
+pending work say so.
 
 ---
 

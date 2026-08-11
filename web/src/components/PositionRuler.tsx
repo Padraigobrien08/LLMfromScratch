@@ -117,7 +117,7 @@ export default function PositionRuler({ maxPos, m, n, gapLocked, onChange }: Pro
             x={x(t)}
             y={AXIS_Y + 22}
             fontSize={11}
-            fill="var(--color-neutral-600)"
+            fill="var(--color-neutral-700)"
             textAnchor="middle"
             fontFamily="var(--mono)"
           >

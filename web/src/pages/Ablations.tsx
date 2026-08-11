@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 
+import DataTable from "../components/DataTable";
 import CurvePlot, { type Series } from "../components/CurvePlot";
 import SeedDeltas from "../components/SeedDeltas";
 import { MEASURED } from "../content/measured";
@@ -157,13 +158,13 @@ export default function Ablations() {
                         ? row.delta < 0
                           ? "var(--color-accent-700)"
                           : "var(--color-accent-2-700)"
-                        : "var(--color-neutral-600)",
+                        : "var(--color-neutral-700)",
                     }}
                   >
                     {row.delta >= 0 ? "+" : ""}
                     {row.delta.toFixed(4)}
                     {row.halfRange > 0 && (
-                      <span style={{ fontSize: 18, color: "var(--color-neutral-600)" }}>
+                      <span style={{ fontSize: 18, color: "var(--color-neutral-700)" }}>
                         {" "}
                         ± {row.halfRange.toFixed(4)}
                       </span>
@@ -234,7 +235,7 @@ export default function Ablations() {
       <div className="rule-hair" style={{ margin: "var(--space-6) 0" }} />
       <h2 className="section-h2">Every arm</h2>
       {analysis && (
-        <table className="table">
+        <DataTable label="Every ablation arm">
           <thead>
             <tr>
               <th>Arm</th>
@@ -269,7 +270,7 @@ export default function Ablations() {
               </tr>
             ))}
           </tbody>
-        </table>
+        </DataTable>
       )}
 
       <div className="rule-hair" style={{ margin: "var(--space-6) 0" }} />

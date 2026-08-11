@@ -73,7 +73,7 @@ export default function LossCurve({ curve, step, onStep }: Props) {
             x={PAD_L - 8}
             y={sy(y) + 4}
             fontSize={11}
-            fill="var(--color-neutral-600)"
+            fill="var(--color-neutral-700)"
             textAnchor="end"
             fontFamily="var(--mono)"
           >
@@ -81,14 +81,17 @@ export default function LossCurve({ curve, step, onStep }: Props) {
           </text>
         </g>
       ))}
-      {gridXs.map((x) => (
+      {gridXs.map((x, i) => (
         <text
           key={x}
           x={sx(x)}
           y={H - 14}
           fontSize={11}
-          fill="var(--color-neutral-600)"
-          textAnchor="middle"
+          fill="var(--color-neutral-700)"
+          // The end labels sit on the plot's edges, so centring them hangs half of each
+          // off the viewBox and the browser clips it. The last one is the run's length —
+          // the most useful number on the axis and the one that was losing a digit.
+          textAnchor={i === 0 ? "start" : i === gridXs.length - 1 ? "end" : "middle"}
           fontFamily="var(--mono)"
         >
           {x.toLocaleString()}

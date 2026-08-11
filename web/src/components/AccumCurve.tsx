@@ -58,20 +58,20 @@ export default function AccumCurve({ accum, revealed }: Props) {
       {[86, 90, 94, 98].map((y) => (
         <g key={y}>
           <line x1={PAD_L} y1={sy(y)} x2={W - PAD_R} y2={sy(y)} stroke="var(--color-neutral-200)" />
-          <text x={PAD_L - 8} y={sy(y) + 4} fontSize={11} fill="var(--color-neutral-600)"
+          <text x={PAD_L - 8} y={sy(y) + 4} fontSize={11} fill="var(--color-neutral-700)"
             textAnchor="end" fontFamily="var(--mono)">
             {y}%
           </text>
         </g>
       ))}
       {[1, 2, 4, 8].map((x) => (
-        <text key={x} x={sx(x)} y={H - 16} fontSize={11} fill="var(--color-neutral-600)"
+        <text key={x} x={sx(x)} y={H - 16} fontSize={11} fill="var(--color-neutral-700)"
           textAnchor="middle" fontFamily="var(--mono)">
           {x}
         </text>
       ))}
       <text x={(PAD_L + W - PAD_R) / 2} y={H - 2} fontSize={11}
-        fill="var(--color-neutral-600)" textAnchor="middle" fontFamily="var(--font-body)">
+        fill="var(--color-neutral-700)" textAnchor="middle" fontFamily="var(--font-body)">
         gradient accumulation steps
       </text>
 
@@ -108,7 +108,7 @@ export default function AccumCurve({ accum, revealed }: Props) {
             </text>
             {point.predicted && (
               <text x={sx(point.accum)} y={y + 24} fontSize={11}
-                fill="var(--color-neutral-600)" textAnchor="middle" fontFamily="var(--mono)">
+                fill="var(--color-neutral-700)" textAnchor="middle" fontFamily="var(--mono)">
                 {residual(a, b, point.accum, point.efficiency) >= 0 ? "+" : ""}
                 {residual(a, b, point.accum, point.efficiency).toFixed(2)} pts
               </text>

@@ -1,5 +1,6 @@
 import { useState } from "react";
 
+import DataTable from "../components/DataTable";
 import AccumCurve from "../components/AccumCurve";
 import PlateNumeral from "../components/PlateNumeral";
 import { MEASURED } from "../content/measured";
@@ -54,7 +55,7 @@ export default function Scaling() {
 
       <div className="rule-heavy" />
       <h2 className="section-h2">Throughput is the easy half</h2>
-      <table className="table">
+      <DataTable label="Scaling by world size">
         <thead>
           <tr>
             <th className="num">GPUs</th>
@@ -79,7 +80,7 @@ export default function Scaling() {
             </tr>
           ))}
         </tbody>
-      </table>
+      </DataTable>
       <p className="caveat-wide">
         The claim worth checking is the last column, not the third. Eight GPUs take the{" "}
         <i>same optimisation steps</i> as one: <code>tokens_per_step</code> is fixed in tokens and

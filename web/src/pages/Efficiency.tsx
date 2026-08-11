@@ -1,5 +1,6 @@
 import { useState } from "react";
 
+import DataTable from "../components/DataTable";
 import CacheSweep from "../components/CacheSweep";
 import { MEASURED } from "../content/measured";
 
@@ -54,7 +55,7 @@ export default function Efficiency() {
         </p>
         <CacheSweep masked={masked} onMasked={setMasked} />
 
-        <table className="table" style={{ marginTop: "var(--space-4)" }}>
+        <DataTable label="Cache versus recompute by sequence length" style={{ marginTop: "var(--space-4)" }}>
           <thead>
             <tr>
               <th>Total length</th>
@@ -82,7 +83,7 @@ export default function Efficiency() {
               );
             })}
           </tbody>
-        </table>
+        </DataTable>
         <p className="fig-note">
           The recompute column moves {Math.min(...CACHE.points.map((p) => p.naive / p.naiveBefore)).toFixed(2)}–
           {Math.max(...CACHE.points.map((p) => p.naive / p.naiveBefore)).toFixed(2)}× between the two
@@ -106,7 +107,7 @@ export default function Efficiency() {
 
       <div className="rule-hair" style={{ margin: "var(--space-6) 0" }} />
       <h2 className="section-h2">Quantization: a memory win that costs speed</h2>
-      <table className="table">
+      <DataTable label="Quantization schemes">
         <thead>
           <tr>
             <th>Scheme</th>
@@ -131,7 +132,7 @@ export default function Efficiency() {
             </tr>
           ))}
         </tbody>
-      </table>
+      </DataTable>
       <p className="caveat-wide">
         Grouping is worth two perplexity points at four bits: one scale per tensor is set by its
         largest outlier, and per-128-feature groups confine the damage. Every scheme is{" "}
@@ -145,7 +146,7 @@ export default function Efficiency() {
 
       <div className="rule-hair" style={{ margin: "var(--space-6) 0" }} />
       <h2 className="section-h2">Speculative decoding, and why acceptance is not speedup</h2>
-      <table className="table">
+      <DataTable label="Speculative decoding results">
         <thead>
           <tr>
             <th>Drafter</th>
@@ -175,7 +176,7 @@ export default function Efficiency() {
               </tr>
             ))}
         </tbody>
-      </table>
+      </DataTable>
       <p className="caveat-wide">
         All {SPEC.losslessRuns} benchmark runs reproduced greedy decoding token for token, and{" "}
         {SPEC.divergedRuns === 0 ? "none diverged" : `${SPEC.divergedRuns} diverged`} — an

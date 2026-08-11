@@ -1,5 +1,6 @@
 import { useState } from "react";
 
+import DataTable from "../components/DataTable";
 import { ARCHITECTURES } from "../content/architecture";
 import { BLOCKS, SIZES, type Variant } from "../content/blocks";
 import { PROJECT } from "../content/projectState";
@@ -33,17 +34,24 @@ export default function Architecture() {
       </p>
 
       <div className="fig-row fig-row-wide" style={{ marginBottom: "var(--space-4)" }}>
-        <div className="seg" role="tablist" aria-label="Architecture">
+        {/* Radios in labels, which is the design system's own segmented-control markup —
+            `.seg-opt` styles its selected state from `:has(input:checked)`, so buttons
+            carrying `aria-pressed` got no visual selection at all. It is also the right
+            control: this is one choice out of two, so a radio group gives arrow-key
+            navigation and the correct announcement for free, where `role="tab"` would
+            have promised a `tabpanel` that does not exist. */}
+        <div className="seg" role="radiogroup" aria-label="Architecture">
           {VARIANTS.map((v) => (
-            <button
-              key={v.id}
-              role="tab"
-              className="seg-opt"
-              aria-selected={variant === v.id}
-              onClick={() => setVariant(v.id)}
-            >
+            <label key={v.id} className="seg-opt">
+              <input
+                type="radio"
+                name="architecture"
+                value={v.id}
+                checked={variant === v.id}
+                onChange={() => setVariant(v.id)}
+              />
               {v.label}
-            </button>
+            </label>
           ))}
         </div>
         <span className="fig-note" style={{ margin: 0 }}>
@@ -123,7 +131,7 @@ export default function Architecture() {
 
       <div className="rule-hair" style={{ margin: "var(--space-6) 0" }} />
       <h2 className="section-h2">Where the budget actually goes</h2>
-      <table className="table">
+      <DataTable label="Parameter budget by block">
         <thead>
           <tr>
             <th>Block</th>
@@ -164,7 +172,7 @@ export default function Architecture() {
             </td>
           </tr>
         </tbody>
-      </table>
+      </DataTable>
       <p className="caveat-wide">
         <b>Worth reading the difference column rather than the totals.</b> The one place the two
         configs were deliberately matched is the feed-forward: SwiGLU has three projections rather

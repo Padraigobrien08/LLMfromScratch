@@ -48,7 +48,7 @@ export default function SeedDeltas({ row, scale }: { row: Comparison; scale: num
           <line x1={sx(t)} y1={MID - 26} x2={sx(t)} y2={MID + 26}
             stroke={t === 0 ? "var(--color-text)" : "var(--color-neutral-200)"}
             strokeWidth={t === 0 ? 1.5 : 1} />
-          <text x={sx(t)} y={H - 6} fontSize={11} fill="var(--color-neutral-600)"
+          <text x={sx(t)} y={H - 6} fontSize={11} fill="var(--color-neutral-700)"
             textAnchor="middle" fontFamily="var(--mono)">
             {t === 0 ? "0" : (t > 0 ? "+" : "") + t.toFixed(2)}
           </text>
@@ -68,11 +68,11 @@ export default function SeedDeltas({ row, scale }: { row: Comparison; scale: num
           stroke="var(--color-bg)" strokeWidth={2} />
       )}
 
-      <text x={PAD_L} y={16} fontSize={11} fill="var(--color-neutral-600)"
+      <text x={PAD_L} y={16} fontSize={11} fill="var(--color-neutral-700)"
         fontFamily="var(--mono)">
         better ←
       </text>
-      <text x={W - PAD_R} y={16} fontSize={11} fill="var(--color-neutral-600)"
+      <text x={W - PAD_R} y={16} fontSize={11} fill="var(--color-neutral-700)"
         textAnchor="end" fontFamily="var(--mono)">
         → worse
       </text>

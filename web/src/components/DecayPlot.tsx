@@ -56,14 +56,14 @@ export default function DecayPlot({ q, k, theta, d, maxD }: Props) {
       {gridYs.map((y) => (
         <g key={y}>
           <line x1={PAD_L} y1={sy(y)} x2={W - PAD_R} y2={sy(y)} stroke="var(--color-neutral-200)" />
-          <text x={PAD_L - 8} y={sy(y) + 4} fontSize={11} fill="var(--color-neutral-600)"
+          <text x={PAD_L - 8} y={sy(y) + 4} fontSize={11} fill="var(--color-neutral-700)"
             textAnchor="end" fontFamily="var(--mono)">
             {y.toFixed(2)}
           </text>
         </g>
       ))}
       {gridXs.map((x) => (
-        <text key={x} x={sx(x)} y={H - 12} fontSize={11} fill="var(--color-neutral-600)"
+        <text key={x} x={sx(x)} y={H - 12} fontSize={11} fill="var(--color-neutral-700)"
           textAnchor="middle" fontFamily="var(--mono)">
           {Math.round(x)}
         </text>

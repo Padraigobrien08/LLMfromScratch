@@ -80,7 +80,7 @@ body {
   font: 400 12px/1 var(--font-body);
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: var(--color-neutral-600);
+  color: var(--color-neutral-700);
 }
 
 .masthead-nav {
@@ -95,7 +95,7 @@ body {
   letter-spacing: 0.09em;
   text-transform: uppercase;
   white-space: nowrap;
-  color: var(--color-neutral-600);
+  color: var(--color-neutral-700);
   /* Transparent rather than absent, so the active item's rule does not shift the row. */
   border-bottom: 2px solid transparent;
   padding-bottom: 3px;
@@ -337,7 +337,7 @@ body {
 }
 .verdict-noise {
   font-size: 15px;
-  color: var(--color-neutral-600);
+  color: var(--color-neutral-700);
 }
 
 /* Below this the three-column path row has nowhere left to go: the numeral moves
@@ -366,7 +366,7 @@ body {
   font: var(--font-heading-weight) 14px/1 var(--mono);
   padding: 7px 11px;
   border-radius: var(--radius-md);
-  color: var(--color-neutral-600);
+  color: var(--color-neutral-700);
 }
 .chapter-rail a:hover {
   color: var(--color-accent-700);
@@ -485,7 +485,7 @@ body {
   font: 400 11px/1 var(--font-body);
   letter-spacing: 0.15em;
   text-transform: uppercase;
-  color: var(--color-neutral-600);
+  color: var(--color-neutral-700);
   margin: var(--space-8) 0 var(--space-2);
 }
 .figure-panel {
@@ -499,7 +499,7 @@ body {
   font: var(--font-heading-weight) 10.5px/1 var(--font-body);
   letter-spacing: 0.13em;
   text-transform: uppercase;
-  color: var(--color-neutral-600);
+  color: var(--color-neutral-700);
   margin: 0 0 6px;
 }
 
@@ -891,7 +891,7 @@ body {
 }
 .dial-label {
   font: 11px/1.35 var(--mono);
-  color: var(--color-neutral-600);
+  color: var(--color-neutral-700);
   text-align: center;
   margin-top: 2px;
 }
@@ -1013,7 +1013,7 @@ body {
 .stack-block-share,
 .stack-block-noparams {
   font: 400 12px/1.3 var(--font-body);
-  color: var(--color-neutral-600);
+  color: var(--color-neutral-700);
 }
 
 /* Sticky so the detail stays beside whichever block is being read. Stacks below
@@ -1104,6 +1104,107 @@ body {
 .claim-source {
   font: 400 13px/1.4 var(--mono);
   margin: 0;
-  color: var(--color-neutral-600);
+  color: var(--color-neutral-700);
   overflow-wrap: anywhere;
+}
+
+/* ── shell affordances ─────────────────────────────────────────────────────── */
+
+/* Visible only when focused. The masthead carries six links before the content
+   starts, and on every page after the first the reader has already read them —
+   a keyboard user should not have to tab through them again to reach the page. */
+.skip-link {
+  position: absolute;
+  left: -9999px;
+  top: 0;
+  z-index: 10;
+  padding: 10px 16px;
+  background: var(--color-text);
+  color: var(--color-bg);
+  font: 500 15px/1 var(--font-body);
+  border-radius: 0 0 var(--radius-sm) 0;
+}
+
+.skip-link:focus {
+  left: 0;
+}
+
+main:focus {
+  outline: none;
+}
+
+.page-loading {
+  padding-top: var(--space-8);
+  font: 400 17px/1.6 var(--font-body);
+  color: var(--color-neutral-700);
+}
+
+/* A table wide enough to need it slides inside its own box. Without this the whole
+   document scrolls sideways on a phone and every paragraph drifts off the left edge
+   while the reader tries to get back to it. */
+.table-scroll {
+  overflow-x: auto;
+  /* The scrollbar's own height, so the rule under a table does not sit on top of it. */
+  padding-bottom: 2px;
+  -webkit-overflow-scrolling: touch;
+}
+
+.table-scroll:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+.table-scroll .table {
+  /* Stop the browser compressing columns into unreadable slivers instead of scrolling. */
+  min-width: max-content;
+}
+
+/* ── contrast corrections over the design system ───────────────────────────── */
+
+/*
+ * Two of Broadsheet's defaults do not clear WCAG AA for small text on its own paper,
+ * measured rather than guessed: `--color-accent` behind a primary button's label is
+ * 3.65:1 at 14px semibold, and the 600 neutral is 3.85:1 as body text. Both need 4.5.
+ *
+ * Corrected here rather than in `design-system/styles.css`, which is vendored — the
+ * palette keeps its steps and this page stops using the two that fail. Secondary text
+ * moved to the 700 neutral (5.83:1) with a pass over the source; the accent fill moves
+ * one step darker (5.72:1). Nothing about the ink changes at a glance, which is rather
+ * the point: the design was already nearly there.
+ */
+.btn-primary {
+  background: var(--color-accent-700);
+}
+.btn-primary:hover {
+  background: var(--color-accent-800);
+}
+
+/* The system fades captions to 55% of the ink, which lands at 3.4:1. These carry the
+   figure's units and its provenance — the part a reader squints at, not decoration. */
+figcaption {
+  color: var(--color-neutral-700);
+}
+
+/* `space-between` on a wrapped flex row strands items at both edges of every line —
+   on a phone the dateline reads as three ragged rows with holes punched in them.
+   Packing it left keeps it a single run of items that happens to wrap. */
+@media (max-width: 700px) {
+  .dateline {
+    justify-content: flex-start;
+    column-gap: var(--space-3);
+    row-gap: 4px;
+  }
+  .dateline span:not(:last-child)::after {
+    content: " ·";
+    color: var(--color-neutral-500);
+  }
+}
+
+/* The colophon: where the project came from, in the register a newspaper uses for it —
+   quiet, at the very bottom, and on every page rather than buried in one. */
+.colophon {
+  font: 400 13px/1.6 var(--font-body);
+  color: var(--color-neutral-700);
+  margin: var(--space-2) 0 0;
+  max-width: 78ch;
 }

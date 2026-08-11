@@ -176,7 +176,7 @@ export default function SizeCalculator() {
               </td>
               <td style={{ fontSize: 16 }}>{label}</td>
               <td className="mono num">{formatCount(p[key])}</td>
-              <td className="mono num" style={{ color: "var(--color-neutral-600)" }}>
+              <td className="mono num" style={{ color: "var(--color-neutral-700)" }}>
                 {((p[key] / p.total) * 100).toFixed(1)}%
               </td>
             </tr>

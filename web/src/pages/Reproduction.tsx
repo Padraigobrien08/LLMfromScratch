@@ -1,5 +1,6 @@
 import { useState } from "react";
 
+import DataTable from "../components/DataTable";
 import LossCurve from "../components/LossCurve";
 import PlateNumeral from "../components/PlateNumeral";
 import { MEASURED } from "../content/measured";
@@ -144,7 +145,7 @@ export default function Reproduction() {
         </p>
       </div>
 
-      <table className="table" style={{ marginTop: "var(--space-4)" }}>
+      <DataTable label="Reproduction measures against their references" style={{ marginTop: "var(--space-4)" }}>
         <thead>
           <tr>
             <th>Measure</th>
@@ -183,7 +184,7 @@ export default function Reproduction() {
             <td className="num mono">+{(R.hellaswag.acc - R.hellaswag.chance).toFixed(4)}</td>
           </tr>
         </tbody>
-      </table>
+      </DataTable>
 
       <div className="rule-hair" style={{ margin: "var(--space-6) 0" }} />
       <h2 className="section-h2">What it cost, and on what</h2>

@@ -219,7 +219,7 @@ export default function Rope() {
             <option value={512}>0 – 512</option>
           </select>
         </label>
-        <span style={{ font: "400 14px/1.5 var(--font-body)", color: "var(--color-neutral-600)" }}>
+        <span style={{ font: "400 14px/1.5 var(--font-body)", color: "var(--color-neutral-700)" }}>
           horizontal axis: relative offset |m − n|; vertical: the logit
         </span>
       </div>

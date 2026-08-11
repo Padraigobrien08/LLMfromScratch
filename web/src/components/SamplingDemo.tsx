@@ -95,7 +95,7 @@ export default function SamplingDemo() {
       </p>
 
       <p className="draws">
-        <span style={{ color: "var(--color-neutral-600)" }}>{entry.context}</span>
+        <span style={{ color: "var(--color-neutral-700)" }}>{entry.context}</span>
         {draws.join("")}
       </p>
 

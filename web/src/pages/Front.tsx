@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 
+import DataTable from "../components/DataTable";
 import PlateNumeral from "../components/PlateNumeral";
 import { frontFigures } from "../content/frontFigures";
 import { pathStops } from "../content/path";
@@ -96,7 +97,7 @@ export default function Front() {
         No result appears anywhere on this site that has not been measured. The one row still
         waiting on a run says so, and so does every claim inside a row that is otherwise done.
       </p>
-      <table className="table status-table">
+      <DataTable label="Pillar status" className="status-table">
         <thead>
           <tr>
             <th>Pillar</th>
@@ -115,7 +116,7 @@ export default function Front() {
             </tr>
           ))}
         </tbody>
-      </table>
+      </DataTable>
 
       {!sweepPublished && (
         <div className="illustrative">
@@ -125,7 +126,7 @@ export default function Front() {
             Shape of the finished thing, with invented numbers, so the layout can be judged
             before the GPU bill. Nothing in this block is a result.
           </p>
-          <table className="table">
+          <DataTable label="Illustrative ablation preview">
             <thead>
               <tr>
                 <th>Arm</th>
@@ -144,7 +145,7 @@ export default function Front() {
                 </tr>
               ))}
             </tbody>
-          </table>
+          </DataTable>
         </div>
       )}
     </div>

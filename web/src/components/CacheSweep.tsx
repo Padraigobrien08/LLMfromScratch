@@ -88,14 +88,14 @@ export default function CacheSweep({ masked, onMasked }: { masked: boolean; onMa
         {[0, 70, 140, 210, 280].map((y) => (
           <g key={y}>
             <line x1={PAD_L} y1={sy(y)} x2={W - PAD_R} y2={sy(y)} stroke="var(--color-neutral-200)" />
-            <text x={PAD_L - 8} y={sy(y) + 4} fontSize={11} fill="var(--color-neutral-600)"
+            <text x={PAD_L - 8} y={sy(y) + 4} fontSize={11} fill="var(--color-neutral-700)"
               textAnchor="end" fontFamily="var(--mono)">
               {y}
             </text>
           </g>
         ))}
         {values.map((v, i) => (
-          <text key={v.totalLen} x={sx(i)} y={H - 14} fontSize={11} fill="var(--color-neutral-600)"
+          <text key={v.totalLen} x={sx(i)} y={H - 14} fontSize={11} fill="var(--color-neutral-700)"
             textAnchor="middle" fontFamily="var(--mono)">
             {v.totalLen}
           </text>
@@ -116,7 +116,7 @@ export default function CacheSweep({ masked, onMasked }: { masked: boolean; onMa
         ))}
 
         <text x={W - PAD_R + 12} y={sy(values.at(-1)!.naiveNow) + 4} fontSize={13}
-          fill="var(--color-neutral-600)" fontFamily="var(--mono)">
+          fill="var(--color-neutral-700)" fontFamily="var(--mono)">
           recompute
         </text>
         <text x={W - PAD_R + 12} y={sy(values.at(-1)!.cachedNow) + 4} fontSize={13}
@@ -124,7 +124,7 @@ export default function CacheSweep({ masked, onMasked }: { masked: boolean; onMa
           fontFamily="var(--mono)" fontWeight={600}>
           KV cache
         </text>
-        <text x={PAD_L} y={H - 14} fontSize={11} fill="var(--color-neutral-600)"
+        <text x={PAD_L} y={H - 14} fontSize={11} fill="var(--color-neutral-700)"
           textAnchor="start" fontFamily="var(--mono)" opacity={0}>
           .
         </text>

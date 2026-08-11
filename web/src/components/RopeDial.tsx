@@ -52,7 +52,7 @@ export default function RopeDial({ index, angleQ, angleK, freq, contribution }: 
           strokeLinecap="round" />
         <line x1={C} y1={C} x2={qx} y2={qy} stroke="var(--color-accent)" strokeWidth={2.2}
           strokeLinecap="round" />
-        <circle cx={C} cy={C} r={2} fill="var(--color-neutral-600)" />
+        <circle cx={C} cy={C} r={2} fill="var(--color-neutral-700)" />
       </svg>
       <div className="dial-label">
         pair {index}
