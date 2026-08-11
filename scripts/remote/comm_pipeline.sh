@@ -62,7 +62,21 @@ do_data() {
     say "corpus already present at $DATA_DIR"
     return 0
   fi
-  llmfs-prepare-data --source fineweb-edu --out-dir "$DATA_DIR" --limit-docs "$LIMIT_DOCS"
+  llmfs-prepare-data --source fineweb-edu --out-dir "$DATA_DIR" --limit-docs "$LIMIT_DOCS" || true
+
+  # Success is the artifacts existing, not the exit code. `tokenizers` can abort during
+  # interpreter shutdown with a PyGILState_Release fatal error *after* every shard is
+  # written and flushed, so a non-zero status here does not mean the corpus is bad. That
+  # cost ten minutes of re-tokenising twice on rented hardware. prepare.py now exits before
+  # that teardown, and this check means a future variant of the same crash cannot block a
+  # run either. _assert_trainable has already vetoed a corpus with no training tokens, so
+  # shards existing is a sufficient test.
+  if compgen -G "$DATA_DIR/train_*.bin" > /dev/null; then
+    say "corpus verified on disk at $DATA_DIR"
+    return 0
+  fi
+  say "no train shards in $DATA_DIR after preparation"
+  return 1
 }
 
 # ------------------------------------------------------------------------- driver

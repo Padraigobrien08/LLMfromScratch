@@ -25,6 +25,8 @@ from __future__ import annotations
 import argparse
 import json
 import multiprocessing as mp
+import os
+import sys
 from pathlib import Path
 
 import numpy as np
@@ -296,6 +298,33 @@ def main(argv: list[str] | None = None) -> None:
             limit_docs=args.limit_docs,
             num_proc=args.num_proc,
         )
+
+    _exit_before_teardown()
+
+
+def _exit_before_teardown() -> None:
+    """Exit without running interpreter finalisation, once the work is done and on disk.
+
+    ``tokenizers`` holds Rust thread state that CPython's shutdown can trip over:
+
+        Fatal Python error: PyGILState_Release: auto-releasing thread-state,
+        but no thread-state for this thread
+
+    It aborts with a core dump *after* every shard and ``meta.json`` have been written and
+    flushed, so the data is complete and correct — but the process exits non-zero, and any
+    caller that reasonably trusts an exit code concludes the corpus failed. That happened
+    twice on rented GPUs, costing ten minutes of tokenising each time, the second time
+    after I had already diagnosed it as harmless and not acted on it.
+
+    There is nothing left to clean up at this point: shards are closed, ``meta.json`` is
+    written, and ``_assert_trainable`` has already vetoed a corpus that cannot train. So
+    the honest exit status is 0, and the only reliable way to report it is to skip the
+    teardown that would crash. Streams are flushed explicitly first, since ``os._exit``
+    does not.
+    """
+    sys.stdout.flush()
+    sys.stderr.flush()
+    os._exit(0)
 
 
 if __name__ == "__main__":
