@@ -8,14 +8,22 @@ ablation study, and efficiency benchmarks. Reproducible from one command.
 [![CI](https://github.com/Padraigobrien08/LLMfromScratch/actions/workflows/ci.yml/badge.svg)](https://github.com/Padraigobrien08/LLMfromScratch/actions/workflows/ci.yml)
 [![Site](https://github.com/Padraigobrien08/LLMfromScratch/actions/workflows/pages.yml/badge.svg)](https://padraigobrien08.github.io/LLMfromScratch/)
 
-**→ [Open the interactive site](https://padraigobrien08.github.io/LLMfromScratch/)** — an
-[explainer that assumes no prior knowledge](https://padraigobrien08.github.io/LLMfromScratch/#/explainer),
-built out of things you can poke at: a real tokenizer, a parameter budget you can drag, a sampler
-you can turn up. Then the deep ends — [RoPE's defining property holding as you move two
-tokens](https://padraigobrien08.github.io/LLMfromScratch/#/rope), an
-[ablation playground](https://padraigobrien08.github.io/LLMfromScratch/#/ablations), and
-[every attention weight](https://padraigobrien08.github.io/LLMfromScratch/attention/) per layer
-and per head.
+**→ [Open the interactive site](https://padraigobrien08.github.io/LLMfromScratch/)** — the
+results, as figures you can move rather than tables you have to trust. Drag a scrubber along
+[the reproduction](https://padraigobrien08.github.io/LLMfromScratch/#/reproduction) and watch it
+cross a target fixed before the run; put the mask bug back and watch
+[the KV cache](https://padraigobrien08.github.io/LLMfromScratch/#/efficiency) go from losing to
+winning; slide gradient accumulation and watch
+[a two-parameter model](https://padraigobrien08.github.io/LLMfromScratch/#/scaling) land on points
+it was never shown; toggle a design decision in
+[the ablation playground](https://padraigobrien08.github.io/LLMfromScratch/#/ablations) and get a
+paired delta, its per-seed values, and "not a result" when the seeds disagree.
+
+It opens with an [explainer that assumes no prior knowledge](https://padraigobrien08.github.io/LLMfromScratch/#/chapter/1) —
+a real tokenizer, a parameter budget you can drag, a sampler you can turn up — and ends with
+[RoPE's defining property holding as you move two tokens](https://padraigobrien08.github.io/LLMfromScratch/#/rope)
+and [every attention weight](https://padraigobrien08.github.io/LLMfromScratch/attention/) per
+layer and per head.
 
 Every architecture component here — rotary embeddings, RMSNorm, SwiGLU,
 grouped-query attention, the KV cache — is written by hand and covered by tests that
@@ -30,7 +38,7 @@ what is built and verified, and what is designed but not yet run.
 
 | Pillar | Status |
 | --- | --- |
-| Package, config system, data pipeline, trainer, CI | **Done** — 334 tests green, end-to-end verified |
+| Package, config system, data pipeline, trainer, CI | **Done** — 340 tests green, end-to-end verified |
 | Modern architecture (RoPE, RMSNorm, SwiGLU, GQA, KV cache) | **Done** — hand-implemented, property-tested |
 | GPT-2 124M reproduction on FineWeb-Edu | **Done** — 3.0503 val loss, [docs/reproduction.md](docs/reproduction.md) |
 | Ablation study (12 arms × 3 seeds) | **Done** — [docs/ablations.md](docs/ablations.md), 39 runs, 7.6 GPU-h |
@@ -39,7 +47,7 @@ what is built and verified, and what is designed but not yet run.
 | Fault-tolerance design doc | **Done** — [docs/fault-tolerance.md](docs/fault-tolerance.md) |
 | Multi-GPU scaling report | **Done** — [docs/scaling.md](docs/scaling.md), 95.1% efficiency on 8 GPUs, 1.54 PFLOP/s |
 | Interactive attention visualization | **Done** — [live](https://padraigobrien08.github.io/LLMfromScratch/attention/), auto-deployed from CI |
-| Interactive site (explainer, RoPE explorer, ablation playground) | **Done** — [live](https://padraigobrien08.github.io/LLMfromScratch/); the playground renders the published sweep |
+| Interactive site (explainer, four results plates, RoPE explorer) | **Done** — [live](https://padraigobrien08.github.io/LLMfromScratch/); every figure reads a committed artifact |
 | Deferred work, scoped and costed | [docs/roadmap.md](docs/roadmap.md) — fused dequant kernel, flash-compatible verify mask, multi-node |
 
 No results are reported below that have not been measured. Sections describing
@@ -467,6 +475,26 @@ device-algorithm pair.
 
 **[padraigobrien08.github.io/LLMfromScratch](https://padraigobrien08.github.io/LLMfromScratch/)**
 
+**The site is the paper, not documentation of one.** Each of the four results above is a
+plate built around a single interactive figure, chosen so that the interaction *is* the
+explanation rather than a chart with a tooltip on it:
+
+- **The reproduction** — the loss curve with the pre-registered target drawn across it and
+  a scrubber. Drag it and the readout flips to "target met" at step 6,500, a third of the
+  way in, with two thirds of the run still to go. A target hit on the last step would be a
+  target chosen to be hit, and that is a difference you can see rather than one you have
+  to be told.
+- **The ablations** — toggle a design decision and get its paired delta, its three
+  per-seed values as ticks on a shared axis, and the verdict. The significance rule is
+  drawn rather than asserted: an arm counts only when its ticks do not straddle zero, so
+  RMSNorm's `+0.0007` reads as *not a result* at a glance.
+- **The efficiency plate** — a switch that puts the mask bug back. The cache curve travels
+  from losing at every length to winning at 1,024, and both states are measured, at the
+  commits either side of the fix. The recompute curve barely moves, which is the control.
+- **The scaling plate** — a slider for gradient accumulation, with the `a + b/accum` curve
+  drawn through the two points it was fitted to. Press *reveal* and the other two land on
+  it, within 0.4 and 0.85 points, having been predicted before they were run.
+
 **"How a language model actually works"** is the on-ramp: eight steps from a sentence
 you type to a model that predicts what comes next, assuming no prior knowledge, with
 something to poke at rather than take on faith at each one. Type text and watch the
@@ -618,8 +646,8 @@ src/llmfs/
   ablation/   sweep runner, paired-seed analysis, tables and plots
   bench/      training + inference throughput, memory, cost, provenance
 configs/      gpt2-124m, llama-124m, debug, and 11 single-axis ablation arms
-tests/        334 tests — component correctness, config validation, end-to-end training
-web/          the interactive site: explainer, RoPE explorer, ablations (84 tests)
+tests/        340 tests — component correctness, config validation, end-to-end training
+web/          the interactive site: explainer, RoPE explorer, ablations (97 tests)
 scripts/      GPU pod automation, and the exporters that pin the site to the model
 docs/         index, reproduction protocol, results write-ups, fault-tolerance design
 notebooks/    exploration only; nothing here is the source of truth

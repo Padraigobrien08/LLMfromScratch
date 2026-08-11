@@ -23,11 +23,15 @@ from `results/`.** `tests/test_documented_results.py` enforces the headline figu
 those artifacts, this index included — a figure edited in prose without a re-run behind it
 fails CI rather than quietly becoming false.
 
-**Current state.** All seven measurement pillars are done and written up. The site has its
-front page, its eight-chapter explainer and the RoPE explorer; its results plates —
-reproduction, efficiency and scaling — are still being built, so for those three the documents
-here remain the primary source. [The repository README](../README.md) carries the honest status
-table.
+**Current state.** All seven measurement pillars are done and written up, and all four are now
+plates on the site — each built around one interactive figure that carries its argument, because
+a claim you can move is harder to arrange after the fact than a claim you can only read. Drag the
+scrubber along the reproduction and watch the target line get crossed a third of the way in;
+switch the mask bug back on and watch the KV cache change sides; slide gradient accumulation and
+watch a two-parameter model land on points it never saw.
+
+These documents remain the long form: the protocol, the provenance, the caveats and the reasoning
+each plate compresses. [The repository README](../README.md) carries the honest status table.
 
 ---
 

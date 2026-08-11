@@ -2,20 +2,19 @@ import Footer from "./components/Footer";
 import Masthead from "./components/Masthead";
 import Ablations from "./pages/Ablations";
 import Chapter from "./pages/Chapter";
+import Efficiency from "./pages/Efficiency";
 import Front from "./pages/Front";
+import Reproduction from "./pages/Reproduction";
 import Rope from "./pages/Rope";
+import Scaling from "./pages/Scaling";
 import { type Route, useRoute } from "./router";
 
 /**
- * Pages still wearing the pre-redesign layout are wrapped in `.legacy-page`, which
- * re-points the old token names at Broadsheet's. They render in the new ink without
- * being edited — which is what keeps `#/ablations` genuinely untouched while the
- * sweep's page waits its turn.
+ * `Legacy` used to live here: a wrapper that re-pointed the pre-redesign token names at
+ * Broadsheet's, so `#/ablations` could render in the new ink without being rewritten.
+ * It went out with that rewrite, along with the `.legacy-page` block at the foot of
+ * `styles.css` — the last of the old design system in the tree.
  */
-function Legacy({ children }: { children: React.ReactNode }) {
-  return <div className="legacy-page">{children}</div>;
-}
-
 function Placeholder({ title }: { title: string }) {
   return (
     <div className="shell" style={{ paddingTop: "var(--space-8)" }}>
@@ -36,12 +35,14 @@ function Page({ route }: { route: Route }) {
       return <Placeholder title="The architecture page" />;
     case "tests":
       return <Placeholder title="The test-suite page" />;
+    case "reproduction":
+      return <Reproduction />;
     case "ablations":
-      return (
-        <Legacy>
-          <Ablations />
-        </Legacy>
-      );
+      return <Ablations />;
+    case "efficiency":
+      return <Efficiency />;
+    case "scaling":
+      return <Scaling />;
   }
 }
 

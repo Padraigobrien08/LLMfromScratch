@@ -102,18 +102,18 @@ jobs:
       - name: Install the site's dependencies
         run: npm ci --prefix web
 
-      - name: Publish ablation results to the site, if any exist
-        # The playground reads this at runtime and renders an explicit "not published
-        # yet" state when it is missing, so a sweep that has not run yet produces an
+      - name: Publish measured results to the site
+        # The results pages read these at runtime and render an explicit "not published
+        # yet" state when one is missing, so a run that has not happened yet produces an
         # honest page rather than a broken one or a fabricated table.
+        #
+        # The whole directory rather than a named list: this step and the dev server's
+        # equivalent in web/vite.config.ts have to agree about what the site can fetch,
+        # and two hand-maintained lists in two languages would not stay agreed.
         run: |
-          if [ -f results/ablations.json ]; then
-            mkdir -p web/public/data
-            cp results/ablations.json web/public/data/ablations.json
-            echo "published $(wc -c < results/ablations.json) bytes of results"
-          else
-            echo "no results/ablations.json yet — the page will show its pending state"
-          fi
+          mkdir -p web/public/data
+          cp results/*.json web/public/data/
+          echo "published $(ls -1 web/public/data | wc -l) results files"
 
       - name: Build the site
         run: npm run build --prefix web

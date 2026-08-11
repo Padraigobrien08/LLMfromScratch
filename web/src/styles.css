@@ -909,163 +909,33 @@ body {
   border-radius: var(--radius-md);
 }
 
-/* ══ legacy alias layer ══════════════════════════════════════════════════════
-   `#/ablations` is deliberately untouched until the sweep's page is redesigned, and
-   it is written against the old token names. Rather than keep a second design system
-   alive beside Broadsheet, the old names are re-pointed at Broadsheet tokens: one
-   palette, two vocabularies. Everything below this line goes when that page does. */
+/* ── results plates ────────────────────────────────────────────────────────── */
 
-.legacy-page {
-  --bg: var(--color-bg);
-  --panel: var(--color-neutral-100);
-  --panel-alt: var(--color-neutral-200);
-  --border: var(--color-divider);
-  --text: var(--color-text);
-  --muted: var(--color-neutral-600);
-  --accent: var(--color-accent);
-  --accent-2: var(--color-accent-2);
-  /* Categorical, not semantic: cyan reads as the measured improvement and magenta as
-     the regression, which is the pairing the rest of the site uses. */
-  --good: var(--color-accent-700);
-  --warn: var(--color-accent-2-700);
-  --grid-line: var(--color-neutral-200);
-  --shadow: var(--shadow-sm);
-
-  max-width: var(--column);
-  margin: 0 auto;
-  padding: var(--space-6) var(--space-6) var(--space-8);
-}
-
-.legacy-page h1 {
-  font-size: 28px;
-  letter-spacing: -0.02em;
-  margin: 0 0 8px;
-}
-.legacy-page h2 {
-  font-size: 19px;
-  letter-spacing: -0.01em;
-  margin: 34px 0 10px;
-}
-.legacy-page h3 {
-  font-size: 15px;
-  margin: 0 0 6px;
-}
-.legacy-page code {
-  font: 0.9em var(--mono);
-  background: var(--panel-alt);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
-  padding: 1px 5px;
-}
-.legacy-page .lede {
-  color: var(--muted);
-  font-size: 16px;
-  margin: 0 0 4px;
-  max-width: 68ch;
-}
-.legacy-page p {
-  max-width: 72ch;
-}
-.legacy-page .muted {
-  color: var(--muted);
-}
-.legacy-page .small {
-  font-size: 13px;
-}
-.legacy-page .eyebrow {
-  font-size: 12px;
-  text-transform: uppercase;
-  letter-spacing: 0.07em;
-  color: var(--muted);
-  font-weight: var(--font-heading-weight);
-  margin: 0 0 4px;
-}
-.legacy-page .card {
-  background: var(--panel);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
-  padding: 18px;
-  margin: 16px 0;
-  gap: 0;
-}
-.legacy-page .grid2 {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-  gap: 16px;
-}
-.legacy-page .chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font: 12px/1 var(--mono);
-  padding: 6px 9px;
-  border-radius: var(--radius-lg);
-  background: var(--panel);
-  border: 1px solid var(--border);
-  color: var(--muted);
-}
-.legacy-page .controls {
-  display: flex;
-  gap: 14px;
-  flex-wrap: wrap;
-  align-items: center;
-}
-.legacy-page button,
-.legacy-page select {
-  font: inherit;
-  font-size: 14px;
-  padding: 7px 12px;
-  color: var(--text);
-  background: var(--bg);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
-  cursor: pointer;
-}
-.legacy-page button:hover {
-  border-color: var(--accent);
-}
-.legacy-page label.field {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  font-size: 13px;
-  color: var(--muted);
-}
-.legacy-page .readout {
-  font: var(--font-heading-weight) 30px/1.1 var(--mono);
-  letter-spacing: -0.02em;
-  font-variant-numeric: tabular-nums;
-}
-.legacy-page table {
-  border-collapse: collapse;
+.loss-curve,
+.seed-deltas {
   width: 100%;
-  font-size: 14px;
+  display: block;
+  background: var(--color-neutral-100);
+  border-radius: var(--radius-md);
 }
-.legacy-page th,
-.legacy-page td {
-  text-align: left;
-  padding: 7px 10px;
-  border-bottom: 1px solid var(--border);
+
+.seed-deltas {
+  background: transparent;
 }
-.legacy-page th {
-  font-size: 12px;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: var(--muted);
-  font-weight: var(--font-heading-weight);
+
+/* The scrubber under a figure. Full width and deliberately chunky: it is the primary
+   control on the page, not a setting, and on a touch screen it is the whole
+   interaction. Keyboard users get it for free — a range input is arrow-key driven,
+   which is why the figures are built around one rather than around a drag handle. */
+.scrub {
+  width: 100%;
+  display: block;
+  margin: var(--space-2) 0 0;
+  accent-color: var(--color-accent);
+  cursor: ew-resize;
 }
-.legacy-page td.num {
-  font-family: var(--mono);
-  font-variant-numeric: tabular-nums;
-  text-align: right;
-}
-.legacy-page .callout {
-  border-left: 3px solid var(--accent);
-  background: var(--panel-alt);
-  border-radius: 0 var(--radius-lg) var(--radius-lg) 0;
-  padding: 12px 16px;
-  margin: 16px 0;
-}
-.legacy-page .callout.warn {
-  border-left-color: var(--warn);
+
+.scrub:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 3px;
 }

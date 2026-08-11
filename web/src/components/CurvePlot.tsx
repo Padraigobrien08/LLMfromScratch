@@ -17,7 +17,7 @@ export default function CurvePlot({ series }: { series: Series[] }) {
   const all = series.flatMap((s) => s.points);
   if (!all.length) {
     return (
-      <p className="small muted" style={{ margin: 0 }}>
+      <p className="fig-note" style={{ margin: 0 }}>
         No curve data for this selection.
       </p>
     );
@@ -45,20 +45,20 @@ export default function CurvePlot({ series }: { series: Series[] }) {
     <svg viewBox={`0 0 ${W} ${H}`} width="100%" role="img" aria-label="Validation loss by step">
       {yTicks.map((y) => (
         <g key={y}>
-          <line x1={PAD_L} y1={sy(y)} x2={W - PAD_R} y2={sy(y)} stroke="var(--grid-line)" />
-          <text x={PAD_L - 8} y={sy(y) + 4} fontSize={11} fill="var(--muted)" textAnchor="end"
+          <line x1={PAD_L} y1={sy(y)} x2={W - PAD_R} y2={sy(y)} stroke="var(--color-neutral-200)" />
+          <text x={PAD_L - 8} y={sy(y) + 4} fontSize={11} fill="var(--color-neutral-600)" textAnchor="end"
             fontFamily="var(--mono)">
             {y.toFixed(3)}
           </text>
         </g>
       ))}
       {xTicks.map((x) => (
-        <text key={x} x={sx(x)} y={H - 14} fontSize={11} fill="var(--muted)" textAnchor="middle"
+        <text key={x} x={sx(x)} y={H - 14} fontSize={11} fill="var(--color-neutral-600)" textAnchor="middle"
           fontFamily="var(--mono)">
           {x}
         </text>
       ))}
-      <text x={W - PAD_R} y={H - 14} fontSize={11} fill="var(--muted)" textAnchor="end">
+      <text x={W - PAD_R} y={H - 14} fontSize={11} fill="var(--color-neutral-600)" textAnchor="end">
         step
       </text>
 
@@ -78,7 +78,7 @@ export default function CurvePlot({ series }: { series: Series[] }) {
         <g key={s.label} transform={`translate(${PAD_L + 10}, ${PAD_T + 14 + i * 18})`}>
           <line x1={0} y1={-4} x2={18} y2={-4} stroke={s.color} strokeWidth={2}
             strokeDasharray={s.dashed ? "5 4" : undefined} />
-          <text x={24} y={0} fontSize={12} fill="var(--text)" fontFamily="var(--mono)">
+          <text x={24} y={0} fontSize={12} fill="var(--color-text)" fontFamily="var(--mono)">
             {s.label}
           </text>
         </g>

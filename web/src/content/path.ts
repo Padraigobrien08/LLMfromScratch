@@ -4,8 +4,15 @@ import { CHAPTERS } from "./chapters";
 /**
  * The guided path: the whole argument of the site, in the order it should be read.
  *
- * Eight chapters, then the four places to go once the chapters have been read. The
- * external explorer is last because it leaves the site.
+ * Eight chapters explaining what a language model is, then the four measured results —
+ * which are the paper's body, not an appendix to it — then the explorers for anyone who
+ * wants to take a mechanism apart. The external attention page is last because it
+ * leaves the site.
+ *
+ * Results before explorers is a deliberate reordering. A reader who has finished the
+ * chapters has been told how a transformer works; what they have not yet been shown is
+ * whether any of it was built correctly, and that is the question the four plates
+ * answer.
  */
 export type Stop = {
   /** `01`–`08` for the chapters, `✲` for a deep-end page, `↗` for the one that leaves. */
@@ -19,6 +26,34 @@ export type Stop = {
 };
 
 const DEEP_END: Array<Omit<Stop, "numeral" | "cta">> = [
+  {
+    kicker: "Measured results",
+    title: "Did it reproduce GPT-2 124M?",
+    blurb:
+      "A validation-loss target fixed before the run, met a third of the way in, and corroborated on a public benchmark against the published figure. Drag the scrubber along the run.",
+    href: href({ kind: "reproduction" } as Route),
+  },
+  {
+    kicker: "Measured results",
+    title: "What actually matters",
+    blurb:
+      "Twelve arms at three seeds, every comparison paired against the baseline run that saw its data in the same order — including the changes that measurably did nothing.",
+    href: href({ kind: "ablations" } as Route),
+  },
+  {
+    kicker: "Measured results",
+    title: "Making it fast, and the bug in the numbers",
+    blurb:
+      "The KV cache was slower than recomputing until a mask that forfeited the fused kernel turned up. Flip the bug back on and watch the curve change sides.",
+    href: href({ kind: "efficiency" } as Route),
+  },
+  {
+    kicker: "Measured results",
+    title: "Eight GPUs, and the cost of talking",
+    blurb:
+      "95% of linear scaling over the worst interconnect in the building, and a two-parameter model fitted to two points that then predicted the other two.",
+    href: href({ kind: "scaling" } as Route),
+  },
   {
     kicker: "The deep end",
     title: "The RoPE explorer",
@@ -39,16 +74,6 @@ const DEEP_END: Array<Omit<Stop, "numeral" | "cta">> = [
     blurb:
       "Eleven tests and the specific bug each one exists to catch — the ones that would otherwise survive into a training run.",
     href: href({ kind: "tests" } as Route),
-  },
-  {
-    // Not in the original handoff, which was written while the sweep was still
-    // pending. It has since run, and a site that hides its own measured results to
-    // stay faithful to a design would be the wrong kind of faithful.
-    kicker: "Measured results",
-    title: "The ablation playground",
-    blurb:
-      "Twelve arms at three seeds, every comparison paired against the baseline run that saw its data in the same order — including the two changes that measurably did nothing.",
-    href: href({ kind: "ablations" } as Route),
   },
 ];
 

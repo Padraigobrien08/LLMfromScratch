@@ -15,8 +15,11 @@ describe("parseRoute", () => {
     expect(parseRoute("#/tests")).toEqual({ kind: "tests" });
   });
 
-  it("keeps the ablation playground routable", () => {
+  it("reads the four results plates", () => {
+    expect(parseRoute("#/reproduction")).toEqual({ kind: "reproduction" });
     expect(parseRoute("#/ablations")).toEqual({ kind: "ablations" });
+    expect(parseRoute("#/efficiency")).toEqual({ kind: "efficiency" });
+    expect(parseRoute("#/scaling")).toEqual({ kind: "scaling" });
   });
 
   it("reads every chapter", () => {
@@ -53,7 +56,10 @@ describe("href", () => {
       { kind: "rope" },
       { kind: "architecture" },
       { kind: "tests" },
+      { kind: "reproduction" },
       { kind: "ablations" },
+      { kind: "efficiency" },
+      { kind: "scaling" },
       ...Array.from({ length: CHAPTER_COUNT }, (_, i) => ({ kind: "chapter", n: i + 1 }) as const),
     ];
     for (const route of routes) {

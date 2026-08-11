@@ -31,6 +31,7 @@ import argparse
 import json
 import re
 import shutil
+import statistics
 import subprocess
 import sys
 from pathlib import Path
@@ -134,12 +135,22 @@ def build_payload(*, python_tests: int, browser_tests: int) -> dict[str, Any]:
         "ablations": _ablations(ablations),
         "scaling": _scaling(scaling),
         "accumulation": _accumulation(),
+        "throughput": _throughput(),
+        "cache": _cache(),
         "quantization": _quantization(quant),
         "speculative": _speculative(spec),
     }
 
 
 def _reproduction(repro: dict[str, Any], hella: dict[str, Any]) -> dict[str, Any]:
+    curve = load("reproduction-curve.json")
+    mfus = [p["mfu"] for p in curve["train"] if p["mfu"] is not None]
+    # The first logged step includes compilation and allocator warmup and sits at half
+    # the steady-state figure. It belongs in the mean — it is real time the run spent —
+    # but quoting it as the *range* would say utilisation swung by twenty-five points
+    # when what happened is that it started once and then held.
+    settled = mfus[1:]
+
     return {
         "split": repro["split"],
         "step": repro["step"],
@@ -147,6 +158,16 @@ def _reproduction(repro: dict[str, Any], hella: dict[str, Any]) -> dict[str, Any
         "targetLoss": TARGET_LOSS,
         "perplexity": repro["perplexity"],
         "tokensEvaluated": repro["tokens_evaluated"],
+        "tokensTrained": curve["tokens"],
+        # The mean, because that is the statistic docs/reproduction.md reports and the
+        # claim it supports is that MFU was *flat* — a median would hide a run that
+        # started well and degraded, which is the failure this number rules out.
+        "mfuMean": statistics.fmean(mfus),
+        "mfuMin": min(settled),
+        "mfuMax": max(settled),
+        "mfuWarmup": mfus[0],
+        # Where the pre-registered target was first met. The plate's scrubber stops here.
+        "crossing": curve["crossing"],
         "hellaswag": {
             "accNorm": hella["acc_norm"],
             "acc": hella["acc"],
@@ -235,6 +256,93 @@ def _accumulation() -> dict[str, Any]:
             }
             for accum in (8, 4, 2, 1)
         ],
+    }
+
+
+def _throughput() -> dict[str, Any]:
+    """Training and batching throughput on both cards.
+
+    Two GPUs rather than one because the contrast is the finding: the same code and the
+    same compile speedup read as 41.5% MFU on an H100 and 77.9% on a 4090, and the
+    micro-batch that was the *fastest* H100 configuration does not fit in 24 GiB at all.
+    A single-card table would have reported the model as inefficient rather than small.
+    """
+    cards = {"h100": load("benchmarks.json"), "l4090": load("benchmarks-cuda.json")}
+    return {
+        name: {
+            "gpu": payload["provenance"]["gpu"],
+            "training": [
+                {
+                    "variant": r["variant"],
+                    "tokensPerSec": r["tokens_per_sec"],
+                    "peakMemoryGib": r["peak_memory_gib"],
+                    "mfu": r["mfu"],
+                    "settings": r["settings"],
+                }
+                for r in payload["results"]
+                if r["suite"] == "training"
+            ],
+            "inference": [
+                {
+                    "variant": r["variant"],
+                    "tokensPerSec": r["tokens_per_sec"],
+                    "batchSize": r["settings"]["batch_size"],
+                    "useCache": r["settings"]["use_cache"],
+                }
+                for r in payload["results"]
+                if r["suite"] == "inference"
+            ],
+        }
+        for name, payload in cards.items()
+    }
+
+
+def _cache() -> dict[str, Any]:
+    """The cache-versus-recompute sweep, before and after the mask fix.
+
+    Two artifacts, and the second one is the reason this plate exists. `benchmarks-cuda.json`
+    is the sweep as it stands; `benchmarks-cuda-before-mask-fix.json` is the same sweep run
+    against the code *before* the decode path stopped building a causal mask it did not
+    need — restored byte-for-byte from the commit that first published it, so the toggle on
+    the page flips between two measurements rather than between a measurement and prose.
+
+    Each file records the commit it was measured at, which is what distinguishes them:
+    `6c13dcb1` built the mask, `42ed0a66` did not.
+    """
+    after, before = load("benchmarks-cuda.json"), load("benchmarks-cuda-before-mask-fix.json")
+
+    def sweep(payload: dict[str, Any]) -> dict[tuple[int, bool], dict[str, Any]]:
+        return {
+            (r["settings"]["total_len"], r["settings"]["use_cache"]): r
+            for r in payload["results"]
+            if r["suite"] == "cache-scaling"
+        }
+
+    a, b = sweep(after), sweep(before)
+    lengths = sorted({length for length, _ in a})
+
+    points = []
+    for length in lengths:
+        naive, cached, was = a[(length, False)], a[(length, True)], b[(length, True)]
+        points.append(
+            {
+                "totalLen": length,
+                "genLen": cached["settings"]["gen_len"],
+                "naive": naive["tokens_per_sec"],
+                "naiveBefore": b[(length, False)]["tokens_per_sec"],
+                "cached": cached["tokens_per_sec"],
+                "cachedBefore": was["tokens_per_sec"],
+                "advantage": cached["tokens_per_sec"] / naive["tokens_per_sec"],
+                "advantageBefore": was["tokens_per_sec"] / b[(length, False)]["tokens_per_sec"],
+                "gainFromFix": cached["tokens_per_sec"] / was["tokens_per_sec"],
+            }
+        )
+
+    return {
+        "gpu": after["provenance"]["gpu"],
+        "commitBefore": before["provenance"]["git_commit"],
+        "commitAfter": after["provenance"]["git_commit"],
+        "points": points,
     }
 
 

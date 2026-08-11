@@ -18,7 +18,10 @@ export type Route =
   | { kind: "rope" }
   | { kind: "architecture" }
   | { kind: "tests" }
-  | { kind: "ablations" };
+  | { kind: "reproduction" }
+  | { kind: "ablations" }
+  | { kind: "efficiency" }
+  | { kind: "scaling" };
 
 export const FRONT: Route = { kind: "front" };
 
@@ -36,7 +39,10 @@ export function parseRoute(hash: string): Route {
   if (path === "rope") return { kind: "rope" };
   if (path === "architecture") return { kind: "architecture" };
   if (path === "tests") return { kind: "tests" };
+  if (path === "reproduction") return { kind: "reproduction" };
   if (path === "ablations") return { kind: "ablations" };
+  if (path === "efficiency") return { kind: "efficiency" };
+  if (path === "scaling") return { kind: "scaling" };
 
   const chapter = /^chapter\/(\d+)$/.exec(path);
   if (chapter) {
