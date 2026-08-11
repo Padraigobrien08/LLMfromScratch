@@ -423,8 +423,7 @@ def run(
         )
         if point.max_loss_delta_vs_1gpu is not None:
             print(
-                f"  max |loss delta| vs {min(world_sizes)} GPU: "
-                f"{point.max_loss_delta_vs_1gpu:.2e}",
+                f"  max |loss delta| vs {min(world_sizes)} GPU: {point.max_loss_delta_vs_1gpu:.2e}",
                 flush=True,
             )
 
@@ -439,12 +438,12 @@ def format_table(report: ScalingReport) -> str:
     ]
     for p in report.points:
         if p.error:
-            lines.append(
-                f"| {p.world_size} | — | **failed** | — | — | — | — | — |"
-            )
+            lines.append(f"| {p.world_size} | — | **failed** | — | — | — | — | — |")
             continue
         mfu = f"{p.mfu:.1%}" if p.mfu else "—"
-        delta = "baseline" if p.max_loss_delta_vs_1gpu is None else f"{p.max_loss_delta_vs_1gpu:.1e}"
+        delta = (
+            "baseline" if p.max_loss_delta_vs_1gpu is None else f"{p.max_loss_delta_vs_1gpu:.1e}"
+        )
         lines.append(
             f"| {p.world_size} | {p.grad_accum_steps or '—'} | {p.tokens_per_sec:,.0f} | "
             f"{p.tokens_per_sec_per_gpu:,.0f} | {p.speedup:.2f}× | {p.efficiency:.1%} | "

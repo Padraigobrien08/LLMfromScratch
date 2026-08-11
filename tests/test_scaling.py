@@ -152,8 +152,16 @@ def test_cli_skips_world_sizes_the_gpu_box_cannot_run(
     monkeypatch.setattr("torch.cuda.device_count", lambda: 2)
     attempted = _capture_world_sizes(monkeypatch, tmp_path)
     main(
-        ["--world-sizes", "1,2,4,8", "--steps", "3", "--warmup", "1",
-         "--out", str(tmp_path / "s.json")]
+        [
+            "--world-sizes",
+            "1,2,4,8",
+            "--steps",
+            "3",
+            "--warmup",
+            "1",
+            "--out",
+            str(tmp_path / "s.json"),
+        ]
     )
     assert attempted == [1, 2]
 
@@ -212,8 +220,20 @@ def test_cli_validates_before_running_anything(monkeypatch: pytest.MonkeyPatch) 
         lambda **kw: launched.append(1) or ScalingReport(config="c", steps=1, warmup=0),
     )
     with pytest.raises(SystemExit, match="rejected the scaling overrides"):
-        main(["--config", "debug", "--world-sizes", "1", "--steps", "3", "--warmup", "1",
-              "--set", "optim.not_a_field=1"])
+        main(
+            [
+                "--config",
+                "debug",
+                "--world-sizes",
+                "1",
+                "--steps",
+                "3",
+                "--warmup",
+                "1",
+                "--set",
+                "optim.not_a_field=1",
+            ]
+        )
     assert launched == [], "nothing may be launched once the config is known to be bad"
 
 
@@ -252,12 +272,24 @@ def _comm_report(accum: int, base_tps: float, pivot_tps: float) -> dict:
     return {
         "label": f"accum{accum}",
         "points": [
-            {"world_size": 1, "tokens_per_sec": base_tps, "tokens_per_sec_per_gpu": base_tps,
-             "grad_accum_steps": accum * 8, "efficiency": 1.0, "error": None,
-             "max_loss_delta_vs_1gpu": None},
-            {"world_size": 8, "tokens_per_sec": pivot_tps, "tokens_per_sec_per_gpu": pivot_tps / 8,
-             "grad_accum_steps": accum, "efficiency": (pivot_tps / 8) / base_tps,
-             "error": None, "max_loss_delta_vs_1gpu": 4.4e-05},
+            {
+                "world_size": 1,
+                "tokens_per_sec": base_tps,
+                "tokens_per_sec_per_gpu": base_tps,
+                "grad_accum_steps": accum * 8,
+                "efficiency": 1.0,
+                "error": None,
+                "max_loss_delta_vs_1gpu": None,
+            },
+            {
+                "world_size": 8,
+                "tokens_per_sec": pivot_tps,
+                "tokens_per_sec_per_gpu": pivot_tps / 8,
+                "grad_accum_steps": accum,
+                "efficiency": (pivot_tps / 8) / base_tps,
+                "error": None,
+                "max_loss_delta_vs_1gpu": 4.4e-05,
+            },
         ],
     }
 
@@ -269,11 +301,13 @@ def test_comm_table_orders_by_amortisation_and_uses_each_own_baseline() -> None:
     from llmfs.bench.scaling import comm_table
 
     reports = [
-        _comm_report(accum=1, base_tps=100_000.0, pivot_tps=560_000.0),   # 70%
+        _comm_report(accum=1, base_tps=100_000.0, pivot_tps=560_000.0),  # 70%
         _comm_report(accum=8, base_tps=200_000.0, pivot_tps=1_600_000.0),  # 100%
     ]
     table = comm_table(reports)
-    rows = [line for line in table.splitlines() if line.startswith("| 1 ") or line.startswith("| 8 ")]
+    rows = [
+        line for line in table.splitlines() if line.startswith("| 1 ") or line.startswith("| 8 ")
+    ]
     assert rows[0].startswith("| 8 "), "most-amortised row first"
     assert "100.0%" in rows[0] and "70.0%" in rows[1]
     # Each row's own baseline, not the other's.
