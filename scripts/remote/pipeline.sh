@@ -36,6 +36,19 @@ REPRO_EXTRA="${REPRO_EXTRA:-}"
 
 mkdir -p "$MARKERS" "$RESULTS" "$KEEP_DIR"
 cd "$REPO" || exit 1
+# Fail here rather than three stages later. env.sh is written by bootstrap.sh and puts the
+# llmfs entry points on PATH; without it every stage dies with "command not found", which
+# reads like a packaging bug rather than "setup was never run". These scripts deliberately
+# do not use `set -e` — a failing stage must not abort the ones after it — so a bare
+# `source` of a missing file only warns and carries on. That cost a confusing round-trip
+# on a pod billing by the minute.
+if [[ ! -f "$WORKDIR/env.sh" ]]; then
+  echo "FATAL: $WORKDIR/env.sh is missing, so llmfs is not installed on this pod." >&2
+  echo "  Run setup first:" >&2
+  echo "    cd $REPO && GPU_WORKDIR=$WORKDIR bash scripts/remote/bootstrap.sh" >&2
+  echo "  (or ./scripts/gpu.sh setup from your own machine)" >&2
+  exit 1
+fi
 # shellcheck disable=SC1091
 source "$WORKDIR/env.sh"
 
