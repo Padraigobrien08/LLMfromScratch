@@ -45,7 +45,17 @@ PY
 
 SYS_PY="$(command -v python3)"
 USE_SYSTEM_TORCH=0
-if [[ -n "$SYS_PY" ]] && probe_torch "$SYS_PY"; then
+# LLMFS_FORCE_TORCH_INSTALL=1 skips the image's torch even when it works, so a fresh
+# build is installed from CUDA_INDEX instead. Keeping the image's torch is the right
+# default — it is matched to the card — but it means two different pods get two different
+# torch builds, and therefore two different NCCL versions. When the measurement *is* the
+# collective (the multi-GPU scaling study compares one machine's all-reduce against
+# another's), that difference is a confound rather than a detail, so both pods have to be
+# pinned to the same build even if it is not each image's favourite.
+if [[ "${LLMFS_FORCE_TORCH_INSTALL:-0}" == "1" ]]; then
+  echo "--- torch ---"
+  echo "LLMFS_FORCE_TORCH_INSTALL=1: ignoring the image's torch, installing from $CUDA_INDEX"
+elif [[ -n "$SYS_PY" ]] && probe_torch "$SYS_PY"; then
   USE_SYSTEM_TORCH=1
   echo "--- torch ---"
   echo "image torch runs kernels on this GPU; keeping it"

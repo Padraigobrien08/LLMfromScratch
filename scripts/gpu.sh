@@ -197,8 +197,12 @@ cmd_setup() {
 
   # GPU_WORKDIR must cross the SSH boundary explicitly — the remote shell does not
   # inherit the local environment, and bootstrap.sh would silently fall back to
-  # /workspace and install into the wrong place.
-  ssh_run "GPU_WORKDIR='$GPU_WORKDIR' bash -s" < "$REPO_ROOT/scripts/remote/bootstrap.sh"
+  # /workspace and install into the wrong place. Same for the torch-pinning knobs, which
+  # matter when two pods must run identical builds to be comparable.
+  ssh_run "GPU_WORKDIR='$GPU_WORKDIR' \
+           LLMFS_FORCE_TORCH_INSTALL='${LLMFS_FORCE_TORCH_INSTALL:-0}' \
+           CUDA_INDEX='${CUDA_INDEX:-https://download.pytorch.org/whl/cu128}' \
+           bash -s" < "$REPO_ROOT/scripts/remote/bootstrap.sh"
   bold "setup complete"
   ssh_run "cd $REMOTE_REPO && git log --oneline -1 2>/dev/null || echo '(rsynced working tree)'"
 }
