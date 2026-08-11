@@ -30,7 +30,7 @@ what is built and verified, and what is designed but not yet run.
 
 | Pillar | Status |
 | --- | --- |
-| Package, config system, data pipeline, trainer, CI | **Done** — 298 tests green, end-to-end verified |
+| Package, config system, data pipeline, trainer, CI | **Done** — 334 tests green, end-to-end verified |
 | Modern architecture (RoPE, RMSNorm, SwiGLU, GQA, KV cache) | **Done** — hand-implemented, property-tested |
 | GPT-2 124M reproduction on FineWeb-Edu | **Done** — 3.0503 val loss, [docs/reproduction.md](docs/reproduction.md) |
 | Ablation study (12 arms × 3 seeds) | **Done** — [docs/ablations.md](docs/ablations.md), 39 runs, 7.6 GPU-h |
@@ -515,6 +515,19 @@ says the combination was never measured, rather than adding the individual delta
 pretending that is a finding. The analysis mirrors `ablation/report.py`, so the page
 cannot report something the repository's own report would refuse to.
 
+**The site is not allowed to claim more than this repository.** Every measured figure it
+prints — the reproduction, the sweep, the scaling points, the quantization table, the
+test counts on the dateline — is generated into `web/src/content/measured.ts` from
+`results/*.json` and live test collection, and CI asserts the committed module is still
+what the generator emits. The discipline before this was a comment on each figure naming
+what it was read from, which is not the same thing as reading from it: the dateline
+claimed 223 tests for weeks after the suite passed 300, and nothing failed. A number
+retyped into a second language is outside every check written in the first.
+
+```bash
+llmfs-export-web
+```
+
 ```bash
 npm install --prefix web && npm run dev --prefix web
 ```
@@ -605,10 +618,10 @@ src/llmfs/
   ablation/   sweep runner, paired-seed analysis, tables and plots
   bench/      training + inference throughput, memory, cost, provenance
 configs/      gpt2-124m, llama-124m, debug, and 11 single-axis ablation arms
-tests/        298 tests — component correctness, config validation, end-to-end training
-web/          the interactive site: explainer, RoPE explorer, ablations (69 tests)
+tests/        334 tests — component correctness, config validation, end-to-end training
+web/          the interactive site: explainer, RoPE explorer, ablations (84 tests)
 scripts/      GPU pod automation, and the exporters that pin the site to the model
-docs/         reproduction protocol, fault-tolerance design
+docs/         index, reproduction protocol, results write-ups, fault-tolerance design
 notebooks/    exploration only; nothing here is the source of truth
 legacy/       the original tutorial scripts, kept for reference
 ```

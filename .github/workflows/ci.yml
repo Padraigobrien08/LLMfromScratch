@@ -71,6 +71,10 @@ jobs:
       - run: npm ci --prefix web
       - name: Test
         run: npm test --prefix web
+      - name: Generated test count is current
+        # The one field of web/src/content/measured.ts that the Python job cannot
+        # re-derive, because enumerating the vitest suite needs this toolchain.
+        run: npm run check:counts --prefix web
       - name: Type-check and build
         run: npm run build --prefix web
 

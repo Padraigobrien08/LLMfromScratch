@@ -1,0 +1,130 @@
+"""The site's generated figures must still be what the generator produces.
+
+``test_documented_results.py`` pins the Markdown to ``results/*.json``. This file pins
+the *site* to the same artifacts, across the language boundary, which is where the
+guarantee had a hole: ``projectState.ts`` claimed 223 Python tests and 69 browser tests
+for weeks after both numbers moved, and nothing failed, because a figure retyped into
+TypeScript is outside every check written in Python.
+
+The mechanism is a generated module rather than a rule about care. If the committed
+``measured.ts`` is not byte-identical to a fresh export, that is a stale figure on a
+page, and it fails here.
+"""
+
+from __future__ import annotations
+
+import json
+import re
+
+import pytest
+
+from conftest import ARCH_VARIANTS
+from llmfs.export.web import (
+    OUT,
+    ROOT,
+    TARGET_LOSS,
+    build,
+    committed_browser_tests,
+    count_python_tests,
+)
+
+PROJECT_STATE = ROOT / "web" / "src" / "content" / "projectState.ts"
+
+pytestmark = pytest.mark.skipif(not OUT.parent.is_dir(), reason="web/ not present")
+
+
+@pytest.fixture(scope="module")
+def committed() -> str:
+    return OUT.read_text()
+
+
+def test_committed_measured_module_is_fresh(committed: str) -> None:
+    """Regenerate and compare, which is the whole guarantee in one assertion.
+
+    The browser count is taken from the committed file rather than measured, because
+    enumerating the vitest suite needs a Node toolchain this job does not have. It is
+    checked where that toolchain always exists — ``npm run check:counts``, in CI's site
+    job — so between the two every field is covered.
+
+    This collects the Python suite in a subprocess, which costs a few seconds. That is
+    the price of the count being pytest's own answer rather than a second, wrong
+    implementation of its collection rules.
+    """
+    browser = committed_browser_tests()
+    assert browser is not None, "the committed module must carry a browser test count"
+
+    fresh = build(python_tests=count_python_tests(), browser_tests=browser)
+    assert committed == fresh, (
+        "web/src/content/measured.ts is stale — run `llmfs-export-web` and commit it. "
+        "Adding or removing a test changes the count the site prints."
+    )
+
+
+def test_measured_module_is_a_json_literal(committed: str) -> None:
+    """The renderer relies on JSON being a subset of TypeScript. If that ever stops
+    holding — a NaN, an inf, a non-finite float from some future artifact — the site
+    would fail to build with a syntax error rather than a legible one. Catch it here."""
+    body = re.search(r"export const MEASURED = (\{.*\}) as const;\n\Z", committed, re.S)
+    assert body is not None, "measured.ts is not the shape the generator emits"
+    payload = json.loads(body.group(1))
+    assert payload["tests"]["python"] > 0
+    assert payload["reproduction"]["loss"] < payload["reproduction"]["targetLoss"]
+
+
+def test_target_loss_matches_where_it_was_pre_registered() -> None:
+    """The 3.29 target is the one figure in the export that is not a measurement.
+
+    It is a commitment made before the run, so it lives in no results file, and the
+    reason the reproduction means anything is that it was fixed in advance. That makes
+    it the single most valuable number to be unable to quietly edit: a target adjusted
+    afterwards to match the result would leave every other check green.
+    """
+    for name in ("configs/gpt2-124m.yaml", "docs/reproduction.md", "README.md"):
+        text = (ROOT / name).read_text()
+        assert str(TARGET_LOSS) in text, f"{name} no longer states the pre-registered target"
+
+
+def test_readme_status_table_states_the_live_test_count() -> None:
+    """The README is the site's ceiling, so a stale README drags the site down with it.
+
+    ``content/status.ts`` mirrors this table by design — the site may not claim more
+    than the README — which means the site cannot fix this by mirroring harder. The
+    count has to be true at the source.
+    """
+    readme = (ROOT / "README.md").read_text()
+    count = count_python_tests()
+    assert f"{count} tests green" in readme, (
+        f"README.md does not say '{count} tests green' — the suite has {count} tests"
+    )
+
+
+def test_site_reports_the_real_number_of_architecture_variants() -> None:
+    """``archVariants`` is the one figure the site states that no artifact holds.
+
+    Every property test — causality, the KV cache, GQA equivalence — runs against all of
+    them, so the number is a claim about coverage. It stays hand-written because it
+    comes from a test fixture rather than a run, and it is pinned here instead.
+    """
+    match = re.search(r"archVariants:\s*(\d+)", PROJECT_STATE.read_text())
+    assert match is not None, "projectState.ts no longer states archVariants"
+    assert int(match.group(1)) == len(ARCH_VARIANTS)
+
+
+def test_the_site_does_not_retype_the_reproduction_loss() -> None:
+    """A regression guard on the habit, not on a value.
+
+    Before the generator existed, ``projectState.ts`` held `loss: 3.05` as a literal.
+    Re-typing it is what this whole phase exists to stop, and it is an easy thing to do
+    again when a page wants one figure and importing feels like ceremony.
+
+    Comments are stripped first, deliberately. ``status.ts`` quotes the README's own
+    wording — "**Done** — 3.0503 val loss" — to explain the format it mirrors, and prose
+    about a number is not a claim of one. Only code can lie to a reader.
+    """
+    for path in sorted((ROOT / "web" / "src" / "content").glob("*.ts")):
+        if path.name == "measured.ts":
+            continue
+        code = re.sub(r"/\*.*?\*/|//[^\n]*", "", path.read_text(), flags=re.S)
+        assert "3.0503" not in code and "3.05," not in code, (
+            f"{path.name} restates the reproduction loss — import it from measured.ts"
+        )

@@ -54,6 +54,7 @@ llmfs-scaling = "llmfs.bench.scaling:main"
 llmfs-comm-report = "llmfs.bench.scaling:main_comm_report"
 llmfs-quant-eval = "llmfs.quant.evaluate:main"
 llmfs-spec-bench = "llmfs.infer.benchmark:main"
+llmfs-export-web = "llmfs.export.web:main"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/llmfs"]

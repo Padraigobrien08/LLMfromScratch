@@ -1,3 +1,5 @@
+import { MEASURED } from "./measured";
+
 /**
  * The honest-status table, mirroring README.md's.
  *
@@ -6,7 +8,13 @@
  * val loss" — which splits here into the tag and the state, in the README's own
  * words. When a row moves there, it moves here, and nowhere else.
  *
- * Last checked against README.md on 2026-08-10, after the efficiency work landed.
+ * The prose is mirrored by hand; the figures inside it are not. Every number below is
+ * interpolated from `measured.ts`, because those were the parts that actually rotted —
+ * this table said "223 tests green" and claimed the scaling run was still pending long
+ * after it had produced 95.1%. A row can now go stale in its wording, which a reader
+ * would notice, but no longer in its arithmetic, which a reader would not.
+ *
+ * Last checked against README.md on 2026-08-11, after the scaling report landed.
  */
 export type StatusRow = {
   pillar: string;
@@ -14,10 +22,12 @@ export type StatusRow = {
   status: "done" | "pending" | "not started";
 };
 
+const EIGHT_GPU = MEASURED.scaling.points.find((p) => p.worldSize === 8)!;
+
 export const STATUS: StatusRow[] = [
   {
     pillar: "Package, config system, data pipeline, trainer, CI",
-    state: "223 tests green, end-to-end verified",
+    state: `${MEASURED.tests.python} tests green, end-to-end verified`,
     status: "done",
   },
   {
@@ -27,22 +37,23 @@ export const STATUS: StatusRow[] = [
   },
   {
     pillar: "GPT-2 124M reproduction on FineWeb-Edu",
-    state: "3.0503 val loss, docs/reproduction.md",
+    state: `${MEASURED.reproduction.loss.toFixed(4)} val loss, docs/reproduction.md`,
     status: "done",
   },
   {
-    pillar: "Ablation study (12 arms × 3 seeds)",
-    state: "docs/ablations.md, 39 runs, 7.6 GPU-h",
+    pillar: `Ablation study (${MEASURED.ablations.arms} arms × ${MEASURED.ablations.seeds} seeds)`,
+    state: `docs/ablations.md, ${MEASURED.ablations.runs} runs, ${MEASURED.ablations.gpuHours.toFixed(1)} GPU-h`,
     status: "done",
   },
   {
     pillar: "Efficiency benchmarks (throughput, memory, KV cache)",
-    state: "Measured on H100",
+    state: "H100 training, 4090 inference; the cache sweep found a 30% bug",
     status: "done",
   },
   {
     pillar: "Quantization + speculative decoding",
-    state: "docs/efficiency.md; GPU throughput pending",
+    // The artifact records the device as torch names it, lowercase; the README says CUDA.
+    state: `docs/efficiency.md, measured on ${MEASURED.quantization.device.toUpperCase()}`,
     status: "done",
   },
   {
@@ -52,8 +63,8 @@ export const STATUS: StatusRow[] = [
   },
   {
     pillar: "Multi-GPU scaling report",
-    state: "DDP wired; scaling run pending",
-    status: "pending",
+    state: `docs/scaling.md, ${(EIGHT_GPU.efficiency * 100).toFixed(1)}% efficiency on 8 GPUs`,
+    status: "done",
   },
   {
     pillar: "Interactive attention visualization",

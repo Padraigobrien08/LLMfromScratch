@@ -1,33 +1,39 @@
+import { MEASURED } from "./measured";
+
 /**
  * Live project state, printed on the dateline rail of every page.
  *
- * These are claims about the repository, so each one names what it is read from. The
- * rule the whole site is built on is that it may never claim more than the README —
- * so when one of these moves, it moves here, once.
+ * These are claims about the repository, and this file used to make them as literals
+ * with a comment naming what each was read from. The discipline was real and it still
+ * failed: `pythonTests: 223` and `browserTests: 69` sat here for weeks after both had
+ * moved, because a comment naming a source is not a link to one. Hand-transcription
+ * across a language boundary drifts, and nothing written in Python was ever going to
+ * notice a stale number written in TypeScript.
+ *
+ * So everything measurable now comes from `measured.ts`, which `llmfs-export-web`
+ * generates from `results/*.json` and live test collection, and which
+ * `tests/test_web_export.py` asserts is still current. What is left below is the
+ * handful of facts no run produces.
  */
 export const PROJECT = {
   author: "Padraig O'Brien",
   licence: "MIT",
   repo: "https://github.com/Padraigobrien08/LLMfromScratch",
 
-  /** `pytest tests -q` — 223 collected across thirteen files. Generated in stage 6. */
-  pythonTests: 223,
-
-  /** `npm test --prefix web` — the ports of rope, modelsize, sampling and tokenizer. */
-  browserTests: 69,
-
-  /** `tests/conftest.py::ARCH_VARIANTS` — every property test runs against all ten. */
+  /**
+   * `tests/conftest.py::ARCH_VARIANTS` — every property test runs against all ten.
+   *
+   * The one figure here still written by hand, because it comes from a test fixture
+   * rather than from a run, so there is no artifact to generate it from.
+   * `test_site_reports_the_real_number_of_architecture_variants` pins it to the
+   * fixture's length instead.
+   */
   archVariants: 10,
 
-  /**
-   * `results/reproduction.json`: the measured validation loss of the GPT-2 124M run
-   * at step 19,000, against the 3.29 target pre-registered in `configs/gpt2-124m.yaml`
-   * and `docs/reproduction.md`.
-   */
-  reproduction: { loss: 3.05, targetLoss: 3.29, step: 19_000 },
-
-  /** `docs/ablations.md` / `results/ablations.json`: the sweep, now run. */
-  ablations: { arms: 12, seeds: 3, runs: 39, gpuHours: 7.6 },
+  pythonTests: MEASURED.tests.python,
+  browserTests: MEASURED.tests.browser,
+  reproduction: MEASURED.reproduction,
+  ablations: MEASURED.ablations,
 } as const;
 
 /** The five items of the dateline rail, left to right. */
