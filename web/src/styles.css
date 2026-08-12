@@ -249,8 +249,12 @@ body {
   gap: var(--space-8);
   padding: 0 0 var(--space-8);
 }
+/* Cut from 58px when the figures moved to the mono: at a given size the mono's glyphs
+   are wider and its stems heavier than the serif's, so the strip that sat correctly
+   under the front page's headline started shouting over it. Optically this is about
+   where the serif was. */
 .figure-strip .plate-num {
-  font-size: clamp(34px, 4.4vw, 58px);
+  font-size: clamp(30px, 3.6vw, 48px);
   line-height: 1;
   letter-spacing: -0.03em;
 }
@@ -278,7 +282,7 @@ body {
     gap: var(--space-4);
   }
   .figure-strip .plate-num {
-    font-size: 34px;
+    font-size: 30px;
   }
 }
 
