@@ -6,6 +6,7 @@ import { frontFigures } from "../content/frontFigures";
 import { pathStops } from "../content/path";
 import { ILLUSTRATIVE, STATUS, TAG_CLASS } from "../content/status";
 import { fetchAblations } from "../lib/ablationsData";
+import { numberWord, numberWordCapitalized } from "../lib/numberWord";
 
 export default function Front() {
   /**
@@ -30,6 +31,16 @@ export default function Front() {
   const figures = frontFigures();
   const stops = pathStops(`${import.meta.env.BASE_URL}attention/`);
 
+  /**
+   * Every pillar is done, so the Status column would print the same tag ten times.
+   * Fold it away — but derive the fold, so the day a row goes back to pending the
+   * column returns with it rather than hiding the one thing the table exists to say.
+   */
+  const allDone = STATUS.every((row) => row.status === "done");
+  const statusNote = allDone
+    ? `All ${numberWord(STATUS.length)} pillars below are done, and every claim inside a row is still pinned by a test.`
+    : "The rows still waiting on a run say so, and so does every claim inside a row that is otherwise done.";
+
   return (
     <div className="shell page">
       <p className="kicker kicker-2">Start here · no prior knowledge assumed</p>
@@ -44,8 +55,9 @@ export default function Front() {
           paired-seed ablation study and efficiency benchmarks behind it.
         </p>
         <p className="standfirst-secondary">
-          This is the part you can click. Thirteen stops, in order, from a sentence you type to
-          the question of whether any of the architecture decisions were worth making. Every
+          This is the part you can click. {numberWordCapitalized(stops.length)} stops, in order,
+          from a sentence you type to the question of whether any of the architecture decisions
+          were worth making. Every
           number here is either arithmetic you can check or a measurement pinned to the
           repository by a test — and where a run has not happened yet, it says so.
         </p>
@@ -94,15 +106,15 @@ export default function Front() {
       <div className="rule-heavy" />
       <h2 className="section-label">Honest status</h2>
       <p className="status-note">
-        No result appears anywhere on this site that has not been measured. The one row still
-        waiting on a run says so, and so does every claim inside a row that is otherwise done.
+        No result appears anywhere on this site that has not been measured.{" "}
+        {statusNote}
       </p>
       <DataTable label="Pillar status" className="status-table">
         <thead>
           <tr>
             <th>Pillar</th>
             <th>State</th>
-            <th style={{ width: 130 }}>Status</th>
+            {!allDone && <th style={{ width: 130 }}>Status</th>}
           </tr>
         </thead>
         <tbody>
@@ -110,9 +122,11 @@ export default function Front() {
             <tr key={row.pillar}>
               <td className="status-pillar">{row.pillar}</td>
               <td className="status-state">{row.state}</td>
-              <td>
-                <span className={TAG_CLASS[row.status]}>{row.status}</span>
-              </td>
+              {!allDone && (
+                <td>
+                  <span className={TAG_CLASS[row.status]}>{row.status}</span>
+                </td>
+              )}
             </tr>
           ))}
         </tbody>

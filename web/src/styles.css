@@ -171,10 +171,14 @@ body {
 
 /* Kickers are cyan — the interactive ink — except where a section is deliberately
    the second spot, which is the magenta one. Never both in the same component. */
+/* Set solid, a kicker that wraps — which it does on a phone — puts its two lines in
+   contact and orphans the last word. Leading plus a balanced wrap fixes both; the
+   cost is 5px of height on the single-line case, which the margin already dwarfs. */
 .kicker {
-  font: var(--font-heading-weight) 11px/1 var(--font-body);
+  font: var(--font-heading-weight) 11px/1.5 var(--font-body);
   letter-spacing: 0.18em;
   text-transform: uppercase;
+  text-wrap: balance;
   color: var(--color-accent-700);
   margin: 0 0 var(--space-3);
 }
@@ -226,10 +230,14 @@ body {
   text-wrap: pretty;
 }
 
+/* Baseline, not flex-end: the captions run to different line counts, and aligning the
+   boxes' bottoms floats the shorter figure's numeral above its neighbours. Flex
+   baseline alignment takes the numeral's own first line, which is the thing being read
+   across. */
 .figure-strip {
   display: flex;
   flex-wrap: wrap;
-  align-items: flex-end;
+  align-items: baseline;
   gap: var(--space-8);
   padding: 0 0 var(--space-8);
 }
