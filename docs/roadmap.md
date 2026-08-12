@@ -166,6 +166,30 @@ which is a different product tier from anything rented so far.
 
 ---
 
+## Outside the ordering: two small things
+
+Neither is engineering, so neither is ranked with the seven above. The list is ordered by value
+per unit of effort and the first of these would take the top of it on that measure, which would
+say something false about what this roadmap is for.
+
+**The GitHub social preview is not set.** Settings → General → Social preview, uploading
+[docs/images/front-page.png](images/front-page.png), which is already committed. It cannot be
+done from a shell or a workflow — the field is web UI only, which is the whole reason it is
+still outstanding. Until it is done, every link to this repository unfurls as a grey
+placeholder rather than as the front page, on a repository whose argument is that the front
+page is the work.
+
+**The front page fetches the ablation sweep to decide what not to draw.** `Front.tsx` requests
+`data/ablations.json` — 7,681 bytes gzipped, 52.5 KB raw — on every visit, purely to learn
+whether the file exists: the illustrative preview block below the status table hides itself
+once the real sweep has published. It published, so that block no longer renders, and the
+request now buys nothing that a build-time flag could not. Two things would end it: deleting
+the preview block outright rather than leaving it conditional, or having the export write a
+one-line manifest the front page can read instead. Neither is urgent at this size; both get
+more attractive as the sweep grows.
+
+---
+
 ## Not on this list, deliberately
 
 **An NVLink comparison.** Measured out of relevance rather than skipped. PCIe achieves 95.1%
