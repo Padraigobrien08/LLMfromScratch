@@ -43,9 +43,13 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
-      - uses: astral-sh/setup-uv@v6
+      # Exact version rather than `@v9`: setup-uv publishes no major tags past v8.
+      # `prune-cache` restates the pre-v9 default, which this repo wants — an unpruned
+      # torch cache would crowd out the checkpoint cache below.
+      - uses: astral-sh/setup-uv@v9.0.0
         with:
           enable-cache: true
+          prune-cache: true
           cache-dependency-glob: uv.lock
 
       - name: Install
@@ -57,7 +61,7 @@ jobs:
 
       - name: Restore the demo checkpoint
         id: ckpt
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: pages-out
           # Keyed on everything that determines the trained weights: the config, the
@@ -93,7 +97,7 @@ jobs:
           uv run llmfs-viz --checkpoint pages-out/debug/best.pt \
             --out site/attention/index.html --device cpu
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: "22"
           cache: npm
@@ -121,7 +125,9 @@ jobs:
       - name: Assemble the deployment
         run: cp -r web/dist/. site/
 
-      - uses: actions/upload-pages-artifact@v3
+      # v4 onward excludes hidden files from the artifact; the assembled site has
+      # none, so no `include-hidden-files` is needed here.
+      - uses: actions/upload-pages-artifact@v5
         with:
           path: site
 
@@ -133,4 +139,4 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - id: deployment
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@v5
