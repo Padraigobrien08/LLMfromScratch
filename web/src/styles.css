@@ -848,6 +848,20 @@ body {
   max-width: 70ch;
   margin: 0;
 }
+/* See `Caveat.tsx`. One word, in the page's ink so it reads as a heading rather than as
+   the start of the sentence it introduces. Ink on paper is 14.86:1. */
+.caveat-lead {
+  font-variant-caps: small-caps;
+  font-weight: var(--font-heading-weight);
+  letter-spacing: 0.06em;
+  color: var(--color-text);
+  margin-right: 2px;
+}
+.caveat-columns {
+  max-width: 1000px;
+  columns: 2 300px;
+  column-gap: var(--space-6);
+}
 .closing-cols {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));

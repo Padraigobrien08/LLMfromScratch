@@ -58,8 +58,9 @@ llmfs-export-web = "llmfs.export.web:main"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/llmfs"]
-# The front-end template is loaded at runtime, so it has to travel with the wheel.
-artifacts = ["src/llmfs/viz/template.html"]
+# The front-end template and the webfont it inlines are both loaded at runtime, so
+# they have to travel with the wheel.
+artifacts = ["src/llmfs/viz/template.html", "src/llmfs/viz/source-serif-4-latin.woff2"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

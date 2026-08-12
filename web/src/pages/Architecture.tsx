@@ -1,6 +1,7 @@
 import { useState } from "react";
 
 import DataTable from "../components/DataTable";
+import Caveat from "../components/Caveat";
 import { ARCHITECTURES } from "../content/architecture";
 import { BLOCKS, SIZES, type Variant } from "../content/blocks";
 import { PROJECT } from "../content/projectState";
@@ -173,7 +174,7 @@ export default function Architecture() {
           </tr>
         </tbody>
       </DataTable>
-      <p className="caveat-wide">
+      <Caveat columns>
         <b>Worth reading the difference column rather than the totals.</b> The one place the two
         configs were deliberately matched is the feed-forward: SwiGLU has three projections rather
         than two, so its hidden width carries a 2/3 correction, and the row comes out within{" "}
@@ -195,7 +196,7 @@ export default function Architecture() {
         the largest single line here and it buys a 3× smaller cache at inference, which is a
         memory result rather than a quality one — the ablation study is where the quality cost gets
         measured, and it came to +0.0311 validation loss.
-      </p>
+      </Caveat>
 
       <div className="rule-heavy" style={{ margin: "var(--space-6) 0 var(--space-4)" }} />
       <div className="closing-cols">

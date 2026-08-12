@@ -13,6 +13,7 @@ Live exploration of arbitrary text needs a model in the loop; that is
 from __future__ import annotations
 
 import argparse
+import base64
 import json
 from pathlib import Path
 from typing import Any
@@ -20,6 +21,11 @@ from typing import Any
 from .attention import attention_for_prompt, load_model_and_tokenizer
 
 TEMPLATE = Path(__file__).parent / "template.html"
+
+#: The latin subset of Source Serif 4 variable, inlined into the template as a data:
+#: URI so the page keeps the site's masthead without fetching anything. Adobe's, under
+#: the SIL Open Font License 1.1; the notice travels in the template's own comment.
+FONT = Path(__file__).parent / "source-serif-4-latin.woff2"
 
 DEFAULT_PROMPTS = [
     "Dorothy lived in the midst of the great Kansas prairies.",
@@ -30,22 +36,31 @@ DEFAULT_PROMPTS = [
 
 
 def render_html(payload: dict[str, Any]) -> str:
-    """Inject the payload into the template.
+    """Inject the payload and the webfont into the template.
 
     ``<`` is escaped to ``\\u003c`` throughout. The JSON sits inside a ``<script>``
     element, where the HTML parser looks for a literal ``</script`` before the
     JavaScript parser ever sees the content — so a prompt containing that string
     would otherwise terminate the block early and break the page. Escaping the
     character is valid JSON and costs nothing.
+
+    The font is base64'd in rather than linked, for the same reason everything else
+    here is: the page has to open from a filesystem with no network. It adds about
+    160KB to a file that already carries every attention weight of every prompt.
     """
     if not TEMPLATE.exists():  # pragma: no cover - packaging guard
         raise FileNotFoundError(f"front-end template missing: {TEMPLATE}")
+    if not FONT.exists():  # pragma: no cover - packaging guard
+        raise FileNotFoundError(f"webfont missing: {FONT}")
 
     encoded = json.dumps(payload).replace("<", "\\u003c")
     html = TEMPLATE.read_text(encoding="utf-8")
-    if "/*__LLMFS_DATA__*/" not in html:  # pragma: no cover - packaging guard
-        raise ValueError("template has no /*__LLMFS_DATA__*/ placeholder")
-    return html.replace("/*__LLMFS_DATA__*/", encoded)
+    for placeholder in ("/*__LLMFS_DATA__*/", "/*__LLMFS_FONT__*/"):
+        if placeholder not in html:  # pragma: no cover - packaging guard
+            raise ValueError(f"template has no {placeholder} placeholder")
+
+    font = base64.b64encode(FONT.read_bytes()).decode("ascii")
+    return html.replace("/*__LLMFS_FONT__*/", font).replace("/*__LLMFS_DATA__*/", encoded)
 
 
 def build_payload(

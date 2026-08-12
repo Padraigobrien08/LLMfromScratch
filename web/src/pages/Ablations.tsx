@@ -3,7 +3,9 @@ import { useMemo, useState } from "react";
 import DataTable from "../components/DataTable";
 import CurvePlot, { type Series } from "../components/CurvePlot";
 import SeedDeltas from "../components/SeedDeltas";
+import PlateNumeral from "../components/PlateNumeral";
 import PlateFoot from "../components/PlateFoot";
+import Caveat from "../components/Caveat";
 import { MEASURED } from "../content/measured";
 import { plateKicker } from "../content/path";
 import {
@@ -81,11 +83,33 @@ export default function Ablations() {
       <h1 className="page-headline">What actually matters, and what only sounds like it does</h1>
       <p className="page-standfirst">
         {A.arms} design decisions, each varied against a shared baseline, each run at the same{" "}
-        {A.seeds} seeds — {A.runs} runs, {A.gpuHours.toFixed(1)} GPU-hours. The finding is not the
-        one the architecture literature would lead you to expect:{" "}
-        <b>the optimiser dominates the architecture</b>. Learning rate and schedule move validation
-        loss more than every architecture change in the study combined.
+        {A.seeds} seeds. The finding is not the one the architecture literature would lead you to
+        expect: <b>the optimiser dominates the architecture</b>. Learning rate and schedule move
+        validation loss more than every architecture change in the study combined.
       </p>
+
+      {/* The plate's opening trio, in the grammar the other three plates use. The cost of
+          the study, and the number every delta on this page has to clear to mean anything
+          — which the prose below refers to repeatedly and nothing was printing. */}
+      <div className="figure-strip">
+        <figure>
+          <PlateNumeral value={String(A.runs)} />
+          <figcaption>
+            runs, {A.arms} arms and their baseline at {A.seeds} seeds each
+          </figcaption>
+        </figure>
+        <figure>
+          <PlateNumeral value={A.gpuHours.toFixed(1)} />
+          <figcaption>GPU-hours, the whole sweep</figcaption>
+        </figure>
+        <figure>
+          <PlateNumeral value={A.noiseFloor.toFixed(4)} />
+          <figcaption>
+            the noise floor: seed-to-seed spread on the baseline, and the bar every delta here
+            has to clear
+          </figcaption>
+        </figure>
+      </div>
 
       <div className="rule-heavy" />
       <h2 className="section-h2">Change one thing</h2>
@@ -133,7 +157,7 @@ export default function Ablations() {
         )}
 
         {selection.kind === "unmeasured" && payload && (
-          <p className="caveat-wide" style={{ marginTop: "var(--space-3)" }}>
+          <Caveat style={{ marginTop: "var(--space-3)" }}>
             <b>That combination was never measured.</b> The sweep varies <i>one</i> axis at a time,
             so there is no run for {selection.names.map((n) => AXIS[n] ?? n).join(" + ")}. Predicting
             it by adding the individual deltas assumes the components do not interact — which is an
@@ -142,7 +166,7 @@ export default function Ablations() {
               modern-stack
             </button>
             , and it exists precisely to check whether that addition holds.
-          </p>
+          </Caveat>
         )}
 
         {analysis && (
@@ -292,14 +316,14 @@ export default function Ablations() {
           were not.
         </p>
       </div>
-      <p className="caveat-wide">
-        <b>And the study's largest caveat is a prediction that was wrong.</b> The <code>lr-3e-3</code>{" "}
+      <Caveat>
+        <b>The study's largest is a prediction that was wrong.</b> The <code>lr-3e-3</code>{" "}
         arm was expected to diverge. It won — which means every other arm was measured at a learning
         rate now known to be suboptimal. That does not invalidate the paired comparisons, since every
         arm shares the same baseline, but it does mean the absolute losses are all worse than they
         needed to be, and it is stated as such in the write-up rather than left for a reader to
         notice.
-      </p>
+      </Caveat>
 
       <div className="rule-heavy" style={{ margin: "var(--space-6) 0 var(--space-4)" }} />
       <div className="closing-cols">

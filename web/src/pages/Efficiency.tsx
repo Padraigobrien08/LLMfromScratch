@@ -2,7 +2,9 @@ import { useState } from "react";
 
 import DataTable from "../components/DataTable";
 import CacheSweep from "../components/CacheSweep";
+import PlateNumeral from "../components/PlateNumeral";
 import PlateFoot from "../components/PlateFoot";
+import Caveat from "../components/Caveat";
 import { MEASURED } from "../content/measured";
 import { plateKicker } from "../content/path";
 
@@ -26,6 +28,32 @@ export default function Efficiency() {
         still lose on the clock, and the KV cache — the one optimisation nobody thinks to question —
         was for a while making decoding <i>slower</i>.
       </p>
+
+      {/* The plate's opening trio, in the grammar Reproduction and Scaling already use.
+          Every figure is read from `measured.ts` — the gain the fix bought at the longest
+          sequence, the ceiling compression runs into, and the best speculative run. */}
+      <div className="figure-strip">
+        <figure>
+          <PlateNumeral value={`${longest.gainFromFix.toFixed(2)}×`} />
+          <figcaption>
+            more decode throughput after the mask fix, at {longest.totalLen} tokens
+          </figcaption>
+        </figure>
+        <figure>
+          <PlateNumeral
+            value={`${Math.max(...QUANT.schemes.map((s) => s.compression)).toFixed(2)}×`}
+          />
+          <figcaption>
+            the compression ceiling, not 8× — the tied embedding stays in fp32
+          </figcaption>
+        </figure>
+        <figure>
+          <PlateNumeral value={`${SPEC.best.speedup.toFixed(2)}×`} />
+          <figcaption>
+            the best speculative run, {SPEC.best.drafter} on a {SPEC.best.prompt} prompt
+          </figcaption>
+        </figure>
+      </div>
 
       <div className="rule-heavy" />
       <h2 className="section-h2">A plausible story for a disappointing measurement</h2>
@@ -95,7 +123,7 @@ export default function Efficiency() {
         </p>
       </div>
 
-      <p className="caveat-wide">
+      <Caveat columns>
         The original explanation was directionally right and quantitatively wrong: decode at this
         scale <i>is</i> overhead-bound, which is why the cache curve is flat — but the crossover is
         real and lands at {longest.totalLen} tokens, exactly this model's context length. What broke
@@ -105,7 +133,7 @@ export default function Efficiency() {
         tests too: every test asserted the cache produced the right <i>answer</i>, none that it took
         the fast <i>path</i>, so a 30% regression passed a green suite. Two now do, both
         mutation-checked.
-      </p>
+      </Caveat>
 
       <div className="rule-hair" style={{ margin: "var(--space-6) 0" }} />
       <h2 className="section-h2">Quantization: a memory win that costs speed</h2>
@@ -135,7 +163,7 @@ export default function Efficiency() {
           ))}
         </tbody>
       </DataTable>
-      <p className="caveat-wide">
+      <Caveat columns>
         Grouping is worth two perplexity points at four bits: one scale per tensor is set by its
         largest outlier, and per-128-feature groups confine the damage. Every scheme is{" "}
         <i>slower</i> than fp32, because dequantize-then-matmul materialises a full-size weight, so
@@ -144,7 +172,7 @@ export default function Efficiency() {
         <a href={`${REPO}/docs/roadmap.md`}>the roadmap</a>. Compression also caps at{" "}
         {Math.max(...QUANT.schemes.map((s) => s.compression)).toFixed(2)}×, not 8×, because the tied
         token embedding is a third of this model and is left in fp32.
-      </p>
+      </Caveat>
 
       <div className="rule-hair" style={{ margin: "var(--space-6) 0" }} />
       <h2 className="section-h2">Speculative decoding, and why acceptance is not speedup</h2>
@@ -179,7 +207,7 @@ export default function Efficiency() {
             ))}
         </tbody>
       </DataTable>
-      <p className="caveat-wide">
+      <Caveat columns>
         All {SPEC.losslessRuns} benchmark runs reproduced greedy decoding token for token, and{" "}
         {SPEC.divergedRuns === 0 ? "none diverged" : `${SPEC.divergedRuns} diverged`} — an
         implementation that were merely <i>close</i> would not be a faster decoder, it would be a
@@ -187,7 +215,7 @@ export default function Efficiency() {
         algorithmic ideal, nearly every proposal accepted, and barely any speedup at all, because
         the drafter is the same size as the target. <b>A drafter must be cheap first and accurate
         second</b>, and acceptance rate measures only the second.
-      </p>
+      </Caveat>
 
       <div className="rule-heavy" style={{ margin: "var(--space-6) 0 var(--space-4)" }} />
       <div className="closing-cols">

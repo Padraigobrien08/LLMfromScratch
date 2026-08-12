@@ -4,6 +4,7 @@ import DataTable from "../components/DataTable";
 import AccumCurve from "../components/AccumCurve";
 import PlateNumeral from "../components/PlateNumeral";
 import PlateFoot from "../components/PlateFoot";
+import Caveat from "../components/Caveat";
 import { MEASURED } from "../content/measured";
 import { plateKicker } from "../content/path";
 import { efficiencyAt, residual } from "../lib/amortisation";
@@ -83,7 +84,7 @@ export default function Scaling() {
           ))}
         </tbody>
       </DataTable>
-      <p className="caveat-wide">
+      <Caveat columns>
         The claim worth checking is the last column, not the third. Eight GPUs take the{" "}
         <i>same optimisation steps</i> as one: <code>tokens_per_step</code> is fixed in tokens and
         the accumulation is derived from it, so the world size changes how the batch is gathered and
@@ -93,7 +94,7 @@ export default function Scaling() {
         trainer under <code>torchrun</code>, not a synthetic loop, because a hand-written loop would
         omit the two things most likely to spoil scaling: the gradient all-reduce and the optimiser
         step.
-      </p>
+      </Caveat>
 
       <div className="rule-hair" style={{ margin: "var(--space-6) 0" }} />
       <h2 className="section-h2">What the batch was hiding</h2>
@@ -180,7 +181,7 @@ export default function Scaling() {
         </div>
       </div>
 
-      <p className="caveat-wide">
+      <Caveat columns>
         With one all-reduce per micro-batch, efficiency falls to{" "}
         {(ACC.points.find((p) => p.accum === 1)!.efficiency * 100).toFixed(1)}%. So communication is
         exactly what the accumulation was hiding — and the split says how much of it there is: about{" "}
@@ -190,7 +191,7 @@ export default function Scaling() {
         roughly {a.toFixed(1)} points, which is why the planned NVLink comparison was dropped in
         favour of this experiment: two different machines would have confounded interconnect with
         architecture, memory bandwidth and NCCL version to chase a three-point effect.
-      </p>
+      </Caveat>
 
       <div className="rule-heavy" style={{ margin: "var(--space-6) 0 var(--space-4)" }} />
       <div className="closing-cols">

@@ -8,11 +8,30 @@
   /* Broadsheet's palette and proportions, restated rather than imported.
      This page is a single self-contained file with no build step, no CDN and no
      backend — a test asserts it references nothing external — so it cannot pull in
-     the site's stylesheet or its webfont. The serif stack below is the nearest
-     system equivalent to Source Serif 4: the point is that a reader arriving here
-     from the site does not feel they have left it. */
+     the site's stylesheet, and it used to fall back to Iowan or Georgia while the
+     site it came from set the same masthead in Source Serif 4. The seam showed.
+
+     The font travels inside the file instead: the latin subset of the same variable
+     woff2 the site's own <link> resolves to, base64'd into the rule below by
+     `llmfs.viz.export.render_html`. A data: URI is not an external resource, so the
+     page still opens from a filesystem with no network. Source Serif 4 is Adobe's,
+     under the SIL Open Font License 1.1 — see OFL.txt in the upstream repository at
+     https://github.com/adobe-fonts/source-serif — which permits exactly this.
+
+     The system stack stays behind it: if the face ever fails to decode, the page
+     degrades to what it printed before rather than to a sans-serif. */
+  @font-face {
+    font-family: "Source Serif 4";
+    font-style: normal;
+    font-weight: 300 700;
+    font-display: swap;
+    src: url("data:font/woff2;base64,/*__LLMFS_FONT__*/") format("woff2");
+  }
   :root {
-    color-scheme: light dark;
+    /* One theme, deliberately, like the rest of the publication: the page prints on
+       paper the colour of the site's paper. This used to carry a
+       `prefers-color-scheme: dark` block and was the only dark surface anywhere in it. */
+    color-scheme: light;
     --bg: #f3f2f2;
     --panel: #f8f4f4;
     --border: rgba(32, 30, 29, .16);
@@ -24,19 +43,6 @@
     --shadow: 0 1px 2px rgba(32, 30, 29, .05), 0 8px 24px rgba(32, 30, 29, .05);
     --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
     --serif: "Source Serif 4", "Iowan Old Style", Georgia, "Times New Roman", serif;
-  }
-  @media (prefers-color-scheme: dark) {
-    :root {
-      --bg: #171615;
-      --panel: #201e1d;
-      --border: rgba(243, 242, 242, .18);
-      --text: #f3f2f2;
-      --muted: #9c9796;
-      --accent: #35b6d8;
-      --accent-2: #ff5ea4;
-      --grid-line: rgba(243, 242, 242, .10);
-      --shadow: 0 1px 2px rgba(0, 0, 0, .4), 0 8px 24px rgba(0, 0, 0, .3);
-    }
   }
   * { box-sizing: border-box; }
   body {
@@ -280,14 +286,10 @@
 
   // ---- colour ramp -------------------------------------------------------
   // Sequential single-hue, chosen so ordering survives greyscale printing and
-  // colour-vision deficiency. Rebuilt on theme change so it reads on both.
-  function stops() {
-    const dark = matchMedia("(prefers-color-scheme: dark)").matches;
-    return dark
-      ? [[12,14,19],[26,45,94],[36,86,180],[74,150,232],[186,225,255]]
-      : [[250,250,253],[204,222,248],[122,168,235],[47,95,224],[22,44,110]];
-  }
-  let RAMP = stops();
+  // colour-vision deficiency. One ramp, because the page has one theme: it used to
+  // carry a second for dark mode, along with a listener that rebuilt the heatmap when
+  // the system preference changed.
+  const RAMP = [[250,250,253],[204,222,248],[122,168,235],[47,95,224],[22,44,110]];
   function colour(t) {
     t = Math.max(0, Math.min(1, t));
     const s = RAMP, x = t * (s.length - 1), i = Math.min(Math.floor(x), s.length - 2), f = x - i;
@@ -588,11 +590,6 @@
     for (let x = 0; x < 130; x++) { ctx.fillStyle = rgb(x / 129); ctx.fillRect(x, 0, 1, 9); }
     $("ramp").style.background = `url(${c.toDataURL()}) center/cover`;
   }
-
-  matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => {
-    RAMP = stops(); paintRamp();
-    if (current) { headGrid(); drawFocus(); strip(); }
-  });
 
   dateline();
   chips();
