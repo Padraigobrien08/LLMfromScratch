@@ -3,7 +3,9 @@ import { useMemo, useState } from "react";
 import DataTable from "../components/DataTable";
 import CurvePlot, { type Series } from "../components/CurvePlot";
 import SeedDeltas from "../components/SeedDeltas";
+import PlateFoot from "../components/PlateFoot";
 import { MEASURED } from "../content/measured";
+import { plateKicker } from "../content/path";
 import {
   AXIS,
   MODERN_STACK,
@@ -75,7 +77,7 @@ export default function Ablations() {
 
   return (
     <div className="shell page">
-      <p className="kicker">Measured results · the sweep</p>
+      <p className="kicker">{plateKicker("ablations")}</p>
       <h1 className="page-headline">What actually matters, and what only sounds like it does</h1>
       <p className="page-standfirst">
         {A.arms} design decisions, each varied against a shared baseline, each run at the same{" "}
@@ -318,6 +320,8 @@ export default function Ablations() {
           each one differs from the shared baseline in its own named axis and nothing else.
         </p>
       </div>
+
+      <PlateFoot current="ablations" />
     </div>
   );
 }

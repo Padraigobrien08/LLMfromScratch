@@ -2,7 +2,9 @@ import { useState } from "react";
 
 import DataTable from "../components/DataTable";
 import CacheSweep from "../components/CacheSweep";
+import PlateFoot from "../components/PlateFoot";
 import { MEASURED } from "../content/measured";
+import { plateKicker } from "../content/path";
 
 const REPO = "https://github.com/Padraigobrien08/LLMfromScratch/blob/main";
 const CACHE = MEASURED.cache;
@@ -15,7 +17,7 @@ export default function Efficiency() {
 
   return (
     <div className="shell page">
-      <p className="kicker">Measured results · inference</p>
+      <p className="kicker">{plateKicker("efficiency")}</p>
       <h1 className="page-headline">Making it fast, and the bug that hid in the numbers</h1>
       <p className="page-standfirst">
         Three optimisations, all hand-implemented, all measured. The theme running through them is
@@ -205,6 +207,8 @@ export default function Efficiency() {
           .
         </p>
       </div>
+
+      <PlateFoot current="efficiency" />
     </div>
   );
 }

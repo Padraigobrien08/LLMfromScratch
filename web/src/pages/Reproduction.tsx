@@ -3,7 +3,9 @@ import { useState } from "react";
 import DataTable from "../components/DataTable";
 import LossCurve from "../components/LossCurve";
 import PlateNumeral from "../components/PlateNumeral";
+import PlateFoot from "../components/PlateFoot";
 import { MEASURED } from "../content/measured";
+import { plateKicker } from "../content/path";
 import { type Curve, valAt } from "../lib/reproductionCurve";
 import { useResult } from "../lib/resultsData";
 
@@ -21,7 +23,7 @@ export default function Reproduction() {
 
   return (
     <div className="shell page">
-      <p className="kicker">Measured results · the trust anchor</p>
+      <p className="kicker">{plateKicker("reproduction")}</p>
       <h1 className="page-headline">A number someone else can check</h1>
       <p className="page-standfirst">
         A model that generates fluent-looking text proves very little. A model that lands on a
@@ -218,6 +220,8 @@ export default function Reproduction() {
           the word "pre-registered" is doing any work.
         </p>
       </div>
+
+      <PlateFoot current="reproduction" />
     </div>
   );
 }

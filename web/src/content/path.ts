@@ -13,10 +13,18 @@ import { CHAPTERS } from "./chapters";
  * chapters has been told how a transformer works; what they have not yet been shown is
  * whether any of it was built correctly, and that is the question the four plates
  * answer.
+ *
+ * The four plates are numbered I–IV here and nowhere else. Their pages print the
+ * numeral in their own kickers and their feet chain in this order, both read from
+ * `PLATES` — so reordering this array reorders the paper, and no page can disagree
+ * with the front one about which plate it is.
  */
+export type StopGroup = "chapters" | "plates" | "deep-end" | "external";
+
 export type Stop = {
-  /** `01`–`08` for the chapters, `✲` for a deep-end page, `↗` for the one that leaves. */
+  /** `01`–`08` for the chapters, `I`–`IV` for the plates, `✲` for a deep-end page, `↗` for the one that leaves. */
   numeral: string;
+  group: StopGroup;
   kicker: string;
   title: string;
   blurb: string;
@@ -25,35 +33,77 @@ export type Stop = {
   external?: boolean;
 };
 
-const DEEP_END: Array<Omit<Stop, "numeral" | "cta">> = [
+/**
+ * The heading a group prints above its first stop on the front page.
+ *
+ * The chapters have none: they run directly under "The path", which is their heading.
+ * A group with a heading does not repeat it as a per-row kicker — that repetition,
+ * seven rows of it, was what the grouping is for.
+ */
+export const GROUP_HEADING: Partial<Record<StopGroup, string>> = {
+  plates: "The results, as four plates",
+  "deep-end": "The deep end",
+};
+
+export type PlateKind = "reproduction" | "ablations" | "efficiency" | "scaling";
+
+const ROMAN = ["I", "II", "III", "IV"] as const;
+
+type PlateSource = {
+  kind: PlateKind;
+  /** The half of the kicker that follows "Plate II — Measured results ·". */
+  subject: string;
+  title: string;
+  blurb: string;
+};
+
+const PLATE_SOURCE: PlateSource[] = [
   {
-    kicker: "Measured results",
+    kind: "reproduction",
+    subject: "the trust anchor",
     title: "Did it reproduce GPT-2 124M?",
     blurb:
       "A validation-loss target fixed before the run, met a third of the way in, and corroborated on a public benchmark against the published figure. Drag the scrubber along the run.",
-    href: href({ kind: "reproduction" } as Route),
   },
   {
-    kicker: "Measured results",
+    kind: "ablations",
+    subject: "the sweep",
     title: "What actually matters",
     blurb:
       "Twelve arms at three seeds, every comparison paired against the baseline run that saw its data in the same order — including the changes that measurably did nothing.",
-    href: href({ kind: "ablations" } as Route),
   },
   {
-    kicker: "Measured results",
+    kind: "efficiency",
+    subject: "inference",
     title: "Making it fast, and the bug in the numbers",
     blurb:
       "The KV cache was slower than recomputing until a mask that forfeited the fused kernel turned up. Flip the bug back on and watch the curve change sides.",
-    href: href({ kind: "efficiency" } as Route),
   },
   {
-    kicker: "Measured results",
+    kind: "scaling",
+    subject: "eight GPUs",
     title: "Eight GPUs, and the cost of talking",
     blurb:
       "95% of linear scaling over the worst interconnect in the building, and a two-parameter model fitted to two points that then predicted the other two.",
-    href: href({ kind: "scaling" } as Route),
   },
+];
+
+export type Plate = PlateSource & { numeral: string; href: string };
+
+/** The four plates, numbered by their position rather than by hand. */
+export const PLATES: Plate[] = PLATE_SOURCE.map((plate, i) => ({
+  ...plate,
+  numeral: ROMAN[i] ?? String(i + 1),
+  href: href({ kind: plate.kind } as Route),
+}));
+
+/** The kicker a plate page prints above its headline, numeral included. */
+export function plateKicker(kind: PlateKind): string {
+  const plate = PLATES.find((p) => p.kind === kind)!;
+  return `Plate ${plate.numeral} — Measured results · ${plate.subject}`;
+}
+
+const EXPLORERS: Array<Omit<Stop, "numeral" | "cta" | "group">> = [
   {
     kicker: "The deep end",
     title: "The RoPE explorer",
@@ -82,6 +132,7 @@ export function pathStops(attentionHref: string): Stop[] {
     ...CHAPTERS.map(
       (c): Stop => ({
         numeral: String(c.n).padStart(2, "0"),
+        group: "chapters",
         kicker: c.kicker,
         title: c.title,
         blurb: c.blurb,
@@ -89,9 +140,21 @@ export function pathStops(attentionHref: string): Stop[] {
         cta: "Read",
       }),
     ),
-    ...DEEP_END.map((stop): Stop => ({ ...stop, numeral: "✲", cta: "Open" })),
+    ...PLATES.map(
+      (plate): Stop => ({
+        numeral: plate.numeral,
+        group: "plates",
+        kicker: "Measured results",
+        title: plate.title,
+        blurb: plate.blurb,
+        href: plate.href,
+        cta: "Open",
+      }),
+    ),
+    ...EXPLORERS.map((stop): Stop => ({ ...stop, numeral: "✲", group: "deep-end", cta: "Open" })),
     {
       numeral: "↗",
+      group: "external",
       kicker: "Separate page",
       title: "The attention explorer",
       blurb:

@@ -3,7 +3,9 @@ import { useState } from "react";
 import DataTable from "../components/DataTable";
 import AccumCurve from "../components/AccumCurve";
 import PlateNumeral from "../components/PlateNumeral";
+import PlateFoot from "../components/PlateFoot";
 import { MEASURED } from "../content/measured";
+import { plateKicker } from "../content/path";
 import { efficiencyAt, residual } from "../lib/amortisation";
 
 const REPO = "https://github.com/Padraigobrien08/LLMfromScratch/blob/main";
@@ -28,7 +30,7 @@ export default function Scaling() {
 
   return (
     <div className="shell page">
-      <p className="kicker">Measured results · eight GPUs</p>
+      <p className="kicker">{plateKicker("scaling")}</p>
       <h1 className="page-headline">Eight GPUs, and why the interconnect barely matters</h1>
       <p className="page-standfirst">
         {(eight.efficiency * 100).toFixed(1)}% scaling efficiency on eight cards with{" "}
@@ -208,6 +210,8 @@ export default function Scaling() {
           .
         </p>
       </div>
+
+      <PlateFoot current="scaling" />
     </div>
   );
 }

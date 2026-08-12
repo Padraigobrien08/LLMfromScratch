@@ -1,9 +1,9 @@
-import { useEffect, useState } from "react";
+import { Fragment, useEffect, useState } from "react";
 
 import DataTable from "../components/DataTable";
 import PlateNumeral from "../components/PlateNumeral";
 import { frontFigures } from "../content/frontFigures";
-import { pathStops } from "../content/path";
+import { GROUP_HEADING, pathStops } from "../content/path";
 import { ILLUSTRATIVE, STATUS, TAG_CLASS } from "../content/status";
 import { fetchAblations } from "../lib/ablationsData";
 import { numberWord, numberWordCapitalized } from "../lib/numberWord";
@@ -63,10 +63,18 @@ export default function Front() {
         </p>
       </div>
 
+      {/* Each figure is the door to the page that proves it: the numeral is the link,
+          printed in the page's own ink, on the `.path-title` precedent. */}
       <div className="figure-strip">
         {figures.map((figure) => (
           <figure key={figure.label}>
-            <PlateNumeral value={figure.value} />
+            <a
+              className="figure-link"
+              href={figure.href}
+              aria-label={`${figure.value} ${figure.label}`}
+            >
+              <PlateNumeral value={figure.value} />
+            </a>
             <figcaption>{figure.label}</figcaption>
           </figure>
         ))}
@@ -74,33 +82,53 @@ export default function Front() {
 
       <div className="rule-heavy" />
       <h2 className="section-label">The path</h2>
+      {/* One ordered list, because it is still one path — but broken into its three
+          named runs, so a reader sees eight chapters, four plates and three explorers
+          rather than sixteen equal rows. A group that prints a heading drops the
+          per-row kicker the heading now carries. */}
       <ol className="path">
-        {stops.map((stop) => (
-          <li className="path-item" key={stop.title}>
-            <span className="path-num">
-              <PlateNumeral value={stop.numeral} />
-            </span>
-            <div>
-              <p className="kicker path-kicker">{stop.kicker}</p>
-              <h3 className="path-title">
+        {stops.map((stop, i) => {
+          const heading =
+            stop.group === stops[i - 1]?.group ? undefined : GROUP_HEADING[stop.group];
+          return (
+            <Fragment key={stop.title}>
+              {heading && (
+                <li className="path-break">
+                  <div className="rule-heavy" />
+                  {/* h2, like "The path" above it: these are its sibling sections, not
+                      subsections of it — "The path" is the chapters' own heading. */}
+                  <h2 className="section-label">{heading}</h2>
+                </li>
+              )}
+              <li className="path-item">
+                <span className="path-num">
+                  <PlateNumeral value={stop.numeral} />
+                </span>
+                <div>
+                  {!GROUP_HEADING[stop.group] && (
+                    <p className="kicker path-kicker">{stop.kicker}</p>
+                  )}
+                  <h3 className="path-title">
+                    <a
+                      href={stop.href}
+                      {...(stop.external ? { target: "_blank", rel: "noopener" } : {})}
+                    >
+                      {stop.title}
+                    </a>
+                  </h3>
+                  <p className="path-blurb">{stop.blurb}</p>
+                </div>
                 <a
+                  className="path-cta"
                   href={stop.href}
                   {...(stop.external ? { target: "_blank", rel: "noopener" } : {})}
                 >
-                  {stop.title}
+                  {stop.cta}
                 </a>
-              </h3>
-              <p className="path-blurb">{stop.blurb}</p>
-            </div>
-            <a
-              className="path-cta"
-              href={stop.href}
-              {...(stop.external ? { target: "_blank", rel: "noopener" } : {})}
-            >
-              {stop.cta}
-            </a>
-          </li>
-        ))}
+              </li>
+            </Fragment>
+          );
+        })}
       </ol>
 
       <div className="rule-heavy" />

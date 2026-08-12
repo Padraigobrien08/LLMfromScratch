@@ -246,13 +246,32 @@ body {
   line-height: 1;
   letter-spacing: -0.03em;
 }
+/* The captions are sentences — "parameters, exact against the real Transformer" — and
+   were set as tracked all-caps labels, which is a treatment for two or three words. Set
+   as text they read at a glance; 5.83:1 on the page ground, so AA holds at 14px. */
 .figure-strip figcaption {
-  font: 400 12px/1.4 var(--font-body);
-  letter-spacing: 0.09em;
-  text-transform: uppercase;
+  font: 400 14px/1.45 var(--font-body);
+  letter-spacing: normal;
+  text-transform: none;
   color: var(--color-neutral-700);
   margin-top: 6px;
-  max-width: 22ch;
+  max-width: 24ch;
+}
+.figure-strip .figure-link {
+  color: inherit;
+}
+
+/* On a phone the strip is two stacked screens of one figure each; as a 2×2 it is one
+   block, and the four numerals can still be compared without scrolling between them. */
+@media (max-width: 700px) {
+  .figure-strip {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-4);
+  }
+  .figure-strip .plate-num {
+    font-size: 34px;
+  }
 }
 
 .path {
@@ -269,6 +288,20 @@ body {
   align-items: baseline;
   padding-bottom: var(--space-6);
   border-bottom: 1px solid var(--color-divider);
+}
+/* A run of the path ends where the next one's heavy rule begins, so the last row of a
+   group drops the hairline it would otherwise print into it. */
+.path-item:has(+ .path-break) {
+  border-bottom: 0;
+  padding-bottom: 0;
+}
+/* The group break is the page's own section furniture — thick rule, tracked label —
+   set inside the list so the path stays one ordered sequence. */
+.path-break {
+  padding-top: var(--space-2);
+}
+.path-break .section-label {
+  margin: var(--space-3) 0 0;
 }
 .path-num .plate-num {
   font-size: 46px;
