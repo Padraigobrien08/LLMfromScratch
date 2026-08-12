@@ -1,4 +1,5 @@
 import AttentionIntuition from "../components/AttentionIntuition";
+import Caveat, { Provenance } from "../components/Caveat";
 import PerplexityDemo from "../components/PerplexityDemo";
 import PlateNumeral from "../components/PlateNumeral";
 import SamplingDemo from "../components/SamplingDemo";
@@ -44,11 +45,11 @@ function Chapter1() {
         which is why models are worse at rare names. And the ids are the only thing the model ever
         sees — everything downstream operates on those.
       </p>
-      <p className="prose-caveat">
+      <Provenance>
         This runs the same byte-pair merges as the Python tokenizer, pinned to it by a{" "}
         <a href={`${REPO}/tests/test_tokenizer.py`}>fixture asserted from both sides</a> — exact on
         all 14 cases, including emoji, newlines and leading spaces.
-      </p>
+      </Provenance>
     </>
   );
 }
@@ -76,14 +77,14 @@ function Chapter2() {
         why the KV cache — the thing grouped-query attention shrinks — is what decides how many
         users fit on one GPU.
       </p>
-      <p className="prose-caveat">
+      <Provenance>
         Every count is computed from the same shapes the real model builds, and checked against
         parameter counts dumped from{" "}
         <a href={`${REPO}/src/llmfs/model/transformer.py`}>
           the actual <code>Transformer</code>
         </a>{" "}
         for twelve configurations, so the arithmetic cannot quietly drift from the code.
-      </p>
+      </Provenance>
     </>
   );
 }
@@ -148,13 +149,13 @@ function Chapter4() {
         </div>
       </div>
 
-      <p className="prose-caveat">
+      <Provenance>
         Three properties of this implementation are asserted rather than assumed: that perturbing
         token <i>t</i> leaves every position before it bitwise unchanged, across all ten
         architecture variants; that with <code>n_kv_head == n_head</code> grouped-query attention is
         numerically identical to plain multi-head; and that the eager path used to export weights
         matches the fused SDPA kernel, so the visualizer cannot show weights the model never used.
-      </p>
+      </Provenance>
     </>
   );
 }
@@ -176,7 +177,7 @@ function Chapter5() {
       <p className="chapter-handoff">
         <a href={href({ kind: "rope" })}>→ Open the RoPE explorer</a>
       </p>
-      <p className="prose-caveat">
+      <Provenance>
         An off-by-one in a position table, a double-rotated key, or the adjacent-pair convention
         used where the split-half one was meant — none of these crash. The model trains, emits
         plausible English, and is quietly worse. That is why the property is asserted numerically in{" "}
@@ -184,7 +185,7 @@ function Chapter5() {
           <code>tests/test_rope.py</code>
         </a>{" "}
         rather than trusted.
-      </p>
+      </Provenance>
     </>
   );
 }
@@ -198,12 +199,12 @@ function Chapter6() {
         token gives flat, repetitive text; sampling freely gives incoherence. The knobs below are
         how that trade is made.
       </p>
-      <p className="prose-caveat" style={{ marginBottom: "var(--space-4)" }}>
+      <Provenance style={{ marginBottom: "var(--space-4)" }}>
         The distribution here is real, and simpler than a transformer on purpose: it is the actual
         count of what followed each token in{" "}
         <a href={`${REPO}/data/wizard_of_oz.txt`}>the repository's corpus</a> — a bigram model, the
         simplest language model there is, and the one this project began as.
-      </p>
+      </Provenance>
 
       <FigureLabel n={4}>temperature, then top-k, then top-p — the sampler's own order</FigureLabel>
       <SamplingDemo />
@@ -303,11 +304,10 @@ function Chapter8() {
       <p className="chapter-handoff">
         <a href={href({ kind: "ablations" })}>→ Open the ablation playground</a>
       </p>
-      <p className="prose-caveat">
-        One caveat the table carries with it: the sweep ran at ablation scale — 51M parameters, not
-        the 124M of the reproduction — so its conclusions transfer in direction rather than in
-        magnitude.
-      </p>
+      <Caveat narrow>
+        The sweep ran at ablation scale — 51M parameters, not the 124M of the reproduction — so its
+        conclusions transfer in direction rather than in magnitude.
+      </Caveat>
     </>
   );
 }

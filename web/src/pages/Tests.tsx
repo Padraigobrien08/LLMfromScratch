@@ -44,16 +44,12 @@ export default function Tests() {
           </span>
           <figcaption>parametrised runs behind them, across {PROJECT.archVariants} architecture variants</figcaption>
         </figure>
-        <figure>
-          <span className="cmyk-num plate-num">
-            <span className="paper">{PROJECT.pythonTests}</span>
-            <span className="plate plate-c" aria-hidden="true">{PROJECT.pythonTests}</span>
-            <span className="plate plate-m" aria-hidden="true">{PROJECT.pythonTests}</span>
-            <span className="plate plate-y" aria-hidden="true">{PROJECT.pythonTests}</span>
-          </span>
-          <figcaption>in the suite in total, the number this page declines to lead with</figcaption>
-        </figure>
       </div>
+      {/* The suite total is deliberately not a third numeral here. This page's headline
+          disowns the test count as evidence, and printing it at 58px alongside the two
+          figures that are evidence made the layout argue the opposite. It is still on the
+          page twice — the standfirst opens on it, and the closing pair subtracts it — which
+          is what "declines to lead with" can honestly mean. */}
 
       <div className="rule-heavy" />
 
