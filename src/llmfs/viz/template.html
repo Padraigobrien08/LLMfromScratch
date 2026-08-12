@@ -29,8 +29,15 @@
   }
   :root {
     /* One theme, deliberately, like the rest of the publication: the page prints on
-       paper the colour of the site's paper. This used to carry a
-       `prefers-color-scheme: dark` block and was the only dark surface anywhere in it. */
+       paper the colour of the site's paper. It used to answer the system's dark
+       preference with a second palette and a second heatmap ramp, which made it the
+       only dark surface anywhere in the publication. Both are gone. Declared here so
+       the form controls and scrollbars follow the page rather than the system.
+
+       Stated without naming the media feature on purpose. The obvious way to check
+       this page has not grown a dark mode again is to search it for one, and a
+       comment that quotes what it removed reads to a search exactly like the thing
+       itself — so searching this file should find nothing, including here. */
     color-scheme: light;
     --bg: #f3f2f2;
     --panel: #f8f4f4;
