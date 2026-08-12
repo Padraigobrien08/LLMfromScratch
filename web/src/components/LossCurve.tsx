@@ -1,6 +1,7 @@
 import { useId, useMemo } from "react";
 
 import { type Curve, thin, valAt } from "../lib/reproductionCurve";
+import FigureScroll from "./FigureScroll";
 
 const W = 1000;
 const H = 340;
@@ -54,140 +55,146 @@ export default function LossCurve({ curve, step, onStep }: Props) {
   const gridXs = [0, 5000, 10_000, 15_000, curve.finalStep];
 
   return (
-    <svg
-      className="loss-curve"
-      viewBox={`0 0 ${W} ${H}`}
-      role="img"
-      aria-label={`Validation loss against training step, with the pre-registered target of ${curve.targetLoss} drawn across it`}
-    >
-      <defs>
-        <clipPath id={clipId}>
-          <rect x={PAD_L} y={PAD_T} width={W - PAD_L - PAD_R} height={H - PAD_T - PAD_B} />
-        </clipPath>
-      </defs>
+    <FigureScroll label="Validation loss against training step">
+      <svg
+        className="loss-curve"
+        viewBox={`0 0 ${W} ${H}`}
+        role="img"
+        aria-label={`Validation loss against training step, with the pre-registered target of ${curve.targetLoss} drawn across it`}
+      >
+        <defs>
+          <clipPath id={clipId}>
+            <rect x={PAD_L} y={PAD_T} width={W - PAD_L - PAD_R} height={H - PAD_T - PAD_B} />
+          </clipPath>
+        </defs>
 
-      {gridYs.map((y) => (
-        <g key={y}>
-          <line x1={PAD_L} y1={sy(y)} x2={W - PAD_R} y2={sy(y)} stroke="var(--color-neutral-200)" />
+        {gridYs.map((y) => (
+          <g key={y}>
+            <line x1={PAD_L} y1={sy(y)} x2={W - PAD_R} y2={sy(y)} stroke="var(--color-neutral-200)" />
+            <text
+              x={PAD_L - 8}
+              y={sy(y) + 4}
+              fontSize={11}
+              fill="var(--color-neutral-700)"
+              textAnchor="end"
+              fontFamily="var(--mono)"
+            >
+              {y.toFixed(1)}
+            </text>
+          </g>
+        ))}
+        {gridXs.map((x, i) => (
           <text
-            x={PAD_L - 8}
-            y={sy(y) + 4}
+            key={x}
+            x={sx(x)}
+            y={H - 14}
             fontSize={11}
             fill="var(--color-neutral-700)"
+            // The end labels sit on the plot's edges, so centring them hangs half of each
+            // off the viewBox and the browser clips it. The last one is the run's length —
+            // the most useful number on the axis and the one that was losing a digit.
+            textAnchor={i === 0 ? "start" : i === gridXs.length - 1 ? "end" : "middle"}
+            fontFamily="var(--mono)"
+          >
+            {x.toLocaleString()}
+          </text>
+        ))}
+
+        <g clipPath={`url(#${clipId})`}>
+          <path d={trainPath} fill="none" stroke="var(--color-accent-300)" strokeWidth={1} />
+          <path
+            d={valPath}
+            fill="none"
+            stroke="var(--color-text)"
+            strokeWidth={2.6}
+            strokeLinejoin="round"
+          />
+
+          {/* The pre-registered target. Drawn under nothing and over everything else,
+              because it is the only line on the chart that was fixed before the run. */}
+          <line
+            x1={PAD_L}
+            y1={sy(curve.targetLoss)}
+            x2={W - PAD_R}
+            y2={sy(curve.targetLoss)}
+            stroke="var(--color-accent-2)"
+            strokeWidth={1.8}
+            strokeDasharray="7 4"
+          />
+          <text
+            x={W - PAD_R - 6}
+            y={sy(curve.targetLoss) - 7}
+            fontSize={12}
+            fill="var(--color-accent-2-700)"
             textAnchor="end"
             fontFamily="var(--mono)"
           >
-            {y.toFixed(1)}
+            target {curve.targetLoss}
           </text>
+
+          {curve.crossing && (
+            <line
+              x1={sx(curve.crossing.step)}
+              y1={PAD_T}
+              x2={sx(curve.crossing.step)}
+              y2={H - PAD_B}
+              stroke="var(--color-accent-2-300)"
+              strokeWidth={1}
+            />
+          )}
+
+          {/* Everything not yet reached. Dimming it is what turns a static chart into a
+              run in progress: the reader is moving through it, not looking back at it. */}
+          <rect
+            x={sx(step)}
+            y={PAD_T}
+            width={Math.max(0, W - PAD_R - sx(step))}
+            height={H - PAD_T - PAD_B}
+            fill="var(--color-bg)"
+            opacity={0.72}
+          />
         </g>
-      ))}
-      {gridXs.map((x, i) => (
-        <text
-          key={x}
-          x={sx(x)}
-          y={H - 14}
-          fontSize={11}
-          fill="var(--color-neutral-700)"
-          // The end labels sit on the plot's edges, so centring them hangs half of each
-          // off the viewBox and the browser clips it. The last one is the run's length —
-          // the most useful number on the axis and the one that was losing a digit.
-          textAnchor={i === 0 ? "start" : i === gridXs.length - 1 ? "end" : "middle"}
-          fontFamily="var(--mono)"
-        >
-          {x.toLocaleString()}
-        </text>
-      ))}
 
-      <g clipPath={`url(#${clipId})`}>
-        <path d={trainPath} fill="none" stroke="var(--color-accent-300)" strokeWidth={1} />
-        <path
-          d={valPath}
-          fill="none"
-          stroke="var(--color-text)"
-          strokeWidth={2.6}
-          strokeLinejoin="round"
-        />
-
-        {/* The pre-registered target. Drawn under nothing and over everything else,
-            because it is the only line on the chart that was fixed before the run. */}
         <line
-          x1={PAD_L}
-          y1={sy(curve.targetLoss)}
-          x2={W - PAD_R}
-          y2={sy(curve.targetLoss)}
-          stroke="var(--color-accent-2)"
-          strokeWidth={1.8}
-          strokeDasharray="7 4"
+          x1={sx(step)}
+          y1={PAD_T}
+          x2={sx(step)}
+          y2={H - PAD_B}
+          stroke="var(--color-accent)"
+          strokeWidth={1.5}
         />
-        <text
-          x={W - PAD_R - 6}
-          y={sy(curve.targetLoss) - 7}
-          fontSize={12}
-          fill="var(--color-accent-2-700)"
-          textAnchor="end"
-          fontFamily="var(--mono)"
-        >
-          target {curve.targetLoss}
-        </text>
-
-        {curve.crossing && (
-          <line
-            x1={sx(curve.crossing.step)}
-            y1={PAD_T}
-            x2={sx(curve.crossing.step)}
-            y2={H - PAD_B}
-            stroke="var(--color-accent-2-300)"
-            strokeWidth={1}
+        {here && (
+          <circle
+            cx={sx(here.step)}
+            cy={sy(here.loss)}
+            r={5}
+            fill="var(--color-accent)"
+            stroke="var(--color-bg)"
+            strokeWidth={2}
           />
         )}
 
-        {/* Everything not yet reached. Dimming it is what turns a static chart into a
-            run in progress: the reader is moving through it, not looking back at it. */}
+        {/* `scrub-surface`: inside the scrolling box on a phone this drag would fight
+            the pan for the same finger, so it stands down there and the range input
+            below — outside the box, full width — is how the run is moved. */}
         <rect
-          x={sx(step)}
+          className="scrub-surface"
+          x={PAD_L}
           y={PAD_T}
-          width={Math.max(0, W - PAD_R - sx(step))}
+          width={W - PAD_L - PAD_R}
           height={H - PAD_T - PAD_B}
-          fill="var(--color-bg)"
-          opacity={0.72}
+          fill="transparent"
+          style={{ cursor: "ew-resize" }}
+          onPointerDown={(e) => {
+            e.currentTarget.setPointerCapture(e.pointerId);
+            scrub(e, curve.finalStep, onStep);
+          }}
+          onPointerMove={(e) => {
+            if (e.buttons === 1) scrub(e, curve.finalStep, onStep);
+          }}
         />
-      </g>
-
-      <line
-        x1={sx(step)}
-        y1={PAD_T}
-        x2={sx(step)}
-        y2={H - PAD_B}
-        stroke="var(--color-accent)"
-        strokeWidth={1.5}
-      />
-      {here && (
-        <circle
-          cx={sx(here.step)}
-          cy={sy(here.loss)}
-          r={5}
-          fill="var(--color-accent)"
-          stroke="var(--color-bg)"
-          strokeWidth={2}
-        />
-      )}
-
-      <rect
-        x={PAD_L}
-        y={PAD_T}
-        width={W - PAD_L - PAD_R}
-        height={H - PAD_T - PAD_B}
-        fill="transparent"
-        style={{ cursor: "ew-resize" }}
-        onPointerDown={(e) => {
-          e.currentTarget.setPointerCapture(e.pointerId);
-          scrub(e, curve.finalStep, onStep);
-        }}
-        onPointerMove={(e) => {
-          if (e.buttons === 1) scrub(e, curve.finalStep, onStep);
-        }}
-      />
-    </svg>
+      </svg>
+    </FigureScroll>
   );
 }
 

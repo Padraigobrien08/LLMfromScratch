@@ -960,6 +960,35 @@ body {
   border-radius: var(--radius-md);
 }
 
+/* See `FigureScroll.tsx`: below the breakpoint the chart holds a legible width and this
+   box slides, rather than the axis labels scaling down to four physical pixels. */
+.figure-scroll {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+.figure-scroll:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+@media (max-width: 700px) {
+  .figure-scroll > svg {
+    min-width: 640px;
+  }
+  /* 640px of a 1000-unit viewBox is a 0.64 scale, which would still put the 11-unit
+     axis labels at 7px. Below the breakpoint the charts' two type sizes collapse to
+     one — 17 units, so ~10.9px on the glass — because a size distinction nobody can
+     read is not a distinction. Nothing above the breakpoint is touched. */
+  .figure-scroll > svg text {
+    font-size: 17px;
+  }
+  /* Where the chart itself is draggable, the drag would fight the pan for the same
+     finger. Inside a scrolling box the pan wins and the scrubber below — full width,
+     outside the box — is how the figure is moved. */
+  .figure-scroll .scrub-surface {
+    pointer-events: none;
+  }
+}
+
 .seed-deltas {
   background: transparent;
 }

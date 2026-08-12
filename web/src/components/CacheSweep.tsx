@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 
 import { MEASURED } from "../content/measured";
+import FigureScroll from "./FigureScroll";
 
 const W = 1000;
 const H = 320;
@@ -79,56 +80,58 @@ export default function CacheSweep({ masked, onMasked }: { masked: boolean; onMa
 
   return (
     <>
-      <svg
-        className="loss-curve"
-        viewBox={`0 0 ${W} ${H}`}
-        role="img"
-        aria-label={`Decode throughput against sequence length, cached versus recomputed, with the decode-step mask ${masked ? "present" : "removed"}`}
-      >
-        {[0, 70, 140, 210, 280].map((y) => (
-          <g key={y}>
-            <line x1={PAD_L} y1={sy(y)} x2={W - PAD_R} y2={sy(y)} stroke="var(--color-neutral-200)" />
-            <text x={PAD_L - 8} y={sy(y) + 4} fontSize={11} fill="var(--color-neutral-700)"
-              textAnchor="end" fontFamily="var(--mono)">
-              {y}
+      <FigureScroll label="Decode throughput against sequence length">
+        <svg
+          className="loss-curve"
+          viewBox={`0 0 ${W} ${H}`}
+          role="img"
+          aria-label={`Decode throughput against sequence length, cached versus recomputed, with the decode-step mask ${masked ? "present" : "removed"}`}
+        >
+          {[0, 70, 140, 210, 280].map((y) => (
+            <g key={y}>
+              <line x1={PAD_L} y1={sy(y)} x2={W - PAD_R} y2={sy(y)} stroke="var(--color-neutral-200)" />
+              <text x={PAD_L - 8} y={sy(y) + 4} fontSize={11} fill="var(--color-neutral-700)"
+                textAnchor="end" fontFamily="var(--mono)">
+                {y}
+              </text>
+            </g>
+          ))}
+          {values.map((v, i) => (
+            <text key={v.totalLen} x={sx(i)} y={H - 14} fontSize={11} fill="var(--color-neutral-700)"
+              textAnchor="middle" fontFamily="var(--mono)">
+              {v.totalLen}
             </text>
-          </g>
-        ))}
-        {values.map((v, i) => (
-          <text key={v.totalLen} x={sx(i)} y={H - 14} fontSize={11} fill="var(--color-neutral-700)"
-            textAnchor="middle" fontFamily="var(--mono)">
-            {v.totalLen}
+          ))}
+
+          <path d={path((v) => v.naiveNow)} fill="none" stroke="var(--color-neutral-500)"
+            strokeWidth={2} strokeDasharray="6 4" />
+          <path d={path((v) => v.cachedNow)} fill="none"
+            stroke={winning ? "var(--color-accent)" : "var(--color-accent-2)"} strokeWidth={2.8} />
+
+          {values.map((v, i) => (
+            <g key={v.totalLen}>
+              <circle cx={sx(i)} cy={sy(v.naiveNow)} r={3.5} fill="var(--color-neutral-500)" />
+              <circle cx={sx(i)} cy={sy(v.cachedNow)} r={5}
+                fill={winning ? "var(--color-accent)" : "var(--color-accent-2)"}
+                stroke="var(--color-bg)" strokeWidth={2} />
+            </g>
+          ))}
+
+          <text x={W - PAD_R + 12} y={sy(values.at(-1)!.naiveNow) + 4} fontSize={13}
+            fill="var(--color-neutral-700)" fontFamily="var(--mono)">
+            recompute
           </text>
-        ))}
-
-        <path d={path((v) => v.naiveNow)} fill="none" stroke="var(--color-neutral-500)"
-          strokeWidth={2} strokeDasharray="6 4" />
-        <path d={path((v) => v.cachedNow)} fill="none"
-          stroke={winning ? "var(--color-accent)" : "var(--color-accent-2)"} strokeWidth={2.8} />
-
-        {values.map((v, i) => (
-          <g key={v.totalLen}>
-            <circle cx={sx(i)} cy={sy(v.naiveNow)} r={3.5} fill="var(--color-neutral-500)" />
-            <circle cx={sx(i)} cy={sy(v.cachedNow)} r={5}
-              fill={winning ? "var(--color-accent)" : "var(--color-accent-2)"}
-              stroke="var(--color-bg)" strokeWidth={2} />
-          </g>
-        ))}
-
-        <text x={W - PAD_R + 12} y={sy(values.at(-1)!.naiveNow) + 4} fontSize={13}
-          fill="var(--color-neutral-700)" fontFamily="var(--mono)">
-          recompute
-        </text>
-        <text x={W - PAD_R + 12} y={sy(values.at(-1)!.cachedNow) + 4} fontSize={13}
-          fill={winning ? "var(--color-accent-700)" : "var(--color-accent-2-700)"}
-          fontFamily="var(--mono)" fontWeight={600}>
-          KV cache
-        </text>
-        <text x={PAD_L} y={H - 14} fontSize={11} fill="var(--color-neutral-700)"
-          textAnchor="start" fontFamily="var(--mono)" opacity={0}>
-          .
-        </text>
-      </svg>
+          <text x={W - PAD_R + 12} y={sy(values.at(-1)!.cachedNow) + 4} fontSize={13}
+            fill={winning ? "var(--color-accent-700)" : "var(--color-accent-2-700)"}
+            fontFamily="var(--mono)" fontWeight={600}>
+            KV cache
+          </text>
+          <text x={PAD_L} y={H - 14} fontSize={11} fill="var(--color-neutral-700)"
+            textAnchor="start" fontFamily="var(--mono)" opacity={0}>
+            .
+          </text>
+        </svg>
+      </FigureScroll>
 
       <div className="fig-row fig-row-wide" style={{ marginTop: "var(--space-3)" }}>
         <label className="field field-inline">
