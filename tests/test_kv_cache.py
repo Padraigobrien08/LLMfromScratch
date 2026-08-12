@@ -158,7 +158,7 @@ def test_decode_step_passes_no_attn_mask(monkeypatch: pytest.MonkeyPatch) -> Non
 
 @pytest.mark.showcase(
     pins="that a multi-token block against a filled cache still gets a real mask, and "
-    "that its *interior* queries agree with a full forward pass",
+    "its *interior* queries agree with a full forward pass",
     why="The speculative-verification shape. The q_len == 1 fast path must not swallow "
     "it — and checking only the final position would pass regardless, because that "
     "one query is correct even with no mask at all.",

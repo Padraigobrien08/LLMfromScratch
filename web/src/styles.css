@@ -998,28 +998,43 @@ body {
   gap: 6px;
 }
 
+/* A ledger, not a settings sidebar. Twelve boxed cards with a coloured side-stripe on
+   the selected one is an application's vocabulary; this page is a page of a paper, and
+   the paper already has a way of saying "you are here" — the chapter rail's ink fill.
+   So: hairline row rules only, paper tint on hover, ink on the current row. */
 .stack-block {
   width: 100%;
   display: grid;
   gap: 3px;
   text-align: left;
-  padding: 12px 14px;
-  background: var(--color-neutral-100);
-  border: 1px solid var(--color-divider);
-  border-left: 3px solid transparent;
-  border-radius: var(--radius-sm);
+  padding: 12px 2px;
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid var(--color-divider);
+  border-radius: 0;
   cursor: pointer;
   font: inherit;
   color: inherit;
 }
 
 .stack-block:hover {
-  background: color-mix(in srgb, var(--color-accent) 6%, var(--color-neutral-100));
+  background: var(--color-neutral-100);
 }
 
 .stack-block[aria-current="true"] {
-  border-left-color: var(--color-accent);
-  background: color-mix(in srgb, var(--color-accent) 9%, var(--color-neutral-100));
+  background: var(--color-text);
+  color: var(--color-bg);
+  border-bottom-color: var(--color-text);
+}
+/* On the ink fill the row's greys and its magenta repeat both fail against #201e1d;
+   these are the light ends of the same two ramps — 11.2:1 and 10.8:1 on ink. */
+.stack-block[aria-current="true"] .stack-block-summary,
+.stack-block[aria-current="true"] .stack-block-share,
+.stack-block[aria-current="true"] .stack-block-noparams {
+  color: var(--color-neutral-300);
+}
+.stack-block[aria-current="true"] .stack-block-repeat {
+  color: var(--color-accent-2-300);
 }
 
 .stack-block-head {
@@ -1030,7 +1045,7 @@ body {
 }
 
 .stack-block-title {
-  font: 600 16px/1.3 var(--font-heading);
+  font: 600 17px/1.3 var(--font-heading);
   letter-spacing: -0.01em;
 }
 
@@ -1040,7 +1055,7 @@ body {
 }
 
 .stack-block-summary {
-  font: 400 13px/1.45 var(--font-body);
+  font: 400 14px/1.45 var(--font-body);
   color: var(--color-neutral-700);
 }
 
@@ -1063,8 +1078,10 @@ body {
   position: sticky;
   top: var(--space-4);
   padding: var(--space-4);
-  background: var(--color-surface);
-  border: 1px solid var(--color-divider);
+  /* The instrument treatment, identical to `.figure-panel`: this panel is a readout of
+     the block beside it, and the site has one way of printing a readout. */
+  background: var(--color-neutral-100);
+  border: 0;
   border-radius: var(--radius-md);
 }
 
@@ -1116,16 +1133,18 @@ body {
   border-bottom: 1px solid var(--color-divider);
 }
 
-.claim-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-2);
-  margin-bottom: var(--space-2);
+/* The area is a group heading now, not a kicker on every row: four consecutive rows
+   that all said ATTENTION were four rows of chrome saying nothing. Same furniture as
+   the front page's path breaks, one weight down — these divide a page, not a paper. */
+.claim-break {
+  padding-top: var(--space-4);
 }
-
-.claim-area {
-  margin: 0;
+.claim-break .section-label {
+  margin: var(--space-3) 0 0;
+}
+/* The last claim of an area ends where the next area's rule begins. */
+.claim:has(+ .claim-break) {
+  border-bottom: 0;
 }
 
 .claim-pins {
@@ -1142,11 +1161,20 @@ body {
   max-width: 68ch;
 }
 
+/* The case count sits on the source line, where it is a fact about that file's test
+   rather than a tag floating in the row's top-right corner attached to nothing. */
 .claim-source {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: var(--space-2);
   font: 400 13px/1.4 var(--mono);
   margin: 0;
   color: var(--color-neutral-700);
   overflow-wrap: anywhere;
+}
+.claim-cases {
+  flex: none;
 }
 
 /* ── shell affordances ─────────────────────────────────────────────────────── */

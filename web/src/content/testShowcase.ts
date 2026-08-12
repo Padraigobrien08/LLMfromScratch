@@ -62,7 +62,7 @@ export const TEST_SHOWCASE = [
   {
     "file": "tests/test_kv_cache.py",
     "name": "test_multi_token_verify_step_still_masks",
-    "pins": "that a multi-token block against a filled cache still gets a real mask, and that its *interior* queries agree with a full forward pass",
+    "pins": "that a multi-token block against a filled cache still gets a real mask, and its *interior* queries agree with a full forward pass",
     "why": "The speculative-verification shape. The q_len == 1 fast path must not swallow it \u2014 and checking only the final position would pass regardless, because that one query is correct even with no mask at all.",
     "cases": 1
   },

@@ -1,5 +1,8 @@
+import { Fragment } from "react";
+
 import { PROJECT } from "../content/projectState";
 import { TEST_SHOWCASE } from "../content/testShowcase";
+import { claimHeadline } from "../lib/claim";
 
 const REPO = "https://github.com/Padraigobrien08/LLMfromScratch/blob/main";
 
@@ -54,24 +57,37 @@ export default function Tests() {
 
       <div className="rule-heavy" />
 
+      {/* Grouped by the file the claims came from, so the area is stated once instead of
+          once per row — and the headline starts at the claim's own subject, because
+          twelve headlines that all began "It asserts that" were twelve headlines whose
+          first three words carried nothing. The page's own headline says it once. */}
       <ol className="claims">
-        {TEST_SHOWCASE.map((row) => (
-          <li key={`${row.file}::${row.name}`} className="claim">
-            <div className="claim-head">
-              <p className="kicker claim-area">{area(row.file)}</p>
-              {row.cases > 1 && (
-                <span className="tag tag-neutral">{row.cases} cases</span>
+        {TEST_SHOWCASE.map((row, i) => {
+          const heading =
+            row.file === TEST_SHOWCASE[i - 1]?.file ? undefined : area(row.file);
+          return (
+            <Fragment key={`${row.file}::${row.name}`}>
+              {heading && (
+                <li className="claim-break">
+                  <div className="rule-hair" />
+                  <h2 className="section-label">{heading}</h2>
+                </li>
               )}
-            </div>
-            <h2 className="claim-pins">It asserts {row.pins}</h2>
-            <p className="claim-why">{row.why}</p>
-            <p className="claim-source mono">
-              <a href={`${REPO}/${row.file}`}>
-                {row.file}::{row.name}
-              </a>
-            </p>
-          </li>
-        ))}
+              <li className="claim">
+                <h3 className="claim-pins">{claimHeadline(row.pins)}</h3>
+                <p className="claim-why">{row.why}</p>
+                <p className="claim-source mono">
+                  <a href={`${REPO}/${row.file}`}>
+                    {row.file}::{row.name}
+                  </a>
+                  {row.cases > 1 && (
+                    <span className="tag tag-neutral claim-cases">{row.cases} cases</span>
+                  )}
+                </p>
+              </li>
+            </Fragment>
+          );
+        })}
       </ol>
 
       <div className="rule-heavy" style={{ margin: "var(--space-6) 0 var(--space-4)" }} />
