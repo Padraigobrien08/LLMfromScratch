@@ -213,9 +213,8 @@ export default function Ablations() {
                     {analysis.baseline.mean !== null ? analysis.baseline.mean.toFixed(4) : "—"}
                   </div>
                   <p className="tracker-sentence">
-                    Pick an axis above to difference an arm against it. Every arm is compared to the
-                    baseline run that saw its data <i>in the same order</i>, which is what cancels
-                    the batch-ordering noise the two share.
+                    Pick an axis above to difference an arm against it. Each arm is compared to the
+                    baseline seed by seed, not to the baseline mean.
                   </p>
                 </>
               )}
@@ -303,10 +302,9 @@ export default function Ablations() {
       <h2 className="section-h2">Three things worth pulling out</h2>
       <div className="two-col">
         <p className="prose">
-          <b>The optimiser dominates the architecture.</b> Learning rate and schedule move loss more
-          than every architecture change combined. RMSNorm versus LayerNorm is worth less than the
-          noise floor; the learning rate is worth two orders of magnitude more. A study that varied
-          only architecture would have concluded that nothing matters.
+          <b>The optimiser dominates the architecture.</b> RMSNorm versus LayerNorm is worth less
+          than the noise floor; the learning rate is worth two orders of magnitude more. A study
+          that varied only architecture would have concluded that nothing matters.
         </p>
         <p className="prose">
           <b>The components are additive.</b> Summing the five individual modern-stack parts predicts
@@ -317,12 +315,12 @@ export default function Ablations() {
         </p>
       </div>
       <Caveat>
-        <b>The study's largest is a prediction that was wrong.</b> The <code>lr-3e-3</code>{" "}
-        arm was expected to diverge. It won — which means every other arm was measured at a learning
-        rate now known to be suboptimal. That does not invalidate the paired comparisons, since every
-        arm shares the same baseline, but it does mean the absolute losses are all worse than they
-        needed to be, and it is stated as such in the write-up rather than left for a reader to
-        notice.
+        <b>The largest effect in the study was a prediction that turned out wrong.</b> The{" "}
+        <code>lr-3e-3</code> arm was expected to diverge. It won — which means every other arm was
+        measured at a learning rate now known to be suboptimal. That does not invalidate the paired
+        comparisons, since every arm shares the same baseline, but it does mean the absolute losses
+        are all worse than they needed to be, and it is stated as such in the write-up rather than
+        left for a reader to notice.
       </Caveat>
 
       <div className="rule-heavy" style={{ margin: "var(--space-6) 0 var(--space-4)" }} />

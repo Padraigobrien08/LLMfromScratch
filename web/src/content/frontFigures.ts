@@ -50,7 +50,7 @@ export function frontFigures(): Figure[] {
   return [
     {
       value: formatCount(parameters(GPT2_124M).total),
-      label: "parameters, exact against the real Transformer",
+      label: "parameters, matching the real Transformer exactly",
       href: href({ kind: "architecture" }),
     },
     {

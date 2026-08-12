@@ -91,7 +91,7 @@ export const TEST_SHOWCASE = [
     "file": "tests/test_speculative.py",
     "name": "test_output_is_identical_to_greedy_decoding",
     "pins": "that speculative decoding reproduces greedy decoding token for token",
-    "why": "The whole contract. An implementation that were merely *close* would not be a faster decoder \u2014 it would be a different model, and every benchmark measuring it would be measuring the wrong thing.",
+    "why": "The whole contract. An implementation that merely came *close* would not be a faster decoder \u2014 it would be a different model, and every benchmark measuring it would be measuring the wrong thing.",
     "cases": 4
   }
 ] as const;

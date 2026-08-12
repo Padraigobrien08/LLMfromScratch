@@ -70,19 +70,19 @@ const PLATE_SOURCE: PlateSource[] = [
     subject: "the sweep",
     title: "What actually matters",
     blurb:
-      "Twelve arms at three seeds, every comparison paired against the baseline run that saw its data in the same order — including the changes that measurably did nothing.",
+      "Twelve arms at three seeds, paired so the seed noise cancels — including the changes that measurably did nothing.",
   },
   {
     kind: "efficiency",
     subject: "inference",
-    title: "Making it fast, and the bug in the numbers",
+    title: "Making it fast, and the bug that hid in the numbers",
     blurb:
       "The KV cache was slower than recomputing until a mask that forfeited the fused kernel turned up. Flip the bug back on and watch the curve change sides.",
   },
   {
     kind: "scaling",
     subject: "eight GPUs",
-    title: "Eight GPUs, and the cost of talking",
+    title: "Eight GPUs, and why the interconnect barely matters",
     blurb:
       "95% of linear scaling over the worst interconnect in the building, and a two-parameter model fitted to two points that then predicted the other two.",
   },
@@ -115,7 +115,7 @@ const EXPLORERS: Array<Omit<Stop, "numeral" | "cta" | "group">> = [
     kicker: "The deep end",
     title: "The stack, block by block",
     blurb:
-      "One Transformer class, two architectures, decided entirely by config. Click a block for its shape, its share of the parameter budget, and the test that pins it.",
+      "One Transformer class, two architectures, decided entirely by config. Where the 124M parameters actually go, block by block, and which tests hold each block in place.",
     href: href({ kind: "architecture" } as Route),
   },
   {

@@ -36,7 +36,7 @@ export const CHAPTERS: Chapter[] = [
     kicker: "embeddings",
     title: "Each token becomes a list of numbers",
     blurb:
-      "Drag layers and width and watch 31% of a 124M model turn out to be a lookup table before any computation happens.",
+      "Drag the layer and width sliders and watch 31% of a 124M model turn out to be a lookup table before any computation happens.",
   },
   {
     n: 3,

@@ -281,9 +281,8 @@ function Chapter8() {
       </p>
       <p className="prose">
         An arm counts as a result only when the range of its per-seed deltas does not straddle zero:
-        every seed agreed on the direction. A deliberately blunt rule rather than a p-value — with
-        three seeds nothing stronger would be honest. An ablation table without that check is worse
-        than no table, because it reads as authoritative while recommending changes that do nothing.
+        every seed agreed on the direction. It is a blunt rule, and three seeds do not support a
+        sharper one.
       </p>
 
       <div className="sweep-facts">

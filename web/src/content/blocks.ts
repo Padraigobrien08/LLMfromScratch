@@ -123,7 +123,7 @@ export const BLOCKS: Block[] = [
     differs: (v) =>
       v === "gpt2"
         ? `GELU at ${resolved(v).mlpRatio}× width — two matrices, up and down.`
-        : `SwiGLU at ${resolved(v).mlpRatio}× width scaled by 2/3 and rounded to a multiple of ${resolved(v).mlpHiddenMultipleOf}. Three matrices rather than two, so the 2/3 keeps the parameter count comparable — otherwise a GELU-vs-SwiGLU comparison would be measuring the budget instead of the activation.`,
+        : `SwiGLU at ${resolved(v).mlpRatio}× width scaled by 2/3 and rounded to a multiple of ${resolved(v).mlpHiddenMultipleOf}. Three matrices rather than two, so the 2/3 keeps the parameter count comparable with GELU's.`,
     params: (v) => p(v).feedForward,
     shape: (v) =>
       `${resolved(v).nLayer} × [${resolved(v).nEmbd} → ${mlpHidden(cfg(v)).toLocaleString()} → ${resolved(v).nEmbd}]`,
@@ -177,7 +177,7 @@ export const BLOCKS: Block[] = [
     title: "KV cache",
     summary: "Not a layer — the state that makes generation cheaper than re-reading",
     what:
-      "During generation every step would otherwise recompute keys and values for the entire prefix. The cache is preallocated at the maximum sequence length and written in place, so decoding one token costs one token of work. It holds no parameters; it holds memory, and the figure below is per sequence at full context — which is what decides how many users fit on a card.",
+      "During generation every step would otherwise recompute keys and values for the entire prefix. The cache is preallocated at the maximum sequence length and written in place, so decoding one token costs one token of work. It holds no parameters; it holds memory, and the figure below is per sequence at full context.",
     differs: (v) =>
       `${resolved(v).nKvHead} KV heads × ${headDim(cfg(v))} dims × 2 (K and V) × ${resolved(v).nLayer} layers.`,
     params: () => null,

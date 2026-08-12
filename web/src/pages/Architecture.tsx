@@ -216,8 +216,7 @@ export default function Architecture() {
           The "what holds it" lines name real tests, and each was written by reading that test
           rather than its name. Two blocks say they have no property test, which is the honest
           answer — a page whose argument is <i>this is pinned</i> is the worst place to be vague
-          about what is. A test asserts every name here still exists, so a rename cannot leave the
-          page citing a guarantee that has gone. All{" "}
+          about what is. A test asserts every name here still exists. All{" "}
           {PROJECT.pythonTests.toLocaleString()} of them run on every push.
         </p>
       </div>

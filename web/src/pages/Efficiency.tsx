@@ -136,7 +136,7 @@ export default function Efficiency() {
       </Caveat>
 
       <div className="rule-hair" style={{ margin: "var(--space-6) 0" }} />
-      <h2 className="section-h2">Quantization: a memory win that costs speed</h2>
+      <h2 className="section-h2">Quantization, and where the compression stops</h2>
       <DataTable label="Quantization schemes">
         <thead>
           <tr>
@@ -209,12 +209,12 @@ export default function Efficiency() {
       </DataTable>
       <Caveat columns>
         All {SPEC.losslessRuns} benchmark runs reproduced greedy decoding token for token, and{" "}
-        {SPEC.divergedRuns === 0 ? "none diverged" : `${SPEC.divergedRuns} diverged`} — an
-        implementation that were merely <i>close</i> would not be a faster decoder, it would be a
-        different model. The row worth reading twice is the model drafter: essentially the
-        algorithmic ideal, nearly every proposal accepted, and barely any speedup at all, because
-        the drafter is the same size as the target. <b>A drafter must be cheap first and accurate
-        second</b>, and acceptance rate measures only the second.
+        {SPEC.divergedRuns === 0 ? "none diverged" : `${SPEC.divergedRuns} diverged`} — without
+        that, a speedup would just be a different model running faster. The row worth reading twice
+        is the model drafter: essentially the algorithmic ideal, nearly every proposal accepted, and
+        barely any speedup at all, because the drafter is the same size as the target.{" "}
+        <b>A drafter must be cheap first and accurate second</b>, and acceptance rate measures only
+        the second.
       </Caveat>
 
       <div className="rule-heavy" style={{ margin: "var(--space-6) 0 var(--space-4)" }} />

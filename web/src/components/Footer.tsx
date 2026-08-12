@@ -5,10 +5,7 @@ export default function Footer() {
     <footer className="shell site-footer">
       <div className="rule-heavy" />
       <div className="footer-row">
-        <span>
-          Everything here is arithmetic you can check or a measurement pinned to the repository
-          by a test.
-        </span>
+        <span>Nothing here is a number typed by hand.</span>
         <span>
           <a href={PROJECT.repo} target="_blank" rel="noopener">
             Source on GitHub ↗

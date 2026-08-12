@@ -96,9 +96,7 @@ export default function Tests() {
           <b>These rows are collected, not typed.</b> Each test above carries a{" "}
           <code>@pytest.mark.showcase(pins=…, why=…)</code>, and the site's export runs pytest's own
           collection to gather them. Rename one and the committed export stops matching; delete one
-          and its row disappears. The page cannot go on advertising a guarantee the suite no longer
-          provides — which, for a page whose entire subject is guarantees, is the only honest way to
-          build it.
+          and its row disappears.
         </p>
         <p style={{ font: "400 16px/1.6 var(--font-body)", color: "var(--color-neutral-700)" }}>
           Curation stays deliberate: only marked tests appear, so this is a chosen argument rather

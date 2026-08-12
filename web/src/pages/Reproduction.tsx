@@ -28,7 +28,7 @@ export default function Reproduction() {
       <p className="page-standfirst">
         A model that generates fluent-looking text proves very little. A model that lands on a
         validation loss stated <i>before</i> the run, and then clears a public benchmark against a
-        published figure, proves the training pipeline is correct end to end. That is the only
+        published figure, is very hard to get with a broken training pipeline. That is the only
         claim this page makes, and everything below is the evidence for it.
       </p>
 
