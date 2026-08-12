@@ -51,5 +51,6 @@ data/hellaswag/
 # Raw pod run log (1.4MB of progress redraws; kept locally, not committed)
 results/run.log
 
-# Private working plan — a scratch document, not part of the published docs.
+# Private working plans — scratch documents, not part of the published docs.
 docs/completion-plan.md
+docs/design-audit-plan.md
