@@ -5,7 +5,7 @@ import LossCurve from "../components/LossCurve";
 import PlateNumeral from "../components/PlateNumeral";
 import PlateFoot from "../components/PlateFoot";
 import { MEASURED } from "../content/measured";
-import { plateKicker } from "../content/path";
+import { plateHeadline, plateKicker } from "../content/path";
 import { type Curve, valAt } from "../lib/reproductionCurve";
 import { useResult } from "../lib/resultsData";
 
@@ -24,7 +24,7 @@ export default function Reproduction() {
   return (
     <div className="shell page">
       <p className="kicker">{plateKicker("reproduction")}</p>
-      <h1 className="page-headline">A number someone else can check</h1>
+      <h1 className="page-headline">{plateHeadline("reproduction")}</h1>
       <p className="page-standfirst">
         A model that generates fluent-looking text proves very little. A model that lands on a
         validation loss stated <i>before</i> the run, and then clears a public benchmark against a

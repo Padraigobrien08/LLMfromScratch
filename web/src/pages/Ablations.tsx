@@ -7,7 +7,7 @@ import PlateNumeral from "../components/PlateNumeral";
 import PlateFoot from "../components/PlateFoot";
 import Caveat from "../components/Caveat";
 import { MEASURED } from "../content/measured";
-import { plateKicker } from "../content/path";
+import { plateHeadline, plateKicker } from "../content/path";
 import {
   AXIS,
   MODERN_STACK,
@@ -80,7 +80,7 @@ export default function Ablations() {
   return (
     <div className="shell page">
       <p className="kicker">{plateKicker("ablations")}</p>
-      <h1 className="page-headline">What actually matters, and what only sounds like it does</h1>
+      <h1 className="page-headline">{plateHeadline("ablations")}</h1>
       <p className="page-standfirst">
         {A.arms} design decisions, each varied against a shared baseline, each run at the same{" "}
         {A.seeds} seeds. The finding is not the one the architecture literature would lead you to

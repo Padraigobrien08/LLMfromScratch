@@ -6,7 +6,7 @@ import PlateNumeral from "../components/PlateNumeral";
 import PlateFoot from "../components/PlateFoot";
 import Caveat from "../components/Caveat";
 import { MEASURED } from "../content/measured";
-import { plateKicker } from "../content/path";
+import { plateHeadline, plateKicker } from "../content/path";
 
 const REPO = "https://github.com/Padraigobrien08/LLMfromScratch/blob/main";
 const CACHE = MEASURED.cache;
@@ -20,7 +20,7 @@ export default function Efficiency() {
   return (
     <div className="shell page">
       <p className="kicker">{plateKicker("efficiency")}</p>
-      <h1 className="page-headline">Making it fast, and the bug that hid in the numbers</h1>
+      <h1 className="page-headline">{plateHeadline("efficiency")}</h1>
       <p className="page-standfirst">
         Three optimisations, all hand-implemented, all measured. The theme running through them is
         that the headline number and the useful number are rarely the same one: 4-bit quantization

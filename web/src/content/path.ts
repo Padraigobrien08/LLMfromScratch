@@ -53,7 +53,22 @@ type PlateSource = {
   kind: PlateKind;
   /** The half of the kicker that follows "Plate II — Measured results ·". */
   subject: string;
+  /** What every link to this plate calls it: the front page's path row, and the feet. */
   title: string;
+  /**
+   * The page's own headline, where it is deliberately not the title.
+   *
+   * Absent means the page prints `title` — from here, rather than from a second copy
+   * in its own JSX. Two copies is how plates III and IV came to be advertised as
+   * "the bug in the numbers" and "the cost of talking" by links that landed on pages
+   * headlined something else; a reader following a link could not confirm they had
+   * arrived where it promised.
+   *
+   * A plate that declares a headline is saying the departure is the point, and says
+   * why in a comment beside it. A test asserts a declared headline actually differs
+   * from the title, so this cannot quietly become the second copy again.
+   */
+  headline?: string;
   blurb: string;
 };
 
@@ -62,6 +77,11 @@ const PLATE_SOURCE: PlateSource[] = [
     kind: "reproduction",
     subject: "the trust anchor",
     title: "Did it reproduce GPT-2 124M?",
+    // The link asks; the page answers. It is the question a reader arrives with, and
+    // the page's whole argument is that the answer worth having is one they can check
+    // without taking the answerer's word for it — so the headline states that rather
+    // than repeating the question back.
+    headline: "A number someone else can check",
     blurb:
       "A validation-loss target fixed before the run, met a third of the way in, and corroborated on a public benchmark against the published figure. Drag the scrubber along the run.",
   },
@@ -69,6 +89,11 @@ const PLATE_SOURCE: PlateSource[] = [
     kind: "ablations",
     subject: "the sweep",
     title: "What actually matters",
+    // The link is the promise; the headline is the promise and the finding. The
+    // subordinate clause is dropped in the path and the feet, where the title sits
+    // beside three others and would crowd them — a reader still lands on the words
+    // they clicked.
+    headline: "What actually matters, and what only sounds like it does",
     blurb:
       "Twelve arms at three seeds, paired so the seed noise cancels — including the changes that measurably did nothing.",
   },
@@ -99,8 +124,22 @@ export const PLATES: Plate[] = PLATE_SOURCE.map((plate, i) => ({
 
 /** The kicker a plate page prints above its headline, numeral included. */
 export function plateKicker(kind: PlateKind): string {
-  const plate = PLATES.find((p) => p.kind === kind)!;
-  return `Plate ${plate.numeral} — Measured results · ${plate.subject}`;
+  const p = plate(kind);
+  return `Plate ${p.numeral} — Measured results · ${p.subject}`;
+}
+
+/**
+ * The headline a plate page prints — the same sentence its links use, unless the
+ * plate declared otherwise. Pages call this instead of holding the string themselves,
+ * so a title edited here cannot leave a page advertising the old one.
+ */
+export function plateHeadline(kind: PlateKind): string {
+  const p = plate(kind);
+  return p.headline ?? p.title;
+}
+
+function plate(kind: PlateKind): Plate {
+  return PLATES.find((p) => p.kind === kind)!;
 }
 
 const EXPLORERS: Array<Omit<Stop, "numeral" | "cta" | "group">> = [
