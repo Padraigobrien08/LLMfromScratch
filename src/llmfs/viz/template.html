@@ -195,7 +195,12 @@
     <div class="masthead-row">
       <div class="wordmark">
         <a href="../">LLMfromScratch</a>
-        <span class="wordmark-sub">A laboratory notebook</span>
+        <!-- Kept in step with web/src/components/Masthead.tsx by hand. This page cannot
+             import from the site, so the masthead is restated rather than shared — and
+             the two drifted the moment the site's strapline changed: "A laboratory
+             notebook" survived here for one deploy after the site had stopped saying it.
+             Anything edited in that component has to be edited here too. -->
+        <span class="wordmark-sub">Laboratory notes, printed</span>
       </div>
       <nav class="masthead-nav" aria-label="Sections">
         <a href="../">Front page</a>

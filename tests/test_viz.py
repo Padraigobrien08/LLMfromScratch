@@ -20,10 +20,11 @@ import torch
 from conftest import tiny_config
 from llmfs.config import load_config
 from llmfs.data.tokenizer import load_tokenizer
+from llmfs.export.web import ROOT
 from llmfs.model import Transformer
 from llmfs.train.checkpoint import save_checkpoint
 from llmfs.viz.attention import attention_for_prompt, compute_head_stats, display_token
-from llmfs.viz.export import build_payload, export, render_html
+from llmfs.viz.export import TEMPLATE, build_payload, export, render_html
 
 
 def stats_for(matrix: np.ndarray):
@@ -273,3 +274,28 @@ def test_viz_weights_match_a_direct_model_call(model_and_tokenizer) -> None:
     expected = torch.stack([a[0] for a in direct]).numpy()
 
     np.testing.assert_allclose(view.weights, expected, atol=1e-6)
+
+
+def test_masthead_matches_the_site_it_belongs_to() -> None:
+    """The restated masthead must say what the site's masthead says.
+
+    ``/attention/`` is a single self-contained file and cannot import the site's
+    component, so its masthead is restated in the template — and a restatement is a
+    copy, which drifts. It did: the site's strapline changed and this page went on
+    calling the project "A laboratory notebook" for a deploy afterwards, on the one
+    page a reader reaches by clicking the site's own nav.
+
+    Pinning it here is cheaper than noticing. The template is deliberately not shared,
+    so this asserts the two agree rather than trying to make them one thing.
+    """
+    sub = re.compile(r'class(?:Name)?="wordmark-sub">([^<]+)<')
+
+    template = sub.search(TEMPLATE.read_text(encoding="utf-8"))
+    site = sub.search((ROOT / "web/src/components/Masthead.tsx").read_text(encoding="utf-8"))
+    assert template is not None, "the attention template has no wordmark-sub"
+    assert site is not None, "the site's Masthead component has no wordmark-sub"
+
+    assert template.group(1) == site.group(1), (
+        f"the attention page says {template.group(1)!r} where the site says "
+        f"{site.group(1)!r} — edit src/llmfs/viz/template.html to match"
+    )
