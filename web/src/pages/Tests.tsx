@@ -1,5 +1,6 @@
 import { Fragment } from "react";
 
+import PlateNumeral from "../components/PlateNumeral";
 import { PROJECT } from "../content/projectState";
 import { TEST_SHOWCASE } from "../content/testShowcase";
 import { claimHeadline } from "../lib/claim";
@@ -27,21 +28,11 @@ export default function Tests() {
 
       <div className="figure-strip">
         <figure>
-          <span className="cmyk-num plate-num">
-            <span className="paper">{TEST_SHOWCASE.length}</span>
-            <span className="plate plate-c" aria-hidden="true">{TEST_SHOWCASE.length}</span>
-            <span className="plate plate-m" aria-hidden="true">{TEST_SHOWCASE.length}</span>
-            <span className="plate plate-y" aria-hidden="true">{TEST_SHOWCASE.length}</span>
-          </span>
+          <PlateNumeral value={String(TEST_SHOWCASE.length)} />
           <figcaption>claims shown here, chosen rather than listed</figcaption>
         </figure>
         <figure>
-          <span className="cmyk-num plate-num">
-            <span className="paper">{cases}</span>
-            <span className="plate plate-c" aria-hidden="true">{cases}</span>
-            <span className="plate plate-m" aria-hidden="true">{cases}</span>
-            <span className="plate plate-y" aria-hidden="true">{cases}</span>
-          </span>
+          <PlateNumeral value={String(cases)} />
           <figcaption>parametrised runs behind them, across {PROJECT.archVariants} architecture variants</figcaption>
         </figure>
       </div>

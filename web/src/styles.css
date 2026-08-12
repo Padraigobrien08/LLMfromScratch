@@ -152,15 +152,23 @@ body {
 
 /* ── the plate numeral ──────────────────────────────────────────────────────── */
 
-/* Broadsheet's `.cmyk-num` prints a figure as three misregistered process plates over
-   the white of the sheet; the construction needs the paper span and the three plate
-   repeats (see the system's own stylesheet). Sizing is per-instance, so it is set by
-   the caller — this only carries what every instance shares. */
+/* Display figures are readouts — a parameter count, a validation loss, a logit spread —
+   so they print in the mono the site already uses for code, artifact paths and table
+   figures, in ink. They previously used Broadsheet's `.cmyk-num`, which prints a figure
+   as three misregistered process plates and fringed every measured number in cyan and
+   magenta. See `PlateNumeral.tsx` for why there is no quieter version of that.
+
+   The mono's advance is wider than the serif's, so the per-instance sizes below were
+   re-measured after the change rather than assumed to still fit: every figure on every
+   route was checked against its container at 1440 and 375, and none needed cutting.
+   Sizing stays the caller's; this carries only what every instance shares. */
 .plate-num {
   display: block;
-  font-family: var(--font-heading);
-  font-weight: var(--font-heading-weight);
+  font-family: var(--mono);
+  font-weight: 600;
   font-variant-numeric: tabular-nums;
+  letter-spacing: -0.03em;
+  color: var(--color-text);
 }
 
 /* ── shared page furniture ──────────────────────────────────────────────────── */
