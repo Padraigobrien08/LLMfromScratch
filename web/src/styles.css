@@ -608,22 +608,6 @@ body {
  * parts matters least when the reader is scrolling the pane anyway.
  */
 @media (min-width: 1280px) and (min-height: 1100px) {
-  /* No height: the stacked descriptions set it. See `StackFigure.tsx` — every part's
-     prose sits in this one cell with all but the selected one hidden, so the cell is as
-     tall as the longest of them at the panel's current width. A stated height was right
-     at one width and wrong at every other. */
-  .front-figure .stack-fig-prose,
-  .front-figure .stack-fig-stack {
-    display: grid;
-  }
-  .front-figure .stack-fig-prose > *,
-  .front-figure .stack-fig-stack > * {
-    grid-area: 1 / 1;
-  }
-  .front-figure .stack-fig-prose > [data-on="0"],
-  .front-figure .stack-fig-stack > [data-on="0"] {
-    visibility: hidden;
-  }
   /* The exit holds the chapter button and up to two further links, so its own height ran
      from 47px to 147px — moving the button, the most prominent thing in the panel, by
      100px between one block and the next. Reserved at its tallest, it lands in the same
@@ -2054,6 +2038,29 @@ figcaption {
   flex-direction: column;
   gap: 5px;
   font-size: 13px;
+}
+
+/**
+ * The stacked fields: every part's value in one grid cell, all but the selected one
+ * hidden. See `StackFigure.tsx` — this is what makes each field as tall as its own
+ * longest entry at whatever width the panel has, so the labels below it hold still.
+ *
+ * Unconditional, and it has to be. This is not a refinement layered on top of a normal
+ * stack of paragraphs — it is the mechanism by which one of fourteen is shown. Scoped
+ * inside the height query that gates the *reservations*, everything under 1100px tall
+ * rendered all fourteen descriptions down the panel at once.
+ */
+.stack-fig-prose,
+.stack-fig-stack {
+  display: grid;
+}
+.stack-fig-prose > *,
+.stack-fig-stack > * {
+  grid-area: 1 / 1;
+}
+.stack-fig-prose > [data-on="0"],
+.stack-fig-stack > [data-on="0"] {
+  visibility: hidden;
 }
 
 /* The encoding line: a caption, set beside the variant control rather than under it. */
