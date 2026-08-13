@@ -1,4 +1,5 @@
 import StackFigure from "../components/StackFigure";
+import { frontFigures } from "../content/frontFigures";
 import { destinations } from "../content/path";
 
 /**
@@ -17,6 +18,7 @@ import { destinations } from "../content/path";
  * type, one scroll lower.
  */
 export default function Front() {
+  const figures = frontFigures();
   const routes = destinations();
   /* One expression for the attention explorer's URL: the deep-end row names it and so
      does Figure V's attention block, and a second copy is how they would come to
@@ -39,6 +41,20 @@ export default function Front() {
             then tested through ablations and benchmarks.{" "}
             <em>Every number here is measured.</em>
           </p>
+
+          {/* The evidence, at reading size, under the claim it supports. Each figure links
+              to the page that proves it — that pairing is the whole point of printing them
+              here rather than leaving them to the dateline rail, where they are furniture. */}
+          <ul className="front-metrics">
+            {figures.map((figure) => (
+              <li key={figure.label}>
+                <a href={figure.href}>
+                  <span className="front-metric-value mono">{figure.value}</span>{" "}
+                  <span className="front-metric-label">{figure.label}</span>
+                </a>
+              </li>
+            ))}
+          </ul>
         </header>
 
         {/* The centrepiece. Its detail panel is the page's right-hand column — the figure

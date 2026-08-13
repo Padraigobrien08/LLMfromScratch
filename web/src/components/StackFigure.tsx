@@ -124,7 +124,16 @@ export default function StackFigure({ attentionHref }: { attentionHref: string }
               the two labels under it moved through 119px depending on what had been clicked.
               A reader comparing two blocks was re-finding the same four labels each time.
               The wrappers are what let the panel reserve a slot for each. */}
-          <div className="stack-fig-panel-body">
+          {/* A scroll region, so it is focusable and can be scrolled by keyboard — the
+              same treatment `DataTable` gives a wide table. On a short window this box
+              holds more than it can show, and without a tab stop the only way to reach
+              the rest was a pointer. */}
+          <div
+            className="stack-fig-panel-body"
+            role="region"
+            aria-label={`${panel.name} — detail`}
+            tabIndex={0}
+          >
             <p className="eyebrow">{selected === "whole" ? "The object" : "Selected block"}</p>
             <h3 className="stack-fig-panel-title">{panel.name}</h3>
 
@@ -209,6 +218,15 @@ export default function StackFigure({ attentionHref }: { attentionHref: string }
               </label>
             ))}
           </div>
+          {/* What the geometry means, in one line.
+              The full legend was cut for height, and with it went the only statement that
+              the drawing is derived rather than drawn: a slab whose thickness encodes a
+              share of the parameter budget is decoration until a reader is told so. This
+              is the shortest form of that claim, and it sits beside the variant control
+              where the reader is already looking. */}
+          <p className="fig-encoding">
+            Thickness is share of parameters · colour is role
+          </p>
           {/* The interaction note is kept for assistive technology and taken off the page.
               On screen the figure announces itself — the cursor changes over a block and
               the labels are buttons — but a reader who cannot see it has nothing else that

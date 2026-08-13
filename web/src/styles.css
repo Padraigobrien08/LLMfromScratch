@@ -280,20 +280,42 @@ body {
   gap: 0 var(--space-8);
   align-items: start;
 }
+
 /**
- * 1600px, not 1240px, because of what the figure needs rather than what the text does.
+ * One column: claim, then where to go, then the model.
  *
- * The plate reserves a 176px gutter down each side of the model for its labels — that is
- * fixed geometry, sized to the widest label rather than to the window. Splitting the page
- * into three columns at 1240px left the stage 934px, the panel took 378 of it, and the
- * model itself was drawn into the 174px that remained between the two gutters. The labels
- * then ran off the right edge of the window, which is how it surfaced.
+ * The markup order is lede → figure → routes, which is what the wide layout wants and
+ * what a desktop reader should meet: the model is the argument, and the routes belong in
+ * the column beside it. Stacked, that order buried the navigation under 1300px of plate —
+ * and on a phone the plate is not even interactive, because the engine keeps WebGL off
+ * below 768px. A reader scrolled two and a half screens past a static drawing to find out
+ * where they could go.
  *
- * Three columns are worth having only when the middle one can hold a model. Below this
- * the page stacks — banner, figure at full width, routes — which is the arrangement that
- * gives the plate the most room on a screen that has none to spare.
+ * So on narrow screens the routes come second and the figure last. `order` moves them
+ * without touching the markup; above the breakpoint every item is placed by grid area, and
+ * explicit placement ignores `order`, so these have no effect there.
  */
-@media (min-width: 1600px) {
+.front-lede {
+  order: 1;
+}
+.front-routes {
+  order: 2;
+}
+.front-figure {
+  order: 3;
+}
+/**
+ * 1280px: a laptop gets the designed page, not a fallback of it.
+ *
+ * This sat at 1600px, which meant the three-column front page — the whole point of the
+ * layout — existed only on a workstation. At 1440×900, the commonest professional screen
+ * there is, the page ran to 2.45 viewports and all three navigation buttons sat below the
+ * fold. The reason was the plate's gutters: fixed at 176px, two of them took 352px before
+ * the drawing got anything, so a narrower column crushed the model to a speck. They are
+ * fluid now, and the engine decides margins-versus-list from the drawing's own width, so
+ * the plate degrades honestly instead of dictating the page's breakpoint.
+ */
+@media (min-width: 1280px) {
   /* No absolute cap. A cap is a measure, and the columns inside already carry their own
      in `ch`; all a page-level one did here was hold 360px of margin down each side of a
      2480px screen — the exact space the figure's panel was asked to reach into. What is
@@ -360,6 +382,12 @@ body {
     hyphens: auto;
     max-width: none;
     margin: 6px 0 0;
+  }
+  /* The figures sit under the headline in the banner's left column, not under the deck:
+     they belong to the claim, and the deck's column is too narrow to set four of them. */
+  .front-lede .front-metrics {
+    grid-column: 1;
+    margin-top: var(--space-3);
   }
   /* The figure sets its own top rule, so the column does not need the page's padding
      above it — this is what lines the model up with the headline rather than with the
@@ -507,11 +535,10 @@ body {
     flex: 1 1 auto;
     min-height: 0;
     /* The panel takes a share of the width, but never so much that the model is left
-       with less than its two 176px gutters plus a drawing area worth having. Just above
-       the breakpoint the vw share alone would have taken the canvas down to 299px; the
-       `calc` is what holds it at ~450 there and gives way to the vw share once the window
-       is wide enough for both. */
-    grid-template-columns: minmax(0, 1fr) min(clamp(340px, 27vw, 700px), calc(100% - 800px));
+       without a drawing area worth having. The reserve is 520px — two fluid gutters at
+       their 104px floor plus ~300px of stack — rather than the 800px it was when the
+       gutters were fixed at 176px and the layout only ran on a workstation. */
+    grid-template-columns: minmax(0, 1fr) min(clamp(300px, 26vw, 700px), calc(100% - 520px));
     grid-template-rows: minmax(250px, 1fr) auto;
     align-items: stretch;
   }
@@ -580,7 +607,7 @@ body {
  * naturally and scrolls as one, which is what a short window needs: alignment between
  * parts matters least when the reader is scrolling the pane anyway.
  */
-@media (min-width: 1600px) and (min-height: 1100px) {
+@media (min-width: 1280px) and (min-height: 1100px) {
   .front-figure .stack-fig-prose {
     font-size: 14px;
     line-height: 1.55;
@@ -600,7 +627,7 @@ body {
   }
 }
 
-@media (min-width: 1600px) {
+@media (min-width: 1280px) {
   /* Five eyebrows down the panel, so 5px off each is 25px of measure — enough to bring
      four of the fourteen parts back inside the box entirely rather than scrolling by
      single digits, which is the worst version of a scroll: invisible and pointless. */
@@ -712,6 +739,55 @@ body {
 .front-standfirst {
   max-width: 62ch;
   margin: 0 0 var(--space-4);
+}
+
+/* The evidence as one rule of type rather than four display numerals. Set inline it costs
+   about 30px and still reads as measurement; set as a strip of plate figures it cost most
+   of a screen and pushed the model below the fold, which is what it did the first time. */
+.front-metrics {
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-2) var(--space-4);
+  margin: 0;
+  padding: 0;
+}
+/* Drawn rather than typed, so no empty <li> is read out, and trailing rather than leading
+   so a wrapped line ends on the dot instead of opening with one. */
+.front-metrics li:not(:last-child)::after {
+  content: "·";
+  color: var(--color-neutral-600);
+  margin-left: var(--space-4);
+}
+.front-metrics a {
+  color: inherit;
+  text-decoration: none;
+  border-bottom: 1px solid transparent;
+}
+.front-metrics a:hover,
+.front-metrics a:focus-visible {
+  border-bottom-color: currentColor;
+}
+.front-metric-value {
+  font-size: 18px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+.front-metric-label {
+  font: 400 14px/1.4 var(--font-body);
+  color: var(--color-neutral-700);
+}
+
+@media (max-width: 700px) {
+  .front-metrics {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-3);
+  }
+  .front-metrics li:not(:last-child)::after {
+    content: none;
+  }
 }
 
 /* Baseline, not flex-end: the captions run to different line counts, and aligning the
@@ -1706,7 +1782,9 @@ main:focus {
   -webkit-overflow-scrolling: touch;
 }
 
-.table-scroll:focus-visible {
+.table-scroll:focus-visible,
+.stack-fig-panel-body:focus-visible,
+.stack-fig-canvas:focus-visible {
   outline: 2px solid var(--color-accent);
   outline-offset: 2px;
 }
@@ -1806,8 +1884,12 @@ figcaption {
 .stack-fig-area {
   position: relative;
   height: 500px;
-  --gutter-l: 176px;
-  --gutter-r: 176px;
+  /* Fluid, because the label max-widths below are derived from these — a narrower gutter
+     wraps a label rather than spilling it. Fixed at 176px they were the reason the plate
+     could not be given a column narrower than a full page: two of them took 352px before
+     the drawing got anything. */
+  --gutter-l: clamp(104px, 8vw, 176px);
+  --gutter-r: clamp(104px, 8vw, 176px);
   --fig-leader-gap: 24px;
   padding-left: var(--gutter-l);
   padding-right: var(--gutter-r);
@@ -1964,6 +2046,13 @@ figcaption {
   font-size: 13px;
 }
 
+/* The encoding line: a caption, set beside the variant control rather than under it. */
+.fig-encoding {
+  font: 400 12.5px/1.4 var(--font-body);
+  color: var(--color-neutral-700);
+  margin: 0;
+}
+
 .stack-fig-foot {
   grid-column: 1;
   display: flex;
@@ -2029,34 +2118,40 @@ figcaption {
   }
 }
 
-/* Below 700px the two label gutters would consume the whole column and leave the
-   drawing a speck, so the labels stop being ruled out to margins and become a list
-   beneath it — the engine switches at the same width and empties the leaders. The
-   phone reader gets a full-width plate and every label, explainer and link; what they
-   lose is the leader lines, which had nowhere to go. */
+/* When the drawing is too narrow to hold two margins of type, the labels stop being
+   ruled out and become a list beneath it — every label, explainer and link intact; what
+   is lost is the leader lines, which had nowhere to go.
+
+   Keyed on the attribute the engine sets, not on a viewport width. The engine decides
+   from the drawing's own width (`LIST_BELOW_DRAWING`), because the plate is one column
+   of a three-column page and the window says nothing about how much room the object
+   has. These rules used to sit inside `@media (max-width: 700px)`, which meant a plate
+   that went to list layout on a wide screen — exactly the case the measurement was
+   added to catch — got no styling for it. */
+.stack-fig-area[data-fig-layout="list"] {
+  height: auto;
+  padding-left: 0;
+  padding-right: 0;
+}
+.stack-fig-area[data-fig-layout="list"] .stack-fig-canvas {
+  height: 300px;
+}
+.stack-fig-labels[data-layout="list"] {
+  position: static;
+  pointer-events: auto;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px var(--space-3);
+  margin-top: var(--space-3);
+}
+.stack-figure .stack-fig-labels[data-layout="list"] .lab {
+  position: static;
+  transform: none;
+  max-width: none;
+  text-align: left;
+}
+
 @media (max-width: 700px) {
-  .stack-fig-area {
-    height: auto;
-    padding-left: 0;
-    padding-right: 0;
-  }
-  .stack-fig-canvas {
-    height: 300px;
-  }
-  .stack-fig-labels[data-layout="list"] {
-    position: static;
-    pointer-events: auto;
-    display: flex;
-    flex-wrap: wrap;
-    gap: 7px var(--space-3);
-    margin-top: var(--space-3);
-  }
-  .stack-figure .stack-fig-labels[data-layout="list"] .lab {
-    position: static;
-    transform: none;
-    max-width: none;
-    text-align: left;
-  }
   .stack-fig-head {
     gap: var(--space-3);
   }
