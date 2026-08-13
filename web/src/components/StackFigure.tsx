@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 
 import { type Variant } from "../content/blocks";
-import { figurePanel } from "../content/stackFigure";
+import { FIGURE_LABELS, figurePanel } from "../content/stackFigure";
 import { formatCount, parameters } from "../lib/modelsize";
 import { SIZES } from "../content/blocks";
 import { mountStackFigure, type StackEngine } from "./stack/engine";
@@ -23,6 +23,15 @@ const VARIANTS: Array<{ id: Variant; label: string }> = [
   { id: "gpt2", label: "GPT-2" },
   { id: "llama", label: "Llama-style" },
 ];
+
+/**
+ * Every part the panel can be showing — the fourteen labels' blocks, plus the whole
+ * object, which is what it opens on and which no label points at.
+ *
+ * Derived from `FIGURE_LABELS` rather than listed, so a part added to the figure is
+ * measured by the description slot without a second edit here.
+ */
+const PARTS: string[] = [...new Set(["whole", ...FIGURE_LABELS.map((l) => l.blockId)])];
 
 export default function StackFigure({ attentionHref }: { attentionHref: string }) {
   const [variant, setVariant] = useState<Variant>("gpt2");
@@ -76,12 +85,25 @@ export default function StackFigure({ attentionHref }: { attentionHref: string }
   const total = parameters(SIZES[variant]).total;
   /* The whole object is the denominator, so printing its share would say "100.0% of"
      itself. It gets the total alone; everything else gets its slice of it. */
-  const share =
-    panel.params == null
+  const shareOf = (p: { params: number | null }, id: string) =>
+    p.params == null
       ? "No parameters of its own"
-      : selected === "whole"
-        ? `${formatCount(panel.params)} in total`
-        : `${formatCount(panel.params)} · ${((panel.params / total) * 100).toFixed(1)}% of ${formatCount(total)}`;
+      : id === "whole"
+        ? `${formatCount(p.params)} in total`
+        : `${formatCount(p.params)} · ${((p.params / total) * 100).toFixed(1)}% of ${formatCount(total)}`;
+
+  /**
+   * Every part's panel, resolved once for the current variant.
+   *
+   * The three variable fields below are each set as a stack of all fourteen values with
+   * one visible, so that each reserves the height of its own longest entry — which is
+   * what stops "Its shape", "Its share of the budget" and "What holds it" moving as the
+   * reader clicks from one block to the next.
+   */
+  const parts = PARTS.map((id) => ({
+    id,
+    p: id === selected ? panel : figurePanel(id, variant, attentionHref),
+  }));
 
   useEffect(() => {
     setAnnouncement(`${panel.name} selected`);
@@ -137,23 +159,63 @@ export default function StackFigure({ attentionHref }: { attentionHref: string }
             <p className="eyebrow">{selected === "whole" ? "The object" : "Selected block"}</p>
             <h3 className="stack-fig-panel-title">{panel.name}</h3>
 
+            {/**
+             * Every part's description, stacked in one grid cell, with all but the
+             * selected one hidden.
+             *
+             * The slot has to be as tall as the longest description or the fields below it
+             * move as the reader clicks from block to block. Reserving a fixed eight lines
+             * for it worked at the width it was measured at and nowhere else: in a 328px
+             * panel the same prose wraps to thirteen, and seven of the fourteen parts
+             * overflowed their slot by up to 150px — an inner scrollbar on the one piece
+             * of the panel that should never need one.
+             *
+             * Stacked, the cell is the height of the tallest description at whatever width
+             * the panel currently has, and that is true at every width without a number
+             * being written down. `visibility: hidden` rather than `display: none` because
+             * the hidden ones still have to take up their space to do the reserving; it
+             * also takes them out of the accessibility tree, and `aria-hidden` says so
+             * explicitly.
+             */}
             <div className="stack-fig-prose">
-              <p className="stack-fig-what">{panel.what}</p>
-              {panel.differs && (
-                <p className="stack-fig-differs">
-                  {VARIANTS.find((v) => v.id === variant)!.label}: {panel.differs}
-                </p>
-              )}
+              {parts.map(({ id, p }) => (
+                <div key={id} data-on={id === selected ? "1" : "0"} aria-hidden={id !== selected}>
+                  <p className="stack-fig-what">{p.what}</p>
+                  {p.differs && (
+                    <p className="stack-fig-differs">
+                      {VARIANTS.find((v) => v.id === variant)!.label}: {p.differs}
+                    </p>
+                  )}
+                </div>
+              ))}
             </div>
 
             <div className="stack-fig-field">
               <p className="eyebrow">Its shape</p>
-              <p className="stack-fig-shape mono">{panel.shape}</p>
+              {/* Stacked for the same reason the description is: "12 layers · 768 wide ·
+                  12 heads · 1,024 context" takes two lines in a narrow panel where
+                  "batch × time × 50,304" takes one, and that difference moved the two
+                  fields under it. */}
+              <div className="stack-fig-stack">
+                {parts.map(({ id, p }) => (
+                  <p key={id} className="stack-fig-shape mono"
+                     data-on={id === selected ? "1" : "0"} aria-hidden={id !== selected}>
+                    {p.shape}
+                  </p>
+                ))}
+              </div>
             </div>
 
             <div className="stack-fig-field">
               <p className="eyebrow">Its share of the budget</p>
-              <p className="stack-fig-shape mono">{share}</p>
+              <div className="stack-fig-stack">
+                {parts.map(({ id, p }) => (
+                  <p key={id} className="stack-fig-shape mono"
+                     data-on={id === selected ? "1" : "0"} aria-hidden={id !== selected}>
+                    {shareOf(p, id)}
+                  </p>
+                ))}
+              </div>
             </div>
 
             <div className="stack-fig-field stack-fig-holds">
