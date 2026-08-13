@@ -1332,3 +1332,268 @@ figcaption {
   margin: var(--space-2) 0 0;
   max-width: 78ch;
 }
+
+/* ── Figure V: the stack, in three dimensions ───────────────────────────────────
+   The drawing's own rules — facet tones, role inks, leader geometry, label tiers —
+   live in `components/stack/figureRules.ts`, not here. This is the plate around it:
+   the frame, the type, and the panel. Two rules matter and are load-bearing:
+
+   The gutters. Each must exceed the widest label in that margin plus the leader's
+   `marginGap` (24px, in figureRules.ts), or a label runs off its side of the frame.
+   The `.lab` max-widths below are derived from the gutters so the pair cannot drift.
+
+   The height. Fixed on purpose: the figure must not push the path list below the
+   fold on a 1440×900 laptop, so the reader orbits within a frame rather than the
+   frame growing to suit the object. */
+
+.stack-figure {
+  margin: var(--space-8) 0;
+}
+.stack-fig-head {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-4);
+  padding-top: var(--space-3);
+}
+.stack-fig-numeral .plate-num {
+  font-size: 54px;
+  line-height: 0.82;
+}
+.stack-fig-title {
+  font: var(--font-heading-weight) 30px/1.1 var(--font-heading);
+  max-width: 26ch;
+  margin: 0;
+}
+
+.stack-fig-stage {
+  display: grid;
+  grid-template-columns: 1fr 290px;
+  gap: var(--space-6);
+  align-items: start;
+  margin-top: var(--space-4);
+}
+
+.stack-fig-area {
+  position: relative;
+  height: 500px;
+  --gutter-l: 176px;
+  --gutter-r: 176px;
+  --fig-leader-gap: 24px;
+  padding-left: var(--gutter-l);
+  padding-right: var(--gutter-r);
+}
+.stack-fig-canvas {
+  position: relative;
+  height: 100%;
+  /* The wheel belongs to the page: a figure that swallows scroll to zoom is a trap
+     halfway down a long read. */
+  touch-action: pan-y;
+}
+.stack-fig-canvas .stack-gl {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+.stack-fig-flat,
+.stack-fig-leaders {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+.stack-fig-leaders {
+  overflow: visible;
+  pointer-events: none;
+}
+.stack-fig-labels {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+/* LABEL TIERS — three, and only three (rule 5). The tier comes from the label's own
+   entry in `content/stackFigure.ts`; a label with no tier is a bug, and `validate`
+   says so in the console rather than falling back to a default.
+     .lab-region  regions of the stack, taken in first  — small caps, ink
+     .lab-part    sub-parts inside the block            — roman, ink
+     .lab-flow    not layers: in, out, and through      — italic, quieter
+   Selection (rule 3) is `.is-sel` only — an accent rule under the type, never a
+   change of hue on the slab. Hover is `.is-hot`: leader and label go magenta. */
+.stack-figure .lab {
+  position: absolute;
+  pointer-events: auto;
+  transform: translateY(-50%);
+  background: none;
+  border: 0;
+  border-bottom: 1px solid transparent;
+  padding: 0 1px 1px;
+  margin: 0;
+  cursor: pointer;
+  font: 400 12.5px/1.16 var(--font-body);
+  color: var(--color-text);
+  text-align: left;
+  max-width: calc(var(--gutter-r) - var(--fig-leader-gap) - 4px);
+}
+.stack-figure .lab-region {
+  font-variant-caps: all-small-caps;
+  letter-spacing: 0.075em;
+  font-size: 13.5px;
+}
+.stack-figure .lab-flow {
+  font-style: italic;
+  color: var(--color-neutral-700);
+}
+.stack-figure .lab-left {
+  text-align: right;
+  max-width: calc(var(--gutter-l) - var(--fig-leader-gap) - 4px);
+}
+.stack-figure .lab:hover,
+.stack-figure .lab.is-hot {
+  color: var(--color-accent-2);
+}
+.stack-figure .lab.is-sel {
+  color: var(--color-accent-700);
+  border-bottom-color: var(--color-accent-700);
+}
+.stack-figure .lab:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+.stack-fig-panel-title {
+  font: var(--font-heading-weight) 21px/1.2 var(--font-heading);
+  margin: 0 0 var(--space-2);
+}
+.stack-fig-what {
+  font: 400 14px/1.55 var(--font-body);
+  margin: 0 0 var(--space-2);
+  text-wrap: pretty;
+}
+.stack-fig-differs {
+  font: italic 400 13px/1.5 var(--font-body);
+  margin: 0 0 var(--space-3);
+  text-wrap: pretty;
+}
+.stack-fig-panel .eyebrow {
+  margin-top: var(--space-3);
+}
+.stack-fig-shape,
+.stack-fig-pin {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.5;
+  text-wrap: pretty;
+}
+.stack-fig-shape {
+  font-size: 12.5px;
+}
+.stack-fig-unpinned {
+  color: var(--color-neutral-700);
+}
+.stack-fig-links {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  font-size: 13px;
+}
+
+.stack-fig-foot {
+  grid-column: 1;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+.stack-fig-foot .rule-hair {
+  margin-top: var(--space-2);
+}
+/* The control in the paper's register: no box, small caps, an ink underline on the
+   one that is on. A filled pill was the loudest thing on the page, and it is a
+   control — it should not out-rank the figure it steers. */
+.stack-figure .seg {
+  border: 0;
+  border-radius: 0;
+  gap: var(--space-4);
+  overflow: visible;
+}
+.stack-figure .seg-opt {
+  padding: 0 0 3px;
+  gap: 0;
+  font-size: 14px;
+  font-variant-caps: all-small-caps;
+  letter-spacing: 0.09em;
+  color: var(--color-neutral-700);
+  background: none;
+  border: 0;
+  border-bottom: 1px solid transparent;
+}
+.stack-figure .seg-opt:has(input:checked) {
+  background: none;
+  color: var(--color-text);
+  border-bottom-color: var(--color-text);
+}
+.stack-figure .seg-opt:not(:has(input:checked)):hover {
+  background: none;
+  color: var(--color-text);
+}
+.stack-figure .seg-opt:has(input:focus-visible) {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 3px;
+}
+
+.stack-fig-sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+}
+
+@media (max-width: 1080px) {
+  .stack-fig-stage {
+    grid-template-columns: 1fr;
+  }
+  .stack-fig-area {
+    height: 420px;
+    --gutter-l: 150px;
+    --gutter-r: 158px;
+  }
+  .stack-fig-title {
+    font-size: 24px;
+  }
+  .stack-fig-numeral .plate-num {
+    font-size: 42px;
+  }
+}
+
+/* Below 700px the two label gutters would consume the whole column and leave the
+   drawing a speck, so the labels stop being ruled out to margins and become a list
+   beneath it — the engine switches at the same width and empties the leaders. The
+   phone reader gets a full-width plate and every label, explainer and link; what they
+   lose is the leader lines, which had nowhere to go. */
+@media (max-width: 700px) {
+  .stack-fig-area {
+    height: auto;
+    padding-left: 0;
+    padding-right: 0;
+  }
+  .stack-fig-canvas {
+    height: 300px;
+  }
+  .stack-fig-labels[data-layout="list"] {
+    position: static;
+    pointer-events: auto;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 7px var(--space-3);
+    margin-top: var(--space-3);
+  }
+  .stack-figure .stack-fig-labels[data-layout="list"] .lab {
+    position: static;
+    transform: none;
+    max-width: none;
+    text-align: left;
+  }
+  .stack-fig-head {
+    gap: var(--space-3);
+  }
+}

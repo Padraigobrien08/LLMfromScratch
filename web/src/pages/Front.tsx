@@ -2,6 +2,7 @@ import { Fragment, useEffect, useState } from "react";
 
 import DataTable from "../components/DataTable";
 import PlateNumeral from "../components/PlateNumeral";
+import StackFigure from "../components/StackFigure";
 import { frontFigures } from "../content/frontFigures";
 import { GROUP_HEADING, pathStops } from "../content/path";
 import { ILLUSTRATIVE, STATUS, TAG_CLASS } from "../content/status";
@@ -29,7 +30,11 @@ export default function Front() {
   }, []);
 
   const figures = frontFigures();
-  const stops = pathStops(`${import.meta.env.BASE_URL}attention/`);
+  /* One expression for the attention explorer's URL: the path list links to it and so
+     does Figure V's attention block, and a second copy is how they would come to
+     disagree. */
+  const attentionHref = `${import.meta.env.BASE_URL}attention/`;
+  const stops = pathStops(attentionHref);
 
   /**
    * Every pillar is done, so the Status column would print the same tag ten times.
@@ -79,6 +84,13 @@ export default function Front() {
           </figure>
         ))}
       </div>
+
+      {/* The centrepiece, between the readouts and the path: the four figures above say
+          what was built, and this is the thing itself. It carries a fixed height rather
+          than a fluid one so the first path row stays above the fold on a laptop — the
+          path is how a reader gets anywhere, and burying it would cost more than the
+          figure gains. */}
+      <StackFigure attentionHref={attentionHref} />
 
       <div className="rule-heavy" />
       <h2 className="section-label">The path</h2>
