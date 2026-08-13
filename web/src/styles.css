@@ -608,13 +608,6 @@ body {
  * parts matters least when the reader is scrolling the pane anyway.
  */
 @media (min-width: 1280px) and (min-height: 1100px) {
-  /* The exit holds the chapter button and up to two further links, so its own height ran
-     from 47px to 147px — moving the button, the most prominent thing in the panel, by
-     100px between one block and the next. Reserved at its tallest, it lands in the same
-     place every time and the links fill in under it. */
-  .front-figure .stack-fig-panel-exit {
-    min-height: 150px;
-  }
 }
 
 @media (min-width: 1280px) {

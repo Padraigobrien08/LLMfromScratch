@@ -71,17 +71,6 @@ export default function StackFigure({ attentionHref }: { attentionHref: string }
   useEffect(() => engineRef.current?.setSelected(selected), [selected]);
 
   const panel = figurePanel(selected, variant, attentionHref);
-  /**
-   * The chapter link, promoted out of the list into the panel's call to action.
-   *
-   * `stackFigure.ts` already gives most parts a chapter as their first link, so this
-   * needs no new content — only a way to tell which one it is, which the route is.
-   * Detecting it beats tagging it: a link added there is picked up here without a
-   * second edit, and a part with no chapter simply prints no button rather than a
-   * dead one.
-   */
-  const chapter = panel.links.find((link) => link.href.startsWith("#/chapter/"));
-  const rest = panel.links.filter((link) => link !== chapter);
   const total = parameters(SIZES[variant]).total;
   /* The whole object is the denominator, so printing its share would say "100.0% of"
      itself. It gets the total alone; everything else gets its slice of it. */
@@ -234,34 +223,51 @@ export default function StackFigure({ attentionHref }: { attentionHref: string }
             </div>
           </div>
 
-          <div className="stack-fig-panel-exit">
-            {/* The figure's whole claim to being navigation rather than decoration: a
-                reader who has just clicked a block and read what it does is one button
-                from the chapter that explains it. */}
-            {chapter && (
-              <a className="stack-fig-read" href={chapter.href}>
-                <span className="stack-fig-read-label">Read</span>
-                {chapter.text} →
-              </a>
-            )}
-
-            {rest.length > 0 && (
-              <>
-                <p className="eyebrow">Also</p>
-                <nav className="stack-fig-links">
-                  {rest.map((link) => (
-                    <a
-                      key={link.href}
-                      href={link.href}
-                      {...(link.external ? { target: "_blank", rel: "noopener" } : {})}
-                    >
-                      {link.text}
-                      {link.external && " ↗"}
+          {/* Stacked like the fields above, and for the same reason: the exit runs from a
+              bare chapter button to a button plus two links, so its height varied by 100px
+              and took the button — the most prominent thing in the panel — with it. A
+              stated reserve fixed that at one width and failed at others; in a 328px panel
+              the links wrap and the tallest exit is 165px against a 150px reserve.
+              `visibility: hidden` also takes the hidden copies out of the tab order, so
+              fourteen sets of links do not become fourteen sets of tab stops. */}
+          <div className="stack-fig-panel-exit stack-fig-stack">
+            {parts.map(({ id, p }) => {
+              const ch = p.links.find((l) => l.href.startsWith("#/chapter/"));
+              const others = p.links.filter((l) => l !== ch);
+              const shown = id === selected;
+              return (
+                <div key={id} data-on={shown ? "1" : "0"} aria-hidden={!shown}>
+                  {/* The figure's whole claim to being navigation rather than decoration:
+                      a reader who has just clicked a block and read what it does is one
+                      button from the chapter that explains it. */}
+                  {ch && (
+                    <a className="stack-fig-read" href={ch.href} tabIndex={shown ? undefined : -1}>
+                      <span className="stack-fig-read-label">Read</span>
+                      {ch.text} →
                     </a>
-                  ))}
-                </nav>
-              </>
-            )}
+                  )}
+
+                  {others.length > 0 && (
+                    <>
+                      <p className="eyebrow">Also</p>
+                      <nav className="stack-fig-links">
+                        {others.map((link) => (
+                          <a
+                            key={link.href}
+                            href={link.href}
+                            tabIndex={shown ? undefined : -1}
+                            {...(link.external ? { target: "_blank", rel: "noopener" } : {})}
+                          >
+                            {link.text}
+                            {link.external && " ↗"}
+                          </a>
+                        ))}
+                      </nav>
+                    </>
+                  )}
+                </div>
+              );
+            })}
           </div>
         </aside>
 
