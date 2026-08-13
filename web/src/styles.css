@@ -2068,14 +2068,19 @@ figcaption {
 }
 /* The control in the paper's register: no box, small caps, an ink underline on the
    one that is on. A filled pill was the loudest thing on the page, and it is a
-   control — it should not out-rank the figure it steers. */
-.stack-figure .seg {
+   control — it should not out-rank the figure it steers.
+
+   A named class rather than `.stack-figure .seg`, because the same argument applies
+   wherever this choice is offered. The Architecture page steers its whole block list
+   from the same GPT-2/Llama switch and was still printing it as a filled pill, so the
+   two pages disagreed about what a control looks like in this paper. */
+.seg-paper {
   border: 0;
   border-radius: 0;
   gap: var(--space-4);
   overflow: visible;
 }
-.stack-figure .seg-opt {
+.seg-paper .seg-opt {
   padding: 0 0 3px;
   gap: 0;
   font-size: 14px;
@@ -2086,16 +2091,16 @@ figcaption {
   border: 0;
   border-bottom: 1px solid transparent;
 }
-.stack-figure .seg-opt:has(input:checked) {
+.seg-paper .seg-opt:has(input:checked) {
   background: none;
   color: var(--color-text);
   border-bottom-color: var(--color-text);
 }
-.stack-figure .seg-opt:not(:has(input:checked)):hover {
+.seg-paper .seg-opt:not(:has(input:checked)):hover {
   background: none;
   color: var(--color-text);
 }
-.stack-figure .seg-opt:has(input:focus-visible) {
+.seg-paper .seg-opt:has(input:focus-visible) {
   outline: 2px solid var(--color-accent);
   outline-offset: 3px;
 }

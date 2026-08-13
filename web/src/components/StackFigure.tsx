@@ -204,7 +204,7 @@ export default function StackFigure({ attentionHref }: { attentionHref: string }
         </aside>
 
         <div className="stack-fig-foot">
-          <div className="seg" role="radiogroup" aria-label="Architecture">
+          <div className="seg seg-paper" role="radiogroup" aria-label="Architecture">
             {VARIANTS.map((v) => (
               <label key={v.id} className="seg-opt">
                 <input

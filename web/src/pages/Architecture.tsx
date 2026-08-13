@@ -41,7 +41,7 @@ export default function Architecture() {
             control: this is one choice out of two, so a radio group gives arrow-key
             navigation and the correct announcement for free, where `role="tab"` would
             have promised a `tabpanel` that does not exist. */}
-        <div className="seg" role="radiogroup" aria-label="Architecture">
+        <div className="seg seg-paper" role="radiogroup" aria-label="Architecture">
           {VARIANTS.map((v) => (
             <label key={v.id} className="seg-opt">
               <input
