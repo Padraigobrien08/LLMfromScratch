@@ -166,22 +166,6 @@ which is a different product tier from anything rented so far.
 
 ---
 
-## Outside the ordering: one small thing
-
-Not engineering, so not ranked with the seven above — the list is ordered by value per unit of
-effort, and this would sit somewhere that says something false about what the roadmap is for.
-
-**The front page fetches the ablation sweep to decide what not to draw.** `Front.tsx` requests
-`data/ablations.json` — 7,681 bytes gzipped, 52.5 KB raw — on every visit, purely to learn
-whether the file exists: the illustrative preview block below the status table hides itself
-once the real sweep has published. It published, so that block no longer renders, and the
-request now buys nothing that a build-time flag could not. Two things would end it: deleting
-the preview block outright rather than leaving it conditional, or having the export write a
-one-line manifest the front page can read instead. Neither is urgent at this size; both get
-more attractive as the sweep grows.
-
----
-
 ## Not on this list, deliberately
 
 **An NVLink comparison.** Measured out of relevance rather than skipped. PCIe achieves 95.1%

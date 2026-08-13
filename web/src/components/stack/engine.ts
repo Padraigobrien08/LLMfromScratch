@@ -626,7 +626,25 @@ export function mountStackFigure(o: StackEngineOptions): StackEngine {
 
     const rect = { w: canvasWrap.clientWidth, h: canvasWrap.clientHeight };
     if (rect.w === 0 || rect.h === 0) return;
-    if (rect.w !== renderer.domElement.clientWidth || rect.h !== renderer.domElement.clientHeight) {
+    /**
+     * Size the drawing buffer, and compare against the drawing buffer to decide.
+     *
+     * This used to test `domElement.clientWidth`, which is the canvas's *laid-out* size —
+     * and `.stack-gl` is `width: 100%; height: 100%`, so CSS had already made that equal
+     * to the wrap's width before the test ran. The condition was never true, `setSize`
+     * never ran, and the canvas kept WebGL's default 300×150 buffer for its whole life:
+     * on a 2× screen, 600×300 pixels stretched across 835×420 of layout. The model was
+     * drawn at roughly a third of the resolution it was displayed at.
+     *
+     * `setSize(w, h, false)` deliberately does not write the style — CSS owns the layout
+     * size — so the style can never disagree with the wrap and can never be the signal.
+     * `width`/`height` are the buffer's own dimensions in device pixels, which is the
+     * thing that actually changes here.
+     */
+    const dpr = renderer.getPixelRatio();
+    const bufW = Math.round(rect.w * dpr);
+    const bufH = Math.round(rect.h * dpr);
+    if (renderer.domElement.width !== bufW || renderer.domElement.height !== bufH) {
       renderer.setSize(rect.w, rect.h, false);
     }
 
@@ -743,10 +761,10 @@ export function mountStackFigure(o: StackEngineOptions): StackEngine {
   validate(FIGURE_LABELS, [...new Set(SPECS.gpt2.solids.map((s) => s.blockId)), "tie"]);
   renderFlat();
 
-  const FLAT_NOTE = "Flat axonometric plate — every label, explainer and link, without the orbit.";
+  const FLAT_NOTE = "Click a component to inspect it · flat plate, every label and link, without the orbit.";
   o.onMode(
     reduced
-      ? "Reduced motion: the flat plate. Click a block for its shape, its share of the budget and the test that pins it."
+      ? "Click a component to inspect it · reduced motion, so the plate stays flat."
       : FLAT_NOTE,
   );
 
@@ -761,9 +779,7 @@ export function mountStackFigure(o: StackEngineOptions): StackEngine {
         initGL(T);
         mode = "gl";
         flat.style.display = "none";
-        o.onMode(
-          "Drag to orbit; scrolling here scrolls the page. Click a block for its shape, its share of the budget and the test that pins it.",
-        );
+        o.onMode("Drag to orbit · click a component to inspect it");
         updateGL();
         loop();
       })

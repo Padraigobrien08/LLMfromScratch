@@ -34,6 +34,10 @@ bench/scratch/
 # Generated attention explorer (rebuilt by `llmfs-viz`, deployed by CI)
 site/
 
+# A reviewable snapshot of the deployed site, built to be served from the filesystem
+# root rather than /LLMfromScratch/. Build output like any other: kept, not committed.
+local-site/
+
 # Interactive site: dependencies, build output, and results copied in at deploy time
 web/node_modules/
 web/dist/

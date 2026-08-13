@@ -1,15 +1,15 @@
 import { type Route, href } from "../router";
 import { CHAPTERS } from "./chapters";
+import { MEASURED } from "./measured";
 
 /**
- * The guided path: the whole argument of the site, in the order it should be read.
+ * The shape of the argument: three destinations, and the four plates one of them holds.
  *
  * Eight chapters explaining what a language model is, then the four measured results —
  * which are the paper's body, not an appendix to it — then the explorers for anyone who
- * wants to take a mechanism apart. The external attention page is last because it
- * leaves the site.
+ * wants to take a mechanism apart.
  *
- * Results before explorers is a deliberate reordering. A reader who has finished the
+ * Results before explorers is a deliberate ordering. A reader who has finished the
  * chapters has been told how a transformer works; what they have not yet been shown is
  * whether any of it was built correctly, and that is the question the four plates
  * answer.
@@ -19,32 +19,6 @@ import { CHAPTERS } from "./chapters";
  * `PLATES` — so reordering this array reorders the paper, and no page can disagree
  * with the front one about which plate it is.
  */
-export type StopGroup = "chapters" | "plates" | "deep-end" | "external";
-
-export type Stop = {
-  /** `01`–`08` for the chapters, `I`–`IV` for the plates, `✲` for a deep-end page, `↗` for the one that leaves. */
-  numeral: string;
-  group: StopGroup;
-  kicker: string;
-  title: string;
-  blurb: string;
-  href: string;
-  cta: "Read" | "Open" | "Visit";
-  external?: boolean;
-};
-
-/**
- * The heading a group prints above its first stop on the front page.
- *
- * The chapters have none: they run directly under "The path", which is their heading.
- * A group with a heading does not repeat it as a per-row kicker — that repetition,
- * seven rows of it, was what the grouping is for.
- */
-export const GROUP_HEADING: Partial<Record<StopGroup, string>> = {
-  plates: "The results, as four plates",
-  "deep-end": "The deep end",
-};
-
 export type PlateKind = "reproduction" | "ablations" | "efficiency" | "scaling";
 
 const ROMAN = ["I", "II", "III", "IV"] as const;
@@ -142,65 +116,57 @@ function plate(kind: PlateKind): Plate {
   return PLATES.find((p) => p.kind === kind)!;
 }
 
-const EXPLORERS: Array<Omit<Stop, "numeral" | "cta" | "group">> = [
-  {
-    kicker: "The deep end",
-    title: "The RoPE explorer",
-    blurb:
-      "Move two tokens along a sequence and watch the attention logit between them refuse to change. The property the test suite asserts, running live.",
-    href: href({ kind: "rope" } as Route),
-  },
-  {
-    kicker: "The deep end",
-    title: "The stack, block by block",
-    blurb:
-      "One Transformer class, two architectures, decided entirely by config. Where the 124M parameters actually go, block by block, and which tests hold each block in place.",
-    href: href({ kind: "architecture" } as Route),
-  },
-  {
-    kicker: "The deep end",
-    title: "What the suite actually asserts",
-    blurb:
-      "Not a test count — the specific claims a dozen of them make, and the bug each one exists to catch. Collected from the tests themselves, so a rename cannot leave the page lying.",
-    href: href({ kind: "tests" } as Route),
-  },
-];
+/**
+ * The three destinations the front page offers, and nothing below them.
+ *
+ * The front page used to print all sixteen stops — eight chapters, four plates, three
+ * explorers and the attention page — as one ordered list. Every one of those is still
+ * reachable, but enumerating them made the landing page a table of contents set at
+ * article scale: a reader had to read sixteen rows to learn there were three ways in.
+ * "Tokenization" and "Embeddings" are second-level navigation, and the chapter rail
+ * and the plate feet already carry them where they belong, next to the reading.
+ *
+ * So this says only what the three routes are and how much is down each. The counts
+ * are derived rather than written, because the failure they guard against is the one
+ * this repository keeps having: a front page advertising eight chapters after a ninth
+ * was added, in a sentence nothing tests.
+ */
+export type Destination = {
+  /** `01`–`03`, printed above the title. */
+  numeral: string;
+  title: string;
+  /**
+   * One line, and it carries the extent rather than stating it separately — "8 chapters,
+   * no prior knowledge assumed" says what a reader is choosing and how much of it there
+   * is in the space a bare count used to take a row of its own.
+   */
+  blurb: string;
+  cta: string;
+  href: string;
+};
 
-export function pathStops(attentionHref: string): Stop[] {
+export function destinations(): Destination[] {
   return [
-    ...CHAPTERS.map(
-      (c): Stop => ({
-        numeral: String(c.n).padStart(2, "0"),
-        group: "chapters",
-        kicker: c.kicker,
-        title: c.title,
-        blurb: c.blurb,
-        href: href({ kind: "chapter", n: c.n }),
-        cta: "Read",
-      }),
-    ),
-    ...PLATES.map(
-      (plate): Stop => ({
-        numeral: plate.numeral,
-        group: "plates",
-        kicker: "Measured results",
-        title: plate.title,
-        blurb: plate.blurb,
-        href: plate.href,
-        cta: "Open",
-      }),
-    ),
-    ...EXPLORERS.map((stop): Stop => ({ ...stop, numeral: "✲", group: "deep-end", cta: "Open" })),
     {
-      numeral: "↗",
-      group: "external",
-      kicker: "Separate page",
-      title: "The attention explorer",
-      blurb:
-        "Every attention weight, per layer and per head, in a single self-contained HTML file built by CI from a model CI trains.",
-      href: attentionHref,
-      cta: "Visit",
-      external: true,
+      numeral: "01",
+      title: "Learn how the model works",
+      blurb: `${CHAPTERS.length} chapters, no prior knowledge assumed.`,
+      cta: "Start the path →",
+      href: href({ kind: "chapter", n: 1 }),
+    },
+    {
+      numeral: "02",
+      title: "See whether it actually worked",
+      blurb: `${PLATES.length} measured plates, read in order, and ${MEASURED.ablations.runs} ablation runs behind them.`,
+      cta: "See the results →",
+      href: href({ kind: "reproduction" } as Route),
+    },
+    {
+      numeral: "03",
+      title: "Inspect the implementation",
+      blurb: "RoPE, the architecture map, and the assertions themselves.",
+      cta: "Open the explorers →",
+      href: href({ kind: "rope" } as Route),
     },
   ];
 }

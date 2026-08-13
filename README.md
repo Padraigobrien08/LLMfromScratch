@@ -671,7 +671,7 @@ src/llmfs/
   bench/      training + inference throughput, memory, cost, provenance
 configs/      gpt2-124m, llama-124m, debug, and 11 single-axis ablation arms
 tests/        346 tests — component correctness, config validation, end-to-end training
-web/          the interactive site: explainer, RoPE explorer, ablations (97 tests)
+web/          the interactive site: explainer, RoPE explorer, ablations (134 tests)
 scripts/      GPU pod automation, and the exporters that pin the site to the model
 docs/         index, reproduction protocol, results write-ups, fault-tolerance design
 notebooks/    exploration only; nothing here is the source of truth

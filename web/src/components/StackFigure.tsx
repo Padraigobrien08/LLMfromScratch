@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from "react";
 
-import PlateNumeral from "./PlateNumeral";
 import { type Variant } from "../content/blocks";
 import { figurePanel } from "../content/stackFigure";
 import { formatCount, parameters } from "../lib/modelsize";
@@ -63,6 +62,17 @@ export default function StackFigure({ attentionHref }: { attentionHref: string }
   useEffect(() => engineRef.current?.setSelected(selected), [selected]);
 
   const panel = figurePanel(selected, variant, attentionHref);
+  /**
+   * The chapter link, promoted out of the list into the panel's call to action.
+   *
+   * `stackFigure.ts` already gives most parts a chapter as their first link, so this
+   * needs no new content — only a way to tell which one it is, which the route is.
+   * Detecting it beats tagging it: a link added there is picked up here without a
+   * second edit, and a part with no chapter simply prints no button rather than a
+   * dead one.
+   */
+  const chapter = panel.links.find((link) => link.href.startsWith("#/chapter/"));
+  const rest = panel.links.filter((link) => link !== chapter);
   const total = parameters(SIZES[variant]).total;
   /* The whole object is the denominator, so printing its share would say "100.0% of"
      itself. It gets the total alone; everything else gets its slice of it. */
@@ -80,16 +90,15 @@ export default function StackFigure({ attentionHref }: { attentionHref: string }
   return (
     <section className="stack-figure" aria-labelledby="stack-figure-title">
       <div className="rule-hair" />
+      {/* Two words and a rule. The plate numeral and the "Figure · the model this
+          repository builds" kicker were furniture from when this sat among four numbered
+          results plates on a much longer page; with the plates gone from the front page
+          there is no series left for a V to be the fifth of, and the line under it
+          described what the reader is already looking at. */}
       <header className="stack-fig-head">
-        <span className="stack-fig-numeral" aria-hidden="true">
-          <PlateNumeral value="V" />
-        </span>
-        <div>
-          <p className="kicker">Figure · the model this repository builds</p>
-          <h2 id="stack-figure-title" className="stack-fig-title">
-            The stack, in three dimensions
-          </h2>
-        </div>
+        <h2 id="stack-figure-title" className="stack-fig-title">
+          The architecture
+        </h2>
       </header>
 
       <div className="stack-fig-stage">
@@ -103,48 +112,86 @@ export default function StackFigure({ attentionHref }: { attentionHref: string }
           <div className="stack-fig-labels" ref={labelsRef} />
         </div>
 
+        {/* Two parts, and the split is load-bearing where the panel is given a fixed
+            height: the prose scrolls and the way out does not. The parts run 374px to
+            547px of copy, so with one scrolling box the reader's next step — the chapter
+            button — sat below the fold on half the stack, which is the one thing in here
+            that must never need looking for. */}
         <aside className="stack-fig-panel">
-          <p className="eyebrow">{selected === "whole" ? "The object" : "Selected block"}</p>
-          <h3 className="stack-fig-panel-title">{panel.name}</h3>
-          <p className="stack-fig-what">{panel.what}</p>
-          {panel.differs && (
-            <p className="stack-fig-differs">
-              {VARIANTS.find((v) => v.id === variant)!.label}: {panel.differs}
-            </p>
-          )}
+          {/* Grouped into fields so the panel keeps its shape from part to part.
+              Flat, every row sat wherever the row above it ended: the description runs from
+              two lines to five and only some parts print a variant note, so "Its shape" and
+              the two labels under it moved through 119px depending on what had been clicked.
+              A reader comparing two blocks was re-finding the same four labels each time.
+              The wrappers are what let the panel reserve a slot for each. */}
+          <div className="stack-fig-panel-body">
+            <p className="eyebrow">{selected === "whole" ? "The object" : "Selected block"}</p>
+            <h3 className="stack-fig-panel-title">{panel.name}</h3>
 
-          <p className="eyebrow">Its shape</p>
-          <p className="stack-fig-shape mono">{panel.shape}</p>
+            <div className="stack-fig-prose">
+              <p className="stack-fig-what">{panel.what}</p>
+              {panel.differs && (
+                <p className="stack-fig-differs">
+                  {VARIANTS.find((v) => v.id === variant)!.label}: {panel.differs}
+                </p>
+              )}
+            </div>
 
-          <p className="eyebrow">Its share of the budget</p>
-          <p className="stack-fig-shape mono">{share}</p>
+            <div className="stack-fig-field">
+              <p className="eyebrow">Its shape</p>
+              <p className="stack-fig-shape mono">{panel.shape}</p>
+            </div>
 
-          <p className="eyebrow">What holds it</p>
-          {panel.pins ? (
-            <p className="stack-fig-pin">
-              <code className="mono">{panel.pins.test}</code> asserts {panel.pins.claim}
-            </p>
-          ) : (
-            <p className="stack-fig-pin stack-fig-unpinned">
-              No property test of its own. The suite exercises this wherever it runs a
-              forward pass, but nothing asserts an invariant about it — and saying so beats
-              borrowing a neighbour's test to fill the row.
-            </p>
-          )}
+            <div className="stack-fig-field">
+              <p className="eyebrow">Its share of the budget</p>
+              <p className="stack-fig-shape mono">{share}</p>
+            </div>
 
-          <p className="eyebrow">Read more</p>
-          <nav className="stack-fig-links">
-            {panel.links.map((link) => (
-              <a
-                key={link.href}
-                href={link.href}
-                {...(link.external ? { target: "_blank", rel: "noopener" } : {})}
-              >
-                {link.text}
-                {link.external && " ↗"}
+            <div className="stack-fig-field stack-fig-holds">
+              <p className="eyebrow">What holds it</p>
+              {panel.pins ? (
+                <p className="stack-fig-pin">
+                  <code className="mono">{panel.pins.test}</code> asserts {panel.pins.claim}
+                </p>
+              ) : (
+                <p className="stack-fig-pin stack-fig-unpinned">
+                  No property test of its own. The suite exercises this wherever it runs a
+                  forward pass, but nothing asserts an invariant about it — and saying so beats
+                  borrowing a neighbour's test to fill the row.
+                </p>
+              )}
+            </div>
+          </div>
+
+          <div className="stack-fig-panel-exit">
+            {/* The figure's whole claim to being navigation rather than decoration: a
+                reader who has just clicked a block and read what it does is one button
+                from the chapter that explains it. */}
+            {chapter && (
+              <a className="stack-fig-read" href={chapter.href}>
+                <span className="stack-fig-read-label">Read</span>
+                {chapter.text} →
               </a>
-            ))}
-          </nav>
+            )}
+
+            {rest.length > 0 && (
+              <>
+                <p className="eyebrow">Also</p>
+                <nav className="stack-fig-links">
+                  {rest.map((link) => (
+                    <a
+                      key={link.href}
+                      href={link.href}
+                      {...(link.external ? { target: "_blank", rel: "noopener" } : {})}
+                    >
+                      {link.text}
+                      {link.external && " ↗"}
+                    </a>
+                  ))}
+                </nav>
+              </>
+            )}
+          </div>
         </aside>
 
         <div className="stack-fig-foot">
@@ -162,17 +209,11 @@ export default function StackFigure({ attentionHref }: { attentionHref: string }
               </label>
             ))}
           </div>
-          <p className="fig-note">{note}</p>
-          <p className="fig-note">
-            Slab thickness is that component's share of the parameter budget, summed over all
-            layers; the block region is sliced once per layer, so its depth is the layer count
-            itself. Parts that hold no weights of their own — the input, the logits, the tied
-            head — are drawn at a floor thickness. Colour is role, printed as the four process
-            plates: cyan for the token embedding and the head that shares its matrix, magenta
-            for attention and its cache, yellow for the feed-forward, ink for the norms and the
-            residual stream. Every number and sentence is read from the shipped configs,{" "}
-            <code className="mono">blocks.ts</code> and <code className="mono">modelsize.ts</code>.
-          </p>
+          {/* The interaction note is kept for assistive technology and taken off the page.
+              On screen the figure announces itself — the cursor changes over a block and
+              the labels are buttons — but a reader who cannot see it has nothing else that
+              says the plate can be orbited or clicked at all. It costs no height here. */}
+          <p className="fig-note stack-fig-sr">{note}</p>
           <div className="rule-hair" />
         </div>
       </div>

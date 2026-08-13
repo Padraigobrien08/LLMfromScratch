@@ -2,21 +2,29 @@ import { DATELINE, PROJECT } from "../content/projectState";
 import { type Route, href } from "../router";
 
 /**
- * The nav's destinations. `The path` points at chapter one and stays lit for every
- * chapter, so a reader eight pages in can still see where they are; `Results` points at
- * the reproduction and stays lit across all four results plates, because they are one
- * argument read in order rather than four unrelated pages.
+ * The nav's destinations, named for what a reader wants rather than for what the page
+ * contains.
+ *
+ * `RoPE` and `Architecture` used to sit here as themselves. Both are implementation
+ * concepts: they tell a reader who already knows what rotary embeddings are that this
+ * site has a page about them, and tell everyone else nothing. They are now the two
+ * pages behind `Explore`, which is a thing a reader can want before they have the
+ * vocabulary to ask for it.
+ *
+ * Each entry stays lit across the pages it leads to, so a reader eight chapters or
+ * three plates in can still see where they are: `Learn` across every chapter, `Results`
+ * across all four plates — they are one argument read in order, not four unrelated
+ * pages — and `Explore` across both explorers.
  */
 const NAV: Array<{ label: string; target: Route; activeFor: Route["kind"][] }> = [
   { label: "Front page", target: { kind: "front" }, activeFor: ["front"] },
-  { label: "The path", target: { kind: "chapter", n: 1 }, activeFor: ["chapter"] },
+  { label: "Learn", target: { kind: "chapter", n: 1 }, activeFor: ["chapter"] },
   {
     label: "Results",
     target: { kind: "reproduction" },
     activeFor: ["reproduction", "ablations", "efficiency", "scaling"],
   },
-  { label: "RoPE", target: { kind: "rope" }, activeFor: ["rope"] },
-  { label: "Architecture", target: { kind: "architecture" }, activeFor: ["architecture"] },
+  { label: "Explore", target: { kind: "rope" }, activeFor: ["rope", "architecture"] },
   { label: "Tests", target: { kind: "tests" }, activeFor: ["tests"] },
 ];
 
@@ -24,7 +32,11 @@ export default function Masthead({ route }: { route: Route }) {
   return (
     <>
       <div className="masthead-bar" />
-      <header className="shell">
+      {/* The front page sets itself wider than an article — it is a front page, not a
+          column of prose — and a masthead held to the reading measure above it would
+          print the title of a narrower paper than the one underneath. So the nameplate
+          takes the same width as whatever it sits over. */}
+      <header className={`shell${route.kind === "front" ? " front-shell" : ""}`}>
         <div className="masthead-row">
           <div className="wordmark">
             <a href="#/">LLMfromScratch</a>

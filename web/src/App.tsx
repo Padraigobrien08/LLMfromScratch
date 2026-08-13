@@ -88,7 +88,7 @@ export default function App() {
           <Page route={route} />
         </Suspense>
       </main>
-      <Footer />
+      <Footer route={route} />
     </>
   );
 }
