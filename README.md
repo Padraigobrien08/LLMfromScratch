@@ -25,6 +25,10 @@ a real tokenizer, a parameter budget you can drag, a sampler you can turn up —
 and [every attention weight](https://padraigobrien08.github.io/LLMfromScratch/attention/) per
 layer and per head.
 
+<!-- Two screenshots of the same page, doing different jobs, so re-shoot both when the front
+     page changes: front-page.png is this hero at 1440x1050, and social-preview.png is the
+     GitHub card at 1280x640 — that slot is 2:1 and would crop a third off this one. Both are
+     captured from the deployed site at twice the size and scaled down, so the type holds. -->
 [![The front page](docs/images/front-page.png)](https://padraigobrien08.github.io/LLMfromScratch/)
 
 Every architecture component here — rotary embeddings, RMSNorm, SwiGLU,

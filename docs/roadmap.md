@@ -166,21 +166,10 @@ which is a different product tier from anything rented so far.
 
 ---
 
-## Outside the ordering: two small things
+## Outside the ordering: one small thing
 
-Neither is engineering, so neither is ranked with the seven above. The list is ordered by value
-per unit of effort and the first of these would take the top of it on that measure, which would
-say something false about what this roadmap is for.
-
-**The GitHub social preview is not set.** Settings → General → Social preview, uploading
-[docs/images/social-preview.png](images/social-preview.png), which is already committed and
-cut for the slot: 1280×640, the 2:1 the card wants, taken from the deployed page at twice the
-size and scaled down so the type survives. Do not upload the README's hero instead — it is
-1440×1050, and GitHub would crop a third off the top and bottom. This cannot be done from a
-shell or a workflow; the field is web UI only, which is the whole reason it is still
-outstanding. Until it is done, every link to this repository unfurls as a grey placeholder
-rather than as the front page, on a repository whose argument is that the front page is the
-work.
+Not engineering, so not ranked with the seven above — the list is ordered by value per unit of
+effort, and this would sit somewhere that says something false about what the roadmap is for.
 
 **The front page fetches the ablation sweep to decide what not to draw.** `Front.tsx` requests
 `data/ablations.json` — 7,681 bytes gzipped, 52.5 KB raw — on every visit, purely to learn
