@@ -387,7 +387,7 @@ body {
      they belong to the claim, and the deck's column is too narrow to set four of them. */
   .front-lede .front-metrics {
     grid-column: 1;
-    margin-top: var(--space-3);
+    margin: var(--space-3) 0 0;
   }
   /* The figure sets its own top rule, so the column does not need the page's padding
      above it — this is what lines the model up with the headline rather than with the
@@ -720,8 +720,10 @@ body {
   }
 }
 
+/* The floor is 36px, not 42px: on a 375px screen the headline is the whole first screen
+   at 42, and five lines of display type is a wall rather than a claim. */
 .front-headline {
-  font: var(--font-heading-weight) clamp(42px, 6vw, 86px) / 0.98 var(--font-heading);
+  font: var(--font-heading-weight) clamp(36px, 6vw, 86px) / 1 var(--font-heading);
   letter-spacing: -0.025em;
   margin: 0 0 var(--space-4);
   max-width: 20ch;
@@ -750,7 +752,9 @@ body {
   flex-wrap: wrap;
   align-items: baseline;
   gap: var(--space-2) var(--space-4);
-  margin: 0;
+  /* Stacked, the routes follow straight after these and need the gap; in the banner's
+     grid the row below sets its own spacing and this is overridden to 0. */
+  margin: 0 0 var(--space-8);
   padding: 0;
 }
 /* Drawn rather than typed, so no empty <li> is read out, and trailing rather than leading
