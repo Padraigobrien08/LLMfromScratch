@@ -363,7 +363,7 @@
     const box = $("controls");
     if (LIVE) {
       box.innerHTML = `
-        <input type="text" id="promptInput" placeholder="Type any text…"
+        <input type="text" id="promptInput" aria-label="Prompt" placeholder="Type any text…"
                value="${(BOOT.default_prompt || "").replace(/"/g, "&quot;")}" />
         <button class="primary" id="runBtn">Run</button>`;
       $("runBtn").onclick = runLive;
@@ -372,7 +372,7 @@
         "Type any text and the model runs a forward pass over it.";
     } else {
       const keys = Object.keys(views);
-      box.innerHTML = `<select id="promptSelect">` +
+      box.innerHTML = `<select id="promptSelect" aria-label="Prompt">` +
         keys.map((k, i) => `<option value="${i}">${k.replace(/</g, "&lt;")}</option>`).join("") +
         `</select>`;
       $("promptSelect").onchange = e => show(decode(views[keys[+e.target.value]]));
@@ -411,8 +411,10 @@
       Array.from({ length: H }, (_, h) => `<th>H${h}</th>`).join("") + "</tr>";
     for (let l = 0; l < L; l++) {
       html += `<tr><th>L${l}</th>` + Array.from({ length: H }, (_, h) =>
-        `<td><button class="head-cell" data-l="${l}" data-h="${h}" title="Layer ${l}, head ${h}">
-           <canvas width="${THUMB}" height="${THUMB}"></canvas></button></td>`).join("") + "</tr>";
+        `<td><button class="head-cell" type="button" data-l="${l}" data-h="${h}"
+           aria-label="Layer ${l}, head ${h}" title="Layer ${l}, head ${h}">
+           <canvas width="${THUMB}" height="${THUMB}" aria-hidden="true"></canvas></button></td>`)
+          .join("") + "</tr>";
     }
     tbl.innerHTML = html;
 
