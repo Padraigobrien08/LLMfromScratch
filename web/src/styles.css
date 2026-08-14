@@ -34,8 +34,11 @@ input[type="checkbox"] {
   background: var(--color-accent-200);
 }
 
+/* No `min-height` here. `#root` below sets it in `dvh`, and body wraps root, so stating it
+   twice in two different units was a way for the two to disagree by a pixel on any browser
+   where `vh` and `dvh` differ — which is a scrollbar with nothing behind it. */
 body {
-  min-height: 100vh;
+  margin: 0;
 }
 
 /**
@@ -221,8 +224,10 @@ body {
 
 /* ── shared page furniture ──────────────────────────────────────────────────── */
 
+/* The masthead's hairline already closes the chrome; this is the gap before the page's own
+   first line, and 40px of it was a third of the slack the short chapters had to spare. */
 .page {
-  padding-top: var(--space-8);
+  padding-top: var(--space-6);
 }
 
 /* Kickers are cyan — the interactive ink — except where a section is deliberately
@@ -963,12 +968,14 @@ body {
   font-size: 0.92em;
 }
 
+/* The rule above it already separates it from the chapter; 40px of margin on top of a
+   2px rule was separating it twice. */
 .chapter-foot {
   display: flex;
   justify-content: space-between;
   gap: var(--space-4);
-  margin: var(--space-8) 0 0;
-  padding: var(--space-4) 0;
+  margin: var(--space-4) 0 0;
+  padding: var(--space-3) 0;
   border-top: 2px solid var(--color-text);
 }
 .chapter-foot a {
@@ -1035,12 +1042,14 @@ body {
 /* The one deliberate departure from "no boxes": an interactive figure is a discrete
    instrument, not a layout container. It is the only surface on the page, and it
    never wraps prose. */
+/* An 11px label announcing the figure directly beneath it does not need 40px of air above
+   it to be read as a new thing — it is set in caps at a third the size of the prose. */
 .figure-label {
   font: 400 11px/1 var(--font-body);
   letter-spacing: 0.15em;
   text-transform: uppercase;
   color: var(--color-neutral-700);
-  margin: var(--space-8) 0 var(--space-2);
+  margin: var(--space-6) 0 var(--space-2);
 }
 .figure-panel {
   background: var(--color-neutral-100);
