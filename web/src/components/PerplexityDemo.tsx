@@ -1,21 +1,34 @@
 import { useState } from "react";
 
 import PlateNumeral from "./PlateNumeral";
+import { MEASURED } from "../content/measured";
 import { perplexity, uniformLoss } from "../lib/sampling";
 
 const VOCAB = 50257;
 const CHANCE = uniformLoss(VOCAB);
+const RUN = MEASURED.reproduction;
 
-/** Every number here is either arithmetic or documented in the repository. */
+/**
+ * Every number here is either arithmetic or documented in the repository.
+ *
+ * The run's own loss is a mark, and the slider starts on it. The chapter asks the reader
+ * to find that number on the scale, so it has to be findable — and it comes from
+ * `measured.ts` rather than being retyped, so a rerun moves the mark with it.
+ */
 const MARKS: Array<{ loss: number; label: string; note: string }> = [
   { loss: CHANCE, label: "Guessing", note: "ln(50,257) — a model that has learned nothing" },
   { loss: 6.0, label: "Early training", note: "word frequencies learned, not much else" },
-  { loss: 3.29, label: "GPT-2 124M", note: "this repository's pre-registered target on FineWeb-Edu" },
+  {
+    loss: RUN.targetLoss,
+    label: "GPT-2 124M",
+    note: "this repository's pre-registered target on FineWeb-Edu",
+  },
+  { loss: RUN.loss, label: "This run", note: `reached at step ${RUN.step.toLocaleString()}` },
   { loss: 2.6, label: "Bigger models", note: "roughly where a few-billion-parameter model lands" },
 ];
 
 export default function PerplexityDemo() {
-  const [loss, setLoss] = useState(3.29);
+  const [loss, setLoss] = useState(Number(RUN.loss.toFixed(2)));
   const ppl = perplexity(loss);
   const shown = ppl < 10000 ? ppl.toFixed(ppl < 100 ? 1 : 0) : ppl.toExponential(1);
 

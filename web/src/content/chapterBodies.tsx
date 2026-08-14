@@ -8,6 +8,7 @@ import SamplingDemo from "../components/SamplingDemo";
 import SizeCalculator from "../components/SizeCalculator";
 import TokenizerDemo from "../components/TokenizerDemo";
 import { chapter } from "./chapters";
+import { MEASURED } from "./measured";
 import { href } from "../router";
 
 /**
@@ -284,7 +285,7 @@ function Chapter6() {
         the explanation underneath.
       </Predict>
 
-      <FigureLabel n={4}>temperature, then top-k, then top-p — the sampler's own order</FigureLabel>
+      <FigureLabel n={5}>temperature, then top-k, then top-p — the sampler's own order</FigureLabel>
       <SamplingDemo />
 
       <p className="prose-secondary">
@@ -326,11 +327,11 @@ function Chapter7() {
       <Answer n={7} />
 
       <Predict>
-        this model reached a validation loss of 3.05. Is that good? The number is unreadable on its
-        own — commit to a guess, then find it on the scale.
+        this model reached a validation loss of {MEASURED.reproduction.loss.toFixed(2)}. Is that
+        good? The number is unreadable on its own — commit to a guess, then find it on the scale.
       </Predict>
 
-      <FigureLabel n={5}>a loss, translated</FigureLabel>
+      <FigureLabel n={6}>a loss, translated</FigureLabel>
       <PerplexityDemo />
 
       <p className="prose">
@@ -353,10 +354,22 @@ function Chapter7() {
  * what was run rather than what it would cost.
  */
 const SWEEP_FACTS = [
-  { value: "12", label: "arms — eleven varying a single axis, one combining all five modern components" },
-  { value: "3", label: "seeds per arm, so every comparison can be paired" },
-  { value: "39", label: "runs in total, the baseline repeated at every seed" },
-  { value: "7.6h", label: "of H100 time for the whole sweep" },
+  {
+    value: String(MEASURED.ablations.arms),
+    label: "arms — eleven varying a single axis, one combining all five modern components",
+  },
+  {
+    value: String(MEASURED.ablations.seeds),
+    label: "seeds per arm, so every comparison can be paired",
+  },
+  {
+    value: String(MEASURED.ablations.runs),
+    label: "runs in total, the baseline repeated at every seed",
+  },
+  {
+    value: `${MEASURED.ablations.gpuHours.toFixed(1)}h`,
+    label: "of H100 time for the whole sweep",
+  },
 ];
 
 function Chapter8() {

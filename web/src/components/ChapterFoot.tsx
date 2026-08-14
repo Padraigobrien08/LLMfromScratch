@@ -3,8 +3,13 @@ import { href } from "../router";
 
 /**
  * Where a chapter leads. The path runs from the front page through the eight chapters
- * and out into the RoPE explorer, so the first chapter's previous and the last
- * chapter's next leave the sequence rather than dead-ending in it.
+ * and out into the reproduction, so the first chapter's previous and the last chapter's
+ * next leave the sequence rather than dead-ending in it.
+ *
+ * The last chapter used to hand off to the RoPE explorer, which chapter five had already
+ * sent the reader to and which answers a narrower question than the one chapter eight
+ * closes on. A reader who has just been told that most architecture claims do not survive
+ * measurement should land on the run that was measured.
  *
  * The forward link carries the next chapter's question above its name. A foot that
  * printed only titles said what the next page is called; the question says why the
@@ -32,7 +37,10 @@ export default function ChapterFoot({ current }: { current: number }) {
           <span className="chapter-foot-title">{nextChapter.title} →</span>
         </a>
       ) : (
-        <a href={href({ kind: "rope" })}>The RoPE explorer →</a>
+        <a className="chapter-foot-next" href={href({ kind: "reproduction" })}>
+          <span className="chapter-foot-question">So what did the finished model actually do?</span>
+          <span className="chapter-foot-title">The reproduction →</span>
+        </a>
       )}
     </div>
   );
