@@ -1241,6 +1241,20 @@ body {
   font-size: 15px;
   color: var(--color-neutral-700);
 }
+/**
+ * A checkbox's target is its label, and the label has to be big enough to hit.
+ *
+ * The box itself renders at 15px, which is the platform's size and not worth fighting —
+ * but the label around it was 23px tall, just under the 24px minimum, on a control whose
+ * whole job is to be tapped on a phone. Padding the label rather than scaling the box
+ * keeps the figure's type where it is and moves only the hit area.
+ */
+.field:has(input[type="checkbox"]),
+.field:has(input[type="radio"]) {
+  min-height: 28px;
+  padding: 2px 0;
+  cursor: pointer;
+}
 .field-inline {
   display: inline-flex;
   white-space: nowrap;
@@ -1519,8 +1533,12 @@ button.sentence-word:focus-visible {
   font-family: var(--font-body);
   color: var(--color-text);
 }
+/* The tint was the whole signal for "the slider is here", which fails for anyone who
+   cannot separate it from the paper. The rule in the margin says it in shape as well —
+   the same pull-quote marker `.sentence-why` uses, so it reads as the page's own mark. */
 .loss-mark-current {
   background: var(--color-accent-100);
+  box-shadow: inset 3px 0 0 var(--color-accent);
 }
 .loss-mark-label {
   font: var(--font-heading-weight) 16px/1.3 var(--font-body);

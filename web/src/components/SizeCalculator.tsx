@@ -82,6 +82,12 @@ export default function SizeCalculator() {
         })}
       </div>
 
+      <p className="fig-note" style={{ margin: "var(--space-2) 0 var(--space-3)" }}>
+        Drag layers and width and watch the breakdown at the bottom move. Then drag context length
+        and watch only the last two rows move — that is attention's cost, and it is why long context
+        is expensive.
+      </p>
+
       <div className="fig-grid">
         <label className="field">
           layers
