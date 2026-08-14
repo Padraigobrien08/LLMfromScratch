@@ -111,7 +111,12 @@ export default function SamplingDemo() {
         )}
       </p>
 
-      <p className="draws">
+      {/* The one control on the page whose entire output is a side effect: pressing "draw"
+          appends a word here and says nothing. Announcing the text the button produced is
+          what the button is for — without it the figure is inoperable by anyone not
+          watching this line. `polite` so a reader drawing several does not get interrupted
+          mid-announcement. */}
+      <p className="draws" role="status" aria-live="polite">
         <span style={{ color: "var(--color-neutral-700)" }}>{entry.context}</span>
         {draws.join("")}
       </p>
