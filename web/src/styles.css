@@ -902,13 +902,16 @@ body {
 
 /* ── chapters ───────────────────────────────────────────────────────────────── */
 
+/* The rail is furniture: it says where you are in eight chapters and lets you jump. It
+   was taking 30px of padding and 40px of margin around a row of 14px numerals — 100px of
+   the screen before the chapter's own kicker, on a page whose figure is the point. */
 .chapter-rail {
   display: flex;
   gap: var(--space-2);
   flex-wrap: wrap;
-  padding: 0 0 var(--space-6);
+  padding: 0 0 var(--space-3);
   border-bottom: 1px solid var(--color-divider);
-  margin-bottom: var(--space-8);
+  margin-bottom: var(--space-4);
 }
 .chapter-rail a {
   font: var(--font-heading-weight) 14px/1 var(--mono);
@@ -925,11 +928,14 @@ body {
   color: var(--color-bg);
 }
 
+/* In step with `.page-headline`, and for the same reason: a chapter's figure is the thing
+   the reader came for, and 64px of title over 24ch was spending the top of the screen on
+   words they have already read in the rail. */
 .chapter-title {
-  font: var(--font-heading-weight) clamp(34px, 4.6vw, 64px) / 1.03 var(--font-heading);
+  font: var(--font-heading-weight) clamp(32px, 3.6vw, 56px) / 1.04 var(--font-heading);
   letter-spacing: -0.022em;
-  margin: 0 0 var(--space-4);
-  max-width: 24ch;
+  margin: 0 0 var(--space-3);
+  max-width: 28ch;
   text-wrap: balance;
 }
 
@@ -1323,17 +1329,30 @@ body {
 
 /* ── the deep end: shared page furniture ────────────────────────────────────── */
 
+/**
+ * 58px over 28ch, not 70px over 22ch.
+ *
+ * The two together were costing a line. At 70px inside a 22ch measure, five of these
+ * pages set their headline over three lines — 212px of display type before the standfirst
+ * had started — and on a results plate that pushed the first figure past 850px, so the
+ * page opened on its own title and nothing else. A wider measure at a smaller size sets
+ * the same words in two lines inside the same 1180px column.
+ *
+ * Still display type, and still the loudest thing on the page: the front page's banner
+ * runs to 84px because it has a whole screen to itself, and these are articles that have
+ * an argument to get to.
+ */
 .page-headline {
-  font: var(--font-heading-weight) clamp(36px, 5vw, 70px) / 1.01 var(--font-heading);
-  letter-spacing: -0.025em;
-  margin: 0 0 var(--space-4);
-  max-width: 22ch;
+  font: var(--font-heading-weight) clamp(32px, 3.6vw, 58px) / 1.04 var(--font-heading);
+  letter-spacing: -0.022em;
+  margin: 0 0 var(--space-3);
+  max-width: 28ch;
   text-wrap: balance;
 }
 .page-standfirst {
   font: 400 20px/1.55 var(--font-body);
   max-width: 70ch;
-  margin: 0 0 var(--space-8);
+  margin: 0 0 var(--space-6);
 }
 .section-h2 {
   font: var(--font-heading-weight) clamp(26px, 2.8vw, 36px) / 1.12 var(--font-heading);
