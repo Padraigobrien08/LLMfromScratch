@@ -1051,9 +1051,29 @@ body {
 }
 .prose code,
 .prose-secondary code,
-.prose-caveat code {
+.prose-caveat code,
+.caveat-wide code {
   font-family: var(--mono);
   font-size: 0.92em;
+}
+/**
+ * A file path inside a provenance note is the artifact the claim rests on, so it reads as
+ * an artifact: monospace, in the interactive ink, and underlined on its own line rather
+ * than sharing the paragraph's underline.
+ *
+ * These notes name a test or a corpus and that name is the most checkable thing in the
+ * sentence — a reader who wants to verify the claim goes straight to it. Set as ordinary
+ * link text among ordinary prose it was the least findable part of the paragraph.
+ */
+.prose-caveat a > code,
+.caveat-wide a > code {
+  color: inherit;
+  overflow-wrap: anywhere;
+}
+.prose-caveat a:has(> code),
+.caveat-wide a:has(> code) {
+  text-decoration-thickness: 1px;
+  text-underline-offset: 2px;
 }
 
 /* The rule above it already separates it from the chapter; 40px of margin on top of a

@@ -87,9 +87,13 @@ function Chapter1() {
         sees — everything downstream operates on those.
       </p>
       <Provenance>
-        This runs the same byte-pair merges as the Python tokenizer, pinned to it by a{" "}
-        <a href={`${REPO}/tests/test_tokenizer.py`}>fixture asserted from both sides</a> — exact on
-        all 14 cases, including emoji, newlines and leading spaces.
+        <a href={`${REPO}/tests/test_tokenizer.py`}>
+          <code>tests/test_tokenizer.py</code>
+        </a>{" "}
+        asserts this browser tokenizer against the Python one from both sides, on all 14 cases
+        including emoji, newlines and leading spaces. A merge table that had drifted by one entry
+        would still split most sentences correctly — which is exactly the kind of wrong this catches
+        and reading the output does not.
       </Provenance>
     </>
   );
@@ -127,12 +131,13 @@ function Chapter2() {
         shrinks — is what decides how many users fit on one GPU.
       </p>
       <Provenance>
-        Every count is computed from the same shapes the real model builds, and checked against
-        parameter counts dumped from{" "}
+        Every count here is computed from the same shapes{" "}
         <a href={`${REPO}/src/llmfs/model/transformer.py`}>
-          the actual <code>Transformer</code>
+          <code>src/llmfs/model/transformer.py</code>
         </a>{" "}
-        for twelve configurations, so the arithmetic cannot quietly drift from the code.
+        builds, and checked against parameter counts dumped from the real model for twelve
+        configurations. A calculator that had fallen behind the code would still add up — it would
+        just be describing a model this repository no longer builds.
       </Provenance>
     </>
   );
@@ -213,11 +218,15 @@ function Chapter4() {
       </p>
 
       <Provenance>
-        Three properties of this implementation are asserted rather than assumed: that perturbing
-        token <i>t</i> leaves every position before it bitwise unchanged, across all ten
-        architecture variants; that with <code>n_kv_head == n_head</code> grouped-query attention is
-        numerically identical to plain multi-head; and that the eager path used to export weights
-        matches the fused SDPA kernel, so the visualizer cannot show weights the model never used.
+        <a href={`${REPO}/tests/test_attention.py`}>
+          <code>tests/test_attention.py</code>
+        </a>{" "}
+        asserts three properties rather than assuming them: that perturbing token <i>t</i> leaves
+        every position before it bitwise unchanged, across all ten architecture variants; that with{" "}
+        <code>n_kv_head == n_head</code> grouped-query attention is numerically identical to plain
+        multi-head; and that the eager path used to export weights matches the fused SDPA kernel.
+        Each of those failures leaves a model that trains and speaks English — an off-by-one in the
+        causal mask makes the loss look <i>better</i>, because the model is reading the answer.
       </Provenance>
     </>
   );
@@ -292,10 +301,14 @@ function Chapter6() {
         and understanding a sentence, is the entire reason for chapters three to five.
       </p>
       <Provenance>
-        The distribution here is real, and simpler than a transformer on purpose: it is the actual
-        count of what followed each token in{" "}
-        <a href={`${REPO}/data/wizard_of_oz.txt`}>the repository's corpus</a> — a bigram model, the
-        simplest language model there is, and the one this project began as.
+        This one is origin rather than proof: the distribution is the actual count of what followed
+        each token in{" "}
+        <a href={`${REPO}/data/wizard_of_oz.txt`}>
+          <code>data/wizard_of_oz.txt</code>
+        </a>{" "}
+        — a bigram model, the simplest language model there is, and the one this project began as.
+        Nothing here is a claim about the trained transformer, so nothing here is tested against
+        one.
       </Provenance>
     </>
   );
