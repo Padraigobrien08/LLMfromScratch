@@ -7,7 +7,36 @@
 export type Chapter = {
   n: number;
   kicker: string;
+  /**
+   * What the chapter concludes — the sentence a reader remembers it by.
+   *
+   * Still the label everywhere the path is navigated: the rail, the chapter feet, the
+   * front page. On the page itself it is no longer the opening line but the answer,
+   * printed where the argument reaches it.
+   */
   title: string;
+  /**
+   * What the chapter asks. This is the page's opening move.
+   *
+   * The titles are good sentences and bad openings: "Letting every token look back"
+   * tells a reader who already knows about attention which chapter they are on, and
+   * tells everyone else nothing they can be curious about. A chapter that opens on its
+   * own question gives the reader something to be wrong about first, which is the only
+   * way the answer lands as an answer.
+   */
+  question: string;
+  /**
+   * The one sentence of chain that makes the question inevitable — what has been
+   * established, and what it still cannot do. Absent on the first chapter, which has no
+   * "so far".
+   *
+   * Deliberately not a summary of every previous chapter: only the immediately relevant
+   * link, or it becomes an index nobody reads. One sentence rather than a stack of lines,
+   * because it is set inline behind its own lead like `Caveat.` and `Provenance.` — the
+   * page already has furniture for a quiet aside in its own voice, and a second pattern
+   * for the same job would just be a box.
+   */
+  storySoFar?: string;
   /** The one-line case for reading it, printed on the front page. */
   blurb: string;
 };
@@ -28,6 +57,7 @@ export const CHAPTERS: Chapter[] = [
     n: 1,
     kicker: "tokenization",
     title: "A model never sees your text",
+    question: "How can a language model read English if it never sees your words?",
     blurb:
       "Type a sentence and watch the real GPT-2 vocabulary cut it up. The ids are the only thing the model ever sees.",
   },
@@ -35,6 +65,9 @@ export const CHAPTERS: Chapter[] = [
     n: 2,
     kicker: "embeddings",
     title: "Each token becomes a list of numbers",
+    question: "Why do words have to become numbers?",
+    storySoFar:
+      "Text is now a list of ids — but an id is an index, and an index cannot be added, scaled or compared.",
     blurb:
       "Drag the layer and width sliders and watch 31% of a 124M model turn out to be a lookup table before any computation happens.",
   },
@@ -42,6 +75,9 @@ export const CHAPTERS: Chapter[] = [
     n: 3,
     kicker: "the problem",
     title: "Words only mean things in context",
+    question: "Why can't a model understand words one at a time?",
+    storySoFar:
+      "Every token is now a vector the model can compute with — but each was looked up on its own, knowing nothing of the ones beside it.",
     blurb:
       "Three sentences whose meaning lives in an earlier word. The problem attention exists to solve, stated before the solution.",
   },
@@ -49,6 +85,9 @@ export const CHAPTERS: Chapter[] = [
     n: 4,
     kicker: "attention",
     title: "Letting every token look back",
+    question: "How can one word influence another?",
+    storySoFar:
+      "Meaning depends on words that came earlier, so the model needs a way for tokens to exchange information.",
     blurb:
       "Queries, keys, and a weighted average — and the catch that a weighted average cannot tell you what order anything came in.",
   },
@@ -56,6 +95,9 @@ export const CHAPTERS: Chapter[] = [
     n: 5,
     kicker: "position",
     title: "Telling the model where each token sits",
+    question: "How does the model know which word came first?",
+    storySoFar:
+      "Attention lets every token look at every earlier one — but a weighted average has no inherent notion of order.",
     blurb:
       "Learned position tables versus rotation. The chapter that hands you off to the explorer.",
   },
@@ -63,6 +105,9 @@ export const CHAPTERS: Chapter[] = [
     n: 6,
     kicker: "sampling",
     title: "Out comes a probability for every token",
+    question: "How does a model decide what to write next?",
+    storySoFar:
+      "The model now has representations carrying both content and position — and eventually one of them has to become a choice.",
     blurb:
       "A real next-token distribution counted from the corpus, with temperature, top-k and top-p in the sampler's own order.",
   },
@@ -70,6 +115,9 @@ export const CHAPTERS: Chapter[] = [
     n: 7,
     kicker: "loss",
     title: "Training is making the right token less surprising",
+    question: "What does it actually mean for a model to learn?",
+    storySoFar:
+      "The model can put a probability on every token in the vocabulary — and something has to say whether that distribution was any good.",
     blurb:
       "A validation loss, translated into how many equally likely options the model is choosing between.",
   },
@@ -77,6 +125,9 @@ export const CHAPTERS: Chapter[] = [
     n: 8,
     kicker: "the honest question",
     title: "So does any of the design actually matter?",
+    question: "Do these architectural choices make a measurable difference?",
+    storySoFar:
+      "Every chapter above settled a design decision and the papers all report improvements — none of which is evidence until it survives being measured.",
     blurb:
       "Whether any of it survives being measured against the noise of changing the random seed.",
   },

@@ -958,15 +958,78 @@ body {
   color: var(--color-bg);
 }
 
-/* In step with `.page-headline`, and for the same reason: a chapter's figure is the thing
-   the reader came for, and 64px of title over 24ch was spending the top of the screen on
-   words they have already read in the rail. */
-.chapter-title {
-  font: var(--font-heading-weight) clamp(32px, 3.6vw, 56px) / 1.04 var(--font-heading);
-  letter-spacing: -0.022em;
-  margin: 0 0 var(--space-3);
-  max-width: 28ch;
+/**
+ * The chapter's question, which is now the page's opening line and its h1.
+ *
+ * Set at the size the title used to be, because it is doing the title's job: it is the
+ * thing a reader lands on. Italic, which is how a question is set in a printed article
+ * and what keeps it from reading as a section heading — this is the page asking, not the
+ * page announcing.
+ */
+.chapter-question {
+  font: var(--font-heading-weight) clamp(30px, 3.3vw, 50px) / 1.08 var(--font-heading);
+  font-style: italic;
+  letter-spacing: -0.02em;
+  margin: 0 0 var(--space-4);
+  max-width: 30ch;
   text-wrap: balance;
+}
+
+/**
+ * The chapter's title, printed where the body reaches it as the answer.
+ *
+ * Smaller than the question above it and upright where that is italic, so the pair reads
+ * as ask-then-answer rather than as two competing headlines. It keeps the display face:
+ * it is still the sentence the chapter is named for.
+ */
+.chapter-answer {
+  font: var(--font-heading-weight) clamp(22px, 2vw, 30px) / 1.15 var(--font-heading);
+  letter-spacing: -0.015em;
+  margin: var(--space-4) 0 var(--space-3);
+  max-width: 30ch;
+  text-wrap: balance;
+}
+
+/**
+ * Where the reader has got to. Two or three short lines above the question.
+ *
+ * Deliberately the quietest thing on the page — the size of a caption, ranged left
+ * against a hairline rather than boxed. It is a reminder for someone arriving from the
+ * previous chapter and skippable furniture for anyone else, and the moment it gets a
+ * panel or a progress indicator it becomes courseware.
+ */
+.chapter-recap {
+  font: 400 15px/1.55 var(--font-body);
+  color: var(--color-neutral-800);
+  max-width: 68ch;
+  margin: 0 0 var(--space-3);
+  text-wrap: pretty;
+}
+.chapter-recap-lead {
+  font-variant-caps: all-small-caps;
+  letter-spacing: 0.06em;
+  color: var(--color-neutral-700);
+}
+
+/**
+ * A question asked of the reader before the page answers it.
+ *
+ * Same furniture as `Caveat.` and `Provenance.` — a named lead in small caps and then
+ * body copy — because it is the same kind of object: an aside in the paper's own voice.
+ * Reusing that pattern is what keeps a prediction from looking like a quiz.
+ */
+.chapter-predict {
+  font: 400 17px/1.55 var(--font-body);
+  max-width: 62ch;
+  margin: var(--space-4) 0;
+  text-wrap: pretty;
+}
+.chapter-predict-lead {
+  font: var(--font-heading-weight) 11px/1 var(--font-body);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--color-accent-700);
+  margin-right: 4px;
 }
 
 .prose {
@@ -1010,6 +1073,26 @@ body {
 }
 .chapter-foot a:last-child {
   text-align: right;
+}
+/* The forward link is two lines: the question the next chapter answers, then its name.
+   The question is the reason to keep going, so it is set as the sentence and the title
+   below it as the label — the reverse of the emphasis a nav link usually carries. */
+.chapter-foot-next {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  max-width: 44ch;
+}
+.chapter-foot-question {
+  font: italic 400 15px/1.35 var(--font-heading);
+  letter-spacing: normal;
+  text-transform: none;
+  color: var(--color-neutral-800);
+}
+.chapter-foot-title {
+  font: var(--font-heading-weight) 13px/1.4 var(--font-body);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
 }
 
 /* Below this the eight-item rail would wrap to three lines and push the chapter's
