@@ -62,13 +62,29 @@ export default function SamplingDemo() {
         </button>
       </div>
 
-      <div className="fig-grid fig-grid-narrow" style={{ marginBottom: "var(--space-2)" }}>
+      {/* Numbered, and in the order the real sampler applies them.
+          The reader meets three sliders at once and has no way to know that two of them
+          are a different kind of thing: temperature reshapes the whole distribution, where
+          top-k and top-p delete from it. Both cutoffs start off, so the first thing anyone
+          moves acts on temperature alone — the numbering says that is deliberate rather
+          than leaving them to discover it. Nothing is hidden: a control the reader cannot
+          see is a control they cannot learn from. */}
+      <p className="sampler-stage">
+        <span className="sampler-stage-num">1</span> Reshape the distribution
+      </p>
+      <div className="fig-grid fig-grid-narrow" style={{ marginBottom: "var(--space-3)" }}>
         <label className="field">
           temperature
           <input type="range" min={0} max={2} step={0.05} value={temperature}
             onChange={(e) => setTemperature(Number(e.target.value))} />
           <b style={{ minWidth: 38 }}>{temperature.toFixed(2)}</b>
         </label>
+      </div>
+
+      <p className="sampler-stage">
+        <span className="sampler-stage-num">2</span> Then cut it down — both off until you move them
+      </p>
+      <div className="fig-grid fig-grid-narrow" style={{ marginBottom: "var(--space-2)" }}>
         <label className="field">
           top-k
           <input type="range" min={0} max={entry.candidates.length} step={1} value={topK ?? 0}
@@ -84,7 +100,8 @@ export default function SamplingDemo() {
       </div>
 
       <p className="fig-note" style={{ margin: "0 0 var(--space-3)" }}>
-        {keptCount} of {scored.length} candidates survive the cutoffs.{" "}
+        Watch the bars below: temperature moves probability mass between them, the cutoffs grey
+        candidates out entirely. {keptCount} of {scored.length} candidates survive.{" "}
         {entry.distinct_followers > entry.candidates.length && (
           <>
             This token had {entry.distinct_followers} distinct followers in the corpus; the{" "}
