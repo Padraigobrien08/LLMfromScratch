@@ -199,6 +199,31 @@ body {
     justify-self: end;
     white-space: nowrap;
   }
+  /**
+   * On an article the three cells do not fit across the reading measure.
+   *
+   * The front page's footer has 2440px and sets all three on one line. An article's has
+   * 1180px, where the claim takes 464 of it and the provenance sentence is left 433 — so
+   * it wrapped to four lines and the footer stood 131px tall at the bottom of a page that
+   * was trying to fit a screen. Two rows gives the sentence the full measure and two
+   * lines, which is both shorter and the right shape for it.
+   */
+  .site-footer:not(.front-shell) .footer-row {
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      "claim meta"
+      "colophon colophon";
+    row-gap: var(--space-2);
+  }
+  .site-footer:not(.front-shell) .footer-claim {
+    grid-area: claim;
+  }
+  .site-footer:not(.front-shell) .footer-meta {
+    grid-area: meta;
+  }
+  .site-footer:not(.front-shell) .colophon {
+    grid-area: colophon;
+  }
 }
 
 /* ── the plate numeral ──────────────────────────────────────────────────────── */
