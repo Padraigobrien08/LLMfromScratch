@@ -26,6 +26,20 @@ import { href } from "../router";
 const REPO = "https://github.com/Padraigobrien08/LLMfromScratch/blob/main";
 const attentionExplorer = () => `${import.meta.env.BASE_URL}attention/`;
 
+/**
+ * Arms whose paired effect is smaller than the unpaired seed spread, and which the study
+ * still resolved because every seed agreed on the direction. Counting them rather than
+ * naming a number means chapter seven's claim about pairing cannot outlive the data that
+ * makes it true — a rerun that tightened the noise floor would change the count here.
+ */
+const SUB_FLOOR_ARMS = Object.entries(MEASURED.ablations.armDeltas).filter(
+  ([, a]) => a.significant && Math.abs(a.delta ?? 0) < MEASURED.ablations.noiseFloor,
+);
+
+/** The prose spells small counts, so a derived count still has to arrive as a word. */
+const WORDS = ["no", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine"];
+const spell = (n: number) => WORDS[n] ?? String(n);
+
 function FigureLabel({ n, children }: { n: number; children: ReactNode }) {
   return (
     <p className="figure-label">
@@ -340,9 +354,17 @@ function Chapter7() {
         useful range is. The whole distance between "knows nothing" and "reproduces GPT-2" is about
         7.5 in loss, and the last tenth of that is harder to win than the first five.
       </p>
+      {/* This sentence used to say that run-to-run noise would bury an effect of 0.02.
+          It would not: the seed-to-seed spread on the baseline is 0.0043, so 0.02 is about
+          five times the noise and visible without any machinery at all. The arms that
+          actually need pairing are the ones *below* the floor — untied embeddings at
+          +0.0025 and dropped biases at +0.0038 — which is a better argument than the one
+          the wrong number was making, so both figures now come from the export. */}
       <p className="prose-secondary">
-        It is also why an ablation arguing over 0.02 needs the paired-seed machinery: at this scale
-        0.02 is a real effect that raw run-to-run noise would bury.
+        It is also why the ablation study pairs its seeds. Seed-to-seed spread on the baseline is{" "}
+        {MEASURED.ablations.noiseFloor.toFixed(4)}, and {spell(SUB_FLOOR_ARMS.length)} of the effects
+        it resolves are smaller than that — an unpaired comparison could not have told them from
+        noise, and pairing every arm against the run that saw its data in the same order can.
       </p>
     </>
   );
