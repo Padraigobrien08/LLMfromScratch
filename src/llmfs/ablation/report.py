@@ -209,6 +209,40 @@ def compare(payload: dict[str, Any]) -> tuple[list[Comparison], dict[str, Any]]:
     return rows, stats
 
 
+def seed_caveat(rows: list[Comparison]) -> str:
+    """The seed caveat the arms actually earn.
+
+    Three cases, because they carry genuinely different warnings: single-seed arms are
+    judged against someone else's spread, multi-seed arms carry their own error bar, and a
+    mixed sweep has to say which arms are which rather than pick the flattering half.
+    """
+    arms = [r for r in rows if r.delta is not None and r.status == "completed"]
+    counts = {r.n_seeds for r in arms}
+    if not arms or counts <= {0, 1}:
+        return (
+            "- Each non-baseline arm is a single seed. Its delta is judged against the "
+            "baseline's spread, which assumes the arms have comparable seed sensitivity — "
+            "reasonable for architecture changes, less so for learning-rate arms near the "
+            "stability boundary."
+        )
+    if min(counts) > 1:
+        n = min(counts)
+        same = f"all {n}" if len(counts) == 1 else f"at least {n}"
+        return (
+            f"- Every non-baseline arm ran {same} seeds, so each delta carries its own "
+            "measured spread rather than borrowing the baseline's. That is what makes the "
+            "paired comparison above legitimate; it does not make the arms independent of "
+            "the seeds they share with the baseline."
+        )
+    single = sorted(r.name for r in arms if r.n_seeds <= 1)
+    return (
+        "- Seed coverage is uneven: " + ", ".join(f"`{n}`" for n in single) + " ran a "
+        "single seed and so have no spread of their own, while the remaining arms do. "
+        "The single-seed deltas are judged against the baseline's spread instead, which "
+        "assumes comparable seed sensitivity."
+    )
+
+
 def render_markdown(rows: list[Comparison], stats: dict[str, Any]) -> str:
     mean, spread, n = stats["baseline_mean"], stats["baseline_spread"], stats["baseline_seeds"]
 
@@ -329,10 +363,12 @@ def render_markdown(rows: list[Comparison], stats: dict[str, Any]) -> str:
         "",
         f"- Run at ablation scale ({rows[0].params / 1e6:.0f}M parameters), not at the "
         "124M reproduction scale. Conclusions transfer in direction, not in magnitude.",
-        "- Each non-baseline arm is a single seed. Its delta is judged against the "
-        "baseline's spread, which assumes the arms have comparable seed sensitivity — "
-        "reasonable for architecture changes, less so for learning-rate arms near the "
-        "stability boundary.",
+        # This caveat used to be emitted unconditionally, and the published report
+        # therefore told its readers that every arm was a single seed while the run it
+        # described used three — a false statement about methodology, in a generated file,
+        # contradicted by that file's own header. What the arms actually ran now decides
+        # which caveat is printed.
+        seed_caveat(rows),
         "- Validation loss is the only metric here. A change that leaves loss alone but "
         "shrinks the KV cache or speeds up a step is measured elsewhere.",
         "",

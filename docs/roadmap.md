@@ -79,7 +79,7 @@ paid it. Verification happens once per accepted block, so the ceiling is lower.
 ## 3. `QuantEmbedding`
 
 **The problem it solves.** 4-bit compression caps at 2.42×, not the ~8× the bit-width
-implies, because the token embedding is 33% of this model — 147 MiB of 471 — and is left in
+implies, because the token embedding is 31% of this model — 147 MiB of 475 — and is left in
 fp32. It cannot simply be quantized: with `tie_embeddings: true`, `lm_head.weight` *is*
 `tok_emb.weight`, so replacing the head with a quantized layer stores a quantized copy while
 `nn.Embedding` keeps the original, and the model gets **larger** (196 MiB → 217 MiB measured).
@@ -178,3 +178,5 @@ chase that. [docs/scaling.md](scaling.md) has the reasoning.
 209.5 TFLOP/s dense bf16 figure is contradicted by measurement — an 8192³ bf16 matmul reached
 234.7 TFLOP/s on one, and nothing exceeds its own peak. Adding a number that produces 96% MFU
 would be worse than reporting none. If a vendor figure can be confirmed, the entry is one line.
+(That 234.7 was printed on a pod and never captured to `results/`; `bootstrap.sh` now writes
+the probe to an artifact so the next one is not lost the same way.)

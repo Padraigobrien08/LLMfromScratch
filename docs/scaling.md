@@ -152,6 +152,13 @@ card was benchmarked directly on the same pod — a 8192³ bf16 matmul, the same
 
 **234.7 TFLOP/s measured.**
 
+That number is not in `results/`. The probe printed it to a terminal on a pod that has
+since been destroyed, and nothing captured it — so it is the one figure in this document
+backed by a note rather than a file, and it denominates the whole column below and the MFU
+refusal above. `bootstrap.sh` now writes `results/gpu-probe-<arch>.json` on every pod it
+sets up, so the next run of this experiment commits its own ceiling; this one cannot be
+recovered without renting eight 5090s again.
+
 That single number does two things. First it justifies the refusal: a commonly quoted RTX
 5090 dense bf16 peak is 209.5 TFLOP/s, and **we measured above it**, so that figure cannot
 be the peak for this operation. Had it been pasted into the table it would have produced an
@@ -171,7 +178,9 @@ Second, it supports a metric that needs no vendor claim at all: what fraction of
 
 **A complete training step — attention, SwiGLU, RMSNorm, optimiser, all-reduce — runs at
 86% of what the card manages on a bare matmul.** There is very little left on the table.
-The 4090 measured the same way gives 78.9%, so this is not an artefact of one card.
+The 4090 measured the same way gives **76.6%** — 118,250 tok/s compiled × 1.087 GFLOP/token
+is 128.6 achieved TFLOP/s against that card's own measured 167.9 TFLOP/s — so this is not an
+artefact of one card.
 
 That column also re-expresses the scaling result in a way that shows where the cost lands:
 86.1% → 81.9% is a 4.2-point loss going from 1 GPU to 8, the same fact as the 4.9% per-GPU
@@ -203,6 +212,12 @@ exists to avoid — hence a separate column with a different name, and `mfu` lef
   same 41.8M tokens. Irrelevant to throughput, and it would invalidate any loss claim
   beyond the step-for-step equivalence above, which compares runs against each other
   rather than against a target.
+- **The 5090's matmul ceiling, as an artifact.** The 234.7 TFLOP/s above was measured on
+  the pod and never written to a file, so the `of measured ceiling` column rests on a
+  number this repository cannot show you. `bootstrap.sh` records it from now on. The
+  column's *arithmetic* is pinned — `tests/test_documented_results.py` recomputes every
+  percentage from the committed throughputs and that one constant — which catches drift in
+  the table but cannot vouch for the constant itself.
 - **Provenance**, in one artifact only. `results/scaling-5090x8.json` has
   `"provenance": {}` because `capture()` was called with `None` and an over-broad `except`
   swallowed the TypeError. So this file records no commit, torch version or GPU name. Fixed

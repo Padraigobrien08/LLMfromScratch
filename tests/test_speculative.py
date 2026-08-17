@@ -202,6 +202,26 @@ def test_model_drafter_counts_its_own_cost(model, prompt) -> None:
     assert stats.target_forwards < stats.drafter_forwards
 
 
+def test_a_reused_drafter_reports_this_run_not_every_run(model, prompt) -> None:
+    """The counter must be per run, because the benchmark reuses one drafter for all of them.
+
+    `ModelDrafter` incremented a counter and never cleared it — `Drafter.reset()` is a
+    no-op hook and this class did not override it — so `benchmark.py`, which builds one
+    drafter and sweeps it across every prompt and every k, recorded a running total. Two
+    identical runs reported 13 forwards and then 26, and every model-draft row after the
+    first in `results/speculative-cuda.json` carries the sum of the rows above it.
+    """
+    small = tiny_model(vocab_size=97, n_layer=1, n_head=4, n_embd=64, block_size=128)
+    drafter = ModelDrafter(small)
+
+    counts = [
+        speculative_generate(model, drafter, prompt, max_new_tokens=12, k=3)[1].drafter_forwards
+        for _ in range(3)
+    ]
+    assert counts[0] > 0
+    assert counts == [counts[0]] * 3, f"identical runs reported {counts}"
+
+
 def test_batched_prompts_are_rejected(model) -> None:
     """Ragged accept lengths per row make batched speculation a different algorithm;
     failing loudly beats silently decoding only row 0."""

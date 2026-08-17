@@ -44,7 +44,7 @@ loss would have meant nothing however good it looked.
 | GPU | NVIDIA H100 80GB HBM3 (sm_90), driver 580.126.09 |
 | Software | torch 2.4.1+cu124, measured 808 TFLOP/s dense bf16 |
 | Commit | `fb1b615` (clean tree) |
-| Wall-clock | 7.1 h of training, 19,073 steps at ~1,305 ms/step |
+| Wall-clock | **6.99 h** — 25,167 s for the `repro` stage in [`results/run-stages.log`](../results/run-stages.log). 19,073 steps at ~1,305 ms/step is 6.91 h of stepping; the rest is compile and periodic evaluation |
 | Throughput | ~401,000 tokens/sec sustained |
 | **MFU** | **44.1% mean** — flat across the whole run |
 | Cost | ~$23 of H100 time at $3.29/hr |
@@ -106,6 +106,14 @@ Two caveats that matter for honesty:
 A second, harder check is planned alongside it: zero-shot HellaSwag accuracy, where
 GPT-2 124M scores ≈0.2955. Loss can be gamed by a tokenizer or evaluation-set
 mismatch; a downstream task is much less forgiving.
+
+That 0.2955 carries the same caveat as the 3.29, and one more. It is a third-party
+figure — reported by nanoGPT and widely restated — not something measured here, and it is
+a constant in `llmfs/eval/hellaswag.py` that gets copied into every `hellaswag.json` the
+evaluator writes. So the tests comparing our accuracy to the reference are reading that
+constant back out of the file it was written into: they check we beat it, never that it
+is right. Confirming it means running the released GPT-2 124M weights through the same
+harness with the same normalisation, which has not been done.
 
 ---
 

@@ -41,6 +41,14 @@ from ..utils.provenance import capture
 HELLASWAG_VAL_URL = (
     "https://raw.githubusercontent.com/rowanz/hellaswag/master/data/hellaswag_val.jsonl"
 )
+# A third-party figure, not a measurement of ours: GPT-2 124M's zero-shot HellaSwag
+# `acc_norm`, as reported by nanoGPT and widely restated. It is copied into every result
+# file this module writes, which means the tests comparing the two are comparing this
+# constant against itself — they check the run beat the reference, never that the
+# reference is right. Confirming it means evaluating the released GPT-2 124M weights on
+# the same set with the same normalisation, which this repository has not done. The
+# reproduction's own trust anchor is the pre-registered 3.29 validation target; this is
+# the secondary check, and it is secondary partly for this reason.
 GPT2_124M_ACC_NORM = 0.2955
 CHANCE = 0.25
 

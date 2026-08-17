@@ -14,8 +14,22 @@ const PAD_B = 38;
 // 10.95 and spends its first two hundred steps falling through territory no one needs
 // to see at this resolution; drawing all of it would compress everything the reader is
 // actually here for — the approach to 3.29 — into the bottom eighth of the frame.
+//
+// 2.95 is a default, not a fixed bound: a better run would finish below it and the
+// validation curve would silently draw itself outside the frame — the one failure a chart
+// of a reproduction must not have. `floorFor` drops the window when that would happen.
+//
+// The floor follows the *validation* series only. Six of this run's 1,907 logged training
+// points dip below 2.95, and clipping those is the same deliberate choice as starting the
+// window at 6.0 rather than 10.95: the training line is a noisy cloud and the argument on
+// this chart is the smooth one crossing the target.
 const Y_LO = 2.95;
 const Y_HI = 6.0;
+
+export function floorFor(curve: Curve): number {
+  const lowest = Math.min(...curve.val.map((p) => p.loss));
+  return Math.min(Y_LO, Math.floor((lowest - 0.05) * 20) / 20);
+}
 
 type Props = {
   curve: Curve;
@@ -35,20 +49,21 @@ type Props = {
 export default function LossCurve({ curve, step, onStep }: Props) {
   const clipId = useId();
 
+  const yLo = useMemo(() => floorFor(curve), [curve]);
+
   const { trainPath, valPath } = useMemo(() => {
     const sx = (s: number) => PAD_L + (s / curve.finalStep) * (W - PAD_L - PAD_R);
-    const sy = (v: number) =>
-      PAD_T + (1 - (v - Y_LO) / (Y_HI - Y_LO)) * (H - PAD_T - PAD_B);
+    const sy = (v: number) => PAD_T + (1 - (v - yLo) / (Y_HI - yLo)) * (H - PAD_T - PAD_B);
     const path = (points: Array<{ step: number; loss: number }>) =>
       points.map((p, i) => `${i === 0 ? "M" : "L"} ${sx(p.step)} ${sy(p.loss)}`).join(" ");
     return {
       trainPath: path(thin(curve.train, 900)),
       valPath: path(curve.val),
     };
-  }, [curve]);
+  }, [curve, yLo]);
 
   const sx = (s: number) => PAD_L + (s / curve.finalStep) * (W - PAD_L - PAD_R);
-  const sy = (v: number) => PAD_T + (1 - (v - Y_LO) / (Y_HI - Y_LO)) * (H - PAD_T - PAD_B);
+  const sy = (v: number) => PAD_T + (1 - (v - yLo) / (Y_HI - yLo)) * (H - PAD_T - PAD_B);
 
   const here = valAt(curve.val, step);
   const gridYs = [3.0, 3.5, 4.0, 4.5, 5.0, 5.5, 6.0];

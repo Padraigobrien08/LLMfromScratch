@@ -1,9 +1,37 @@
 from __future__ import annotations
 
+import os
+
 import pytest
 import torch
 
 from llmfs.model import ModelConfig, Transformer
+
+REQUIRE_VOCAB = os.environ.get("LLMFS_REQUIRE_VOCAB") == "1"
+
+
+def gpt2_tokenizer():
+    """The real GPT-2 vocabulary, or a skip — unless the environment forbids skipping.
+
+    Fetching it needs either a network or a warm tiktoken cache, so these tests skipped
+    themselves on a cold offline runner. That silently dropped the 50257 check, the Python
+    half of the bidirectional tokenizer pin, and every attention-visualisation test —
+    and nothing anywhere asserted they had run, so the suite reported green either way.
+
+    CI sets ``LLMFS_REQUIRE_VOCAB=1``, which turns the skip into a failure. A developer on
+    a plane still gets a skip; a runner that was supposed to check this and quietly did
+    not now fails.
+    """
+    from llmfs.data.tokenizer import load_tokenizer
+
+    try:
+        return load_tokenizer("gpt2")
+    except Exception as exc:  # noqa: BLE001 - the point is to convert this, not to raise
+        if REQUIRE_VOCAB:
+            raise AssertionError(
+                f"LLMFS_REQUIRE_VOCAB=1 but the GPT-2 vocabulary is unavailable: {exc}"
+            ) from exc
+        pytest.skip(f"gpt2 vocabulary unavailable: {exc}")
 
 
 @pytest.fixture(autouse=True)

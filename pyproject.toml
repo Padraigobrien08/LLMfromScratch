@@ -67,6 +67,7 @@ testpaths = ["tests"]
 addopts = "-q"
 filterwarnings = ["ignore::DeprecationWarning"]
 markers = [
+    "slow: spawns real subprocesses (distributed runs); seconds, not milliseconds",
     # Read by `llmfs.export.showcase`, which turns the marked tests into the site's
     # `#/tests` page. Registered here as well as in the plugin so an ordinary run — which
     # does not load it — does not warn about a mark it has no reason to know about.

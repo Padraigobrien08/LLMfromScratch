@@ -37,17 +37,24 @@ def weight():
 @pytest.mark.parametrize("bits", [4, 8])
 @pytest.mark.parametrize("group_size", [-1, 32, 128])
 def test_round_trip_error_is_bounded_by_the_step_size(weight, bits, group_size) -> None:
-    """Error cannot exceed half a quantization step, per group.
+    """Error cannot exceed half a quantization step — of the element's *own* group.
 
-    This is the definition of correct rounding — a looser bound means the scale or
-    zero point is being computed wrongly.
+    "Per group" is the whole point, and the assertion did not say it: comparing the
+    largest error anywhere against the largest step anywhere let an element in a
+    tight group err by half the step of the widest one. At group 32 the steps here
+    span 2.7×, so the bound was loosest exactly in the outlier regime this module
+    exists to handle. The comparison is elementwise now.
     """
     codes, scales, zeros = quantize_tensor(weight, bits, group_size)
     restored = dequantize_tensor(codes, scales, zeros, group_size)
 
     groups = weight.shape[1] if group_size == -1 else group_size
-    per_group_max_step = scales.reshape(-1, 1).repeat(1, groups).reshape(weight.shape)
-    assert (restored - weight).abs().max() <= per_group_max_step.max() / 2 + 1e-5
+    step = scales.reshape(-1, 1).repeat(1, groups).reshape(weight.shape)
+    error = (restored - weight).abs()
+
+    worst = (error / step).max().item()
+    assert worst <= 0.5 + 1e-5, f"largest error is {worst:.4f} of its own group's step"
+    assert (error <= step / 2 + 1e-5).all()
 
 
 def test_more_bits_is_strictly_better(weight) -> None:
@@ -69,7 +76,7 @@ def test_smaller_groups_are_better(weight) -> None:
 
 
 def test_an_outlier_is_why_grouping_matters() -> None:
-    """One huge weight destroys a per-tensor scale but only spoils its own group.
+    """One huge weight destroys a whole channel's scale but only spoils its own group.
 
     This is the concrete mechanism behind naive 4-bit quantization ruining a model: a
     single outlier stretches the scale until every ordinary weight rounds to the same
@@ -84,7 +91,7 @@ def test_an_outlier_is_why_grouping_matters() -> None:
         r = dequantize_tensor(c, s, z, gs)
         return (r - w)[:, 16:].abs().max().item()
 
-    # Per-tensor, the outlier ruins all 128 columns; grouped, only the first 16.
+    # Ungrouped, the outlier ruins all 128 columns of its row; grouped, only the first 16.
     assert err_outside_first_group(16) < err_outside_first_group(-1) / 5
 
 
@@ -253,3 +260,34 @@ def test_incompatible_layers_are_skipped_not_silently_rescheduled() -> None:
     info = quantize_model(model, QuantConfig(bits=4, group_size=32))
     assert info["replaced"] == 0
     assert any("incompatible" in s for s in info["skipped"])
+
+
+def test_the_196_becomes_217_figure_is_derived_not_remembered() -> None:
+    """The "196 MiB becomes 217" figure appears in the docs, the site and a test
+    docstring — and in no artifact, because the configuration it describes is one
+    `quantize_model` refuses to produce, so no sweep ever measured it.
+
+    It is still a real number: it is 196.40 from `quantization-cuda.json` plus the size of
+    a 4-bit g128 copy of the head, which this computes. Deriving it here is what stops a
+    figure nobody can re-measure from drifting into a figure nobody can check either.
+    """
+    import json
+    import re
+    from pathlib import Path
+
+    import torch.nn as nn
+
+    root = Path(__file__).resolve().parents[1]
+    artifact = json.loads((root / "results" / "quantization-cuda.json").read_text())
+    skipped = next(r for r in artifact["results"] if r["name"] == "int4 g128")["memory_mib"]
+
+    head = nn.Linear(768, 50304, bias=False)  # the tied head of gpt2-124m
+    quantized_copy = QuantLinear(head, QuantConfig(bits=4, group_size=128)).weight_bytes()
+    total = skipped + quantized_copy / 2**20
+
+    assert round(skipped) == 196
+    assert round(total) == 217, f"196 MiB becomes {total:.1f}, not 217"
+
+    for path in ("docs/efficiency.md", "web/src/content/testShowcase.ts"):
+        text = (root / path).read_text()
+        assert re.search(rf"\b{round(skipped)}\b.{{0,80}}\b{round(total)}\b", text, re.S), path

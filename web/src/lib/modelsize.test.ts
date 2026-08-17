@@ -55,11 +55,17 @@ describe("what the breakdown says about the budget", () => {
     expect(parameters(GPT2_124M).lmHead).toBe(0);
     const untied = parameters({ ...GPT2_124M, tieEmbeddings: false });
     expect(untied.lmHead).toBe(GPT2_124M.nEmbd * GPT2_124M.vocabSize);
-    // Untying costs more than adding two layers would — the reason it is an
-    // architectural decision and not a free win.
-    expect(untied.total - parameters(GPT2_124M).total).toBeGreaterThan(
-      parameters({ ...GPT2_124M, nLayer: 14 }).total - parameters(GPT2_124M).total,
-    );
+
+    // How many blocks' worth, exactly. The page said "as much as adding two whole
+    // blocks"; it is 5.45, and a `toBeGreaterThan(two blocks)` assertion was true of
+    // both numbers, so nothing caught it. On the page whose own claim is that nothing
+    // there is arithmetic anybody did by hand, the figure has to be the computed one.
+    const added = untied.total - parameters(GPT2_124M).total;
+    const perBlock =
+      (parameters({ ...GPT2_124M, nLayer: GPT2_124M.nLayer + 1 }).total -
+        parameters(GPT2_124M).total);
+    expect(added / perBlock).toBeCloseTo(5.45, 2);
+    expect(added).toBe(38_633_472);
   });
 
   it("keeps SwiGLU within a percent of GELU at equal width", () => {

@@ -22,17 +22,19 @@ prefix costs almost nothing. It also noted the benchmark should sweep sequence l
 since that is the axis a cache exists for.
 
 Both halves of that turned out to matter. The sweep got written, and it did not show what
-it was supposed to show:
+it was supposed to show. The axis is **total sequence length** — a 32-token prompt plus
+96, 224, 480 and 992 generated tokens — because that is what the cache's size and the
+recompute path's cost both scale with, and it is what `block_size` is a bound on:
 
-| Generated tokens | naive (recompute) | KV cache | cache advantage |
+| Total length | naive (recompute) | KV cache | cache advantage |
 | --- | --- | --- | --- |
 | 128 | 254 tok/s | 168 | **0.66×** |
 | 256 | 252 | 169 | **0.67×** |
 | 512 | 246 | 172 | **0.70×** |
 | 1024 | 196 | 161 | **0.82×** |
 
-Not merely "no speedup" — the cache was 34% *slower*, and the naive path beat it at every
-length measured. Two features of that table say it is not a fact about hardware. Cache
+Not merely "no speedup" — the cache was 34% *slower* at the shortest length and 18% slower
+at the longest, and the naive path beat it at every length measured. Two features of that table say it is not a fact about hardware. Cache
 throughput is flat, ~161–172 tok/s regardless of length, which is the signature of a
 fixed per-step cost rather than anything to do with attention. And a cache that does
 strictly less arithmetic than recomputation cannot lose to it on work; it can only lose
@@ -50,7 +52,7 @@ For `q_len == 1` that mask is all-`True` anyway — every cached key precedes th
 query, so it encodes no constraint. It cost a mask allocation per layer per token *and*
 the fused kernel, in exchange for nothing. After the fix:
 
-| Generated tokens | naive | KV cache | cache advantage | cache gain from the fix |
+| Total length | naive | KV cache | cache advantage | cache gain from the fix |
 | --- | --- | --- | --- | --- |
 | 128 | 247 tok/s | 218 | 0.88× | **1.30×** |
 | 256 | 247 | 221 | 0.89× | **1.31×** |
@@ -82,10 +84,10 @@ makes a batch affordable at all:
 
 | Variant | tokens/sec | time to first token | KV cache |
 | --- | --- | --- | --- |
-| naive (no cache), batch 1 | 256 | 4.4 ms | — |
-| kv-cache, batch 1 | 219 | 6.4 ms | 13.5 MiB |
-| kv-cache, batch 4 | 917 | 5.6 ms | 54 MiB |
-| kv-cache, batch 16 | **3,622** | 8.5 ms | 216 MiB |
+| naive (no cache), batch 1 | 256 | 3.9 ms | — |
+| kv-cache, batch 1 | 219 | 6.6 ms | 13.5 MiB |
+| kv-cache, batch 4 | 917 | 5.9 ms | 54 MiB |
+| kv-cache, batch 16 | **3,622** | 8.3 ms | 216 MiB |
 
 **16.5× throughput from batch 1 to 16** for 216 MiB of cache. The batch-1 `ttft`
 includes allocating the cache, which is why it reads worse than the naive path.
@@ -114,20 +116,23 @@ two per byte, because otherwise "4-bit" still occupies a byte and saves nothing.
 | Scheme | Memory | vs fp32 | Perplexity | Δ ppl | HellaSwag | Decode |
 | --- | --- | --- | --- | --- | --- | --- |
 | fp32 baseline | 475 MiB | 1.00× | **19.091** | — | 0.3480 | 191.8 tok/s |
-| int8 per-tensor | 232 MiB | 2.04× | 19.106 | +0.015 | 0.3470 | 142.5 (0.74×) |
+| int8 per-channel | 232 MiB | 2.04× | 19.106 | +0.015 | 0.3470 | 142.5 (0.74×) |
 | **int8 g128** | 237 MiB | 2.00× | **19.103** | **+0.013** | 0.3460 | 139.8 (0.73×) |
-| int4 per-tensor | 192 MiB | 2.47× | 22.664 | **+3.574** | 0.3350 | 94.4 (0.49×) |
+| int4 per-channel | 192 MiB | 2.47× | 22.664 | **+3.574** | 0.3350 | 94.4 (0.49×) |
 | **int4 g128** | 196 MiB | 2.42× | **20.442** | **+1.351** | 0.3400 | 94.1 (0.49×) |
 | int4 g32 | 212 MiB | 2.24× | 20.297 | +1.206 | 0.3360 | 91.0 (0.47×) |
 
-Perplexity over 200,000 tokens of held-out English. The HellaSwag column is from the
+Perplexity over 200,000 tokens of held-out English, in 1024-token windows advancing by
+512 — so the windows overlap and the absolute value is not comparable to a published
+perplexity. Every scheme sees exactly the same windows, which is what the Δ column needs.
+The HellaSwag column is from the
 earlier MPS run over 1,000 examples — it is device-independent, and the section below
 explains why it was not worth re-measuring.
 
 ### 8-bit is free, 4-bit is not
 
 int8 costs **+0.013 perplexity** — seven parts in ten thousand. At that magnitude it is
-indistinguishable from no change, and per-tensor versus per-group scaling makes no
+indistinguishable from no change, and per-channel versus per-group scaling makes no
 difference either, because 256 levels are enough to represent a weight distribution
 without help.
 
@@ -137,18 +142,25 @@ not be presented as such.
 
 ### Grouping is worth 2.2 perplexity points at 4 bits
 
-The per-tensor 4-bit row exists as a control, and it earns its place: **22.664 against
+The per-channel 4-bit row exists as a control, and it earns its place: **22.664 against
 20.442**, a 2.2-point penalty from nothing more than sharing one scale across a whole
-matrix instead of one per 128 features.
+output channel — all 768 input features of it — instead of one per 128 features.
 
 The mechanism is outliers. A single large weight sets the scale for everything it shares
 with, and at 4 bits there are only 16 levels to begin with — so every ordinary weight in
-that matrix collapses onto two or three of them. Grouping confines the damage to the 128
+that channel collapses onto two or three of them. Grouping confines the damage to the 128
 features that actually contain the outlier. `tests/test_quant.py` isolates this directly:
 with one weight set to 10.0 among values of ~0.01, the error *outside* the outlier's group
 is more than 5× smaller with grouping than without.
 
-Going finer still (g32) buys only 0.15 more perplexity and costs 16 MiB in extra scales —
+The coarse rows are per *channel*, not per tensor: `group_size=-1` puts one group on each
+row of the weight, so a 768×768 matrix gets 768 scales rather than one. They were labelled
+"per-tensor" here and in the results files until 2026-08-16, which overstated the
+coarseness by a factor of `out_features` — a genuinely per-tensor scheme, coarser still,
+is not implemented and so is not measured anywhere in this table. Only the labels were
+corrected; every number in the table is the one that was measured.
+
+Going finer still (g32) buys only 0.15 more perplexity and costs 15 MiB in extra scales —
 it is past the point of diminishing returns. **g128 is the right default**, and that is not
 a guess, it is where the measured curve flattens.
 
@@ -172,7 +184,7 @@ effect would have been buying precision in the wrong place.
 ### The memory ceiling is the embedding, and it is architectural
 
 4-bit reaches 2.42×, not the ~8× the bit-width implies. The reason is that **the token
-embedding is 33% of this model** — 147 MiB of the 471 MiB of weights — and it is left in
+embedding is 31% of this model** — 147 MiB of the 475 MiB of weights — and it is left in
 fp32.
 
 That is not a lazy default. With `tie_embeddings: true`, `lm_head.weight` *is*
@@ -185,7 +197,7 @@ Getting past this ceiling needs a `QuantEmbedding` sharing one set of codes with
 not implemented. Two things worth noting about the scope of the problem: at 7B the
 embedding is a few percent of the model rather than a third, so this ceiling is a
 small-model artefact; and against bf16, which is what you would actually serve, 4-bit
-blocks plus an fp16 embedding is only **2.02×**.
+blocks plus an fp16 embedding is only **1.94×** (237.4 MiB down to 122.7).
 
 ### Every quantized scheme is slower
 
@@ -203,7 +215,7 @@ The dequantized weight is deliberately not cached, because caching it would make
 and pointless — an fp32 copy alongside the codes costs more than quantization saves.
 
 CUDA is markedly kinder here than MPS was, and the gap is informative: the same code lost
-74–85% of throughput on MPS versus 27–51% on the 4090. Dequantize-then-matmul is pure
+**81–86%** of throughput on MPS versus **25–53%** on the 4090. Dequantize-then-matmul is pure
 extra work on any device, but how much it costs depends on how much spare memory bandwidth
 the device has to absorb it.
 
@@ -335,8 +347,19 @@ algorithm.
 
 Provenance is recorded in every results file: GPU, arch, driver, torch build, CUDA version,
 measured bf16 TFLOP/s, and the git commit. The figures here come from commit `42ed0a6` on
-an RTX 4090 (sm_89, 23.5 GiB, driver 580.173.02, torch 2.4.1+cu124, 168.1 measured
-TFLOP/s), except the HellaSwag column, which is from the earlier MPS run.
+an RTX 4090 (sm_89, 23.5 GiB, driver 580.173.02, torch 2.4.1+cu124, **167.9** measured
+TFLOP/s), except the HellaSwag column, which is from the earlier MPS run. The 168.1 this
+paragraph used to quote is the same probe on the same card at the *previous* commit,
+`6c13dcb`, and is recorded in `benchmarks-cuda-before-mask-fix.json` — a 0.1% difference
+between two runs of the probe, attached to the wrong commit.
+
+**Four "before" figures in this document have no committed artifact**: the 2.37× and 7.14×
+speculative ratios, the 176 tok/s greedy baseline, and the 1,259 tok/s best row. Each is
+the pre-fix half of a before/after pair whose "after" is pinned — the cache sweep kept its
+before-fix file, and these runs did not. They are internally consistent (1,259 ÷ 176 =
+7.15, and the committed 1,194 ÷ 223.4 = 5.345), which is evidence that they came from a
+real run and not evidence that they came from *that* run. Read them as recollection, not as
+measurement; every "after" value here traces to `speculative-cuda.json`.
 
 One caveat retained from the earlier version: the *first* MPS speculative benchmark ran
 concurrently with the quantization sweep on the same device, so its absolute throughputs

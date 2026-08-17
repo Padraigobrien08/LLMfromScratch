@@ -11,8 +11,8 @@
  */
 export const MEASURED = {
   "tests": {
-    "python": 346,
-    "browser": 137
+    "python": 381,
+    "browser": 149
   },
   "reproduction": {
     "split": "val",
@@ -491,7 +491,7 @@ export const MEASURED = {
         "decodeTokS": 191.7555400059163
       },
       {
-        "name": "int8 per-tensor",
+        "name": "int8 per-channel",
         "bits": 8,
         "groupSize": -1,
         "memoryMib": 232.470703125,
@@ -511,7 +511,7 @@ export const MEASURED = {
         "decodeTokS": 139.77704520153742
       },
       {
-        "name": "int4 per-tensor",
+        "name": "int4 per-channel",
         "bits": 4,
         "groupSize": -1,
         "memoryMib": 191.970703125,

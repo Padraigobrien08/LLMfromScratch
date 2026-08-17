@@ -105,7 +105,8 @@ export function parameters(c: SizeConfig): Breakdown {
   const norms = (2 * c.nLayer + 1) * normParams(c);
 
   // Tied weights are the same tensor as the token embedding, so they are not new
-  // parameters — the reason untying costs as much as adding two layers.
+  // parameters. Untying adds a whole vocabulary-sized matrix: 38.6M at GPT-2 124M, which
+  // is 5.45 blocks' worth, not the "two layers" this comment used to claim.
   const lmHead = c.tieEmbeddings ? 0 : c.nEmbd * c.vocabSize;
 
   return {

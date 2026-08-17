@@ -159,3 +159,36 @@ def test_ablation_arms_differ_from_their_baseline_in_one_axis_only() -> None:
             if arm[section][key] != value and (section, key) != ("log", "run_name")
         }
         assert differences == axes, f"{name} varies {differences}, expected {axes}"
+
+
+def test_modern_stack_is_exactly_the_union_of_the_arms_it_combines() -> None:
+    """The combined arm is the one the additivity claim rests on, and nothing pinned it.
+
+    "Summing the five individual modern-stack parts predicts −0.0872; the combined arm
+    measured −0.0886" is only a statement about additivity if the combined arm varies
+    exactly those five fields and no others. It was excluded from the single-axis test
+    above — correctly, it is not single-axis — and then checked by nothing at all, so
+    drift in any of its five fields would have quietly turned the comparison into one
+    between different experiments.
+    """
+    base = load_config(CONFIG_ROOT / "ablations" / "_base.yaml").to_dict()
+    combined = load_config(CONFIG_ROOT / "ablations" / "modern-stack.yaml").to_dict()
+    components = ["norm-rmsnorm", "pos-rope", "mlp-swiglu", "gqa-2", "no-bias"]
+
+    def diffs(cfg: dict) -> dict:
+        return {
+            (section, key): value
+            for section, values in cfg.items()
+            for key, value in values.items()
+            if base[section][key] != value and (section, key) != ("log", "run_name")
+        }
+
+    union = {}
+    for name in components:
+        union.update(diffs(load_config(CONFIG_ROOT / "ablations" / f"{name}.yaml").to_dict()))
+
+    assert diffs(combined) == union, (
+        "modern-stack is not the union of the arms it claims to combine — the additivity "
+        "comparison would be between different experiments"
+    )
+    assert len(union) == len(components), "each component must contribute exactly one field"

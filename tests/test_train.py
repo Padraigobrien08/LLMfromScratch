@@ -141,14 +141,73 @@ def test_checkpoint_round_trips_through_its_own_config(tmp_path: Path) -> None:
     torch.testing.assert_close(model(idx, targets=idx).logits, restored(idx, targets=idx).logits)
 
 
-def test_checkpoint_write_is_atomic(tmp_path: Path) -> None:
-    """No temporary file survives a successful write; a killed process therefore
-    leaves the previous checkpoint intact rather than a truncated one."""
+def test_checkpoint_write_is_atomic(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """The bytes go to a temporary path and are renamed into place, in that order.
+
+    The previous version of this test asserted that the file existed afterwards and that
+    no `*.tmp` was left behind — both of which are equally true of a plain `torch.save`
+    straight to the destination, which is exactly the write this is supposed to forbid.
+    Replacing the tmp-then-rename with a direct save left it green. So the sequence is
+    observed rather than inferred from its leftovers.
+    """
+    import os
+
     cfg = load_config("debug")
     model = Transformer(cfg.model)
-    save_checkpoint(tmp_path / "ckpt.pt", model, None, step=1, config=cfg)
-    assert (tmp_path / "ckpt.pt").exists()
+    path = tmp_path / "ckpt.pt"
+
+    events: list[tuple] = []
+    real_save, real_replace = torch.save, os.replace
+
+    def save_spy(obj, f, *args, **kwargs):
+        events.append(("save", Path(f)))
+        return real_save(obj, f, *args, **kwargs)
+
+    def replace_spy(src, dst, *args, **kwargs):
+        events.append(("replace", Path(src), Path(dst)))
+        return real_replace(src, dst, *args, **kwargs)
+
+    monkeypatch.setattr(torch, "save", save_spy)
+    monkeypatch.setattr(os, "replace", replace_spy)
+    save_checkpoint(path, model, None, step=1, config=cfg)
+    monkeypatch.undo()
+
+    assert [e[0] for e in events] == ["save", "replace"], f"wrong write sequence: {events}"
+    written, (_, src, dst) = events[0][1], events[1]
+    assert written != path, "the payload was written straight to the destination"
+    assert written == src and dst == path
+    assert path.exists()
     assert not list(tmp_path.glob("*.tmp"))
+
+
+def test_a_crash_mid_write_leaves_the_previous_checkpoint_intact(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The property the atomic write exists for, stated as the failure it prevents.
+
+    Twelve hours into a rented run, a process killed while serialising 500 MB of weights
+    must leave the last good checkpoint readable. Writing in place would leave a truncated
+    file with a valid name, and the run would be unrecoverable from its own artifacts.
+    """
+    cfg = load_config("debug")
+    model = Transformer(cfg.model)
+    path = tmp_path / "ckpt.pt"
+    save_checkpoint(path, model, None, step=1, config=cfg)
+    good = path.read_bytes()
+
+    real_save = torch.save
+
+    def dies_after_writing(obj, f, *args, **kwargs):
+        real_save(obj, f, *args, **kwargs)
+        raise RuntimeError("pod terminated mid-checkpoint")
+
+    monkeypatch.setattr(torch, "save", dies_after_writing)
+    with pytest.raises(RuntimeError, match="terminated"):
+        save_checkpoint(path, model, None, step=2, config=cfg)
+    monkeypatch.undo()
+
+    assert path.read_bytes() == good, "the destination was overwritten before the write finished"
+    assert model_from_checkpoint(path)[1]["step"] == 1
 
 
 def test_unwrap_model_strips_wrappers() -> None:
@@ -250,6 +309,45 @@ def test_resume_continues_from_the_recorded_step(train_config: Config) -> None:
     assert state.step == 45
 
 
+def test_resuming_reproduces_an_uninterrupted_run_with_dropout_on(train_config: Config) -> None:
+    """The "as though it had never stopped" claim, with something consuming the RNG.
+
+    The checkpoint stored no RNG state, so a resumed run reseeded from the config and
+    replayed step 0's dropout masks. Nothing caught it because every shipped config sets
+    `dropout: 0.0`, the learning rate is a pure function of the step, and the loader
+    derives its position from the step too — so with nothing drawing from the stream, the
+    trajectories matched anyway. Dropout is what makes the difference observable, and this
+    is the only test that turns it on.
+
+    The comparison is against a genuinely uninterrupted run, not against a second resume:
+    two resumes agreeing only proves they are consistently wrong.
+    """
+    train_config.model.dropout = 0.2
+    train_config.log.eval_interval = 10
+    train_config.log.keep_last_n = 5
+    train_config.train.max_steps = 20
+
+    straight_through = Trainer(train_config).train()
+    midpoint = Path(train_config.log.out_dir) / train_config.log.run_name / "ckpt_step0000010.pt"
+    assert midpoint.exists()
+
+    # Resume from that run's own step-10 checkpoint, with `max_steps` unchanged — the
+    # cosine schedule is a function of it, so shortening the first leg would change the
+    # learning rates and make the two runs incomparable for reasons that have nothing to
+    # do with the RNG.
+    train_config.log.run_name = "resumed"
+    train_config.train.resume = str(midpoint)
+    resumed = Trainer(train_config).train()
+
+    # The resumed trainer's history begins at the resume, so the shared point is the last.
+    end, reference = resumed.history[-1], straight_through.history[-1]
+    assert end["step"] == reference["step"] == 20
+    assert end["val_loss"] == reference["val_loss"], (
+        f"resumed {end['val_loss']!r} vs uninterrupted {reference['val_loss']!r} — "
+        "the second half of the run drew different dropout masks"
+    )
+
+
 def test_data_tokenizer_mismatch_is_caught(train_config: Config) -> None:
     """Training on data built with a different tokenizer would just converge badly;
     it has to fail at startup instead."""
@@ -269,13 +367,38 @@ def test_vocab_too_small_for_the_data_is_caught(train_config: Config) -> None:
 
 def test_gradient_checkpointing_matches_ordinary_training(train_config: Config) -> None:
     """Recomputing activations is a memory optimisation, so it must not change the
-    gradients it produces."""
-    train_config.runtime.grad_checkpointing = True
-    trainer = Trainer(train_config)
-    loss = trainer._accumulate_gradients()
-    grads = {n: p.grad.clone() for n, p in trainer.model.named_parameters() if p.grad is not None}
-    assert grads and all(torch.isfinite(g).all() for g in grads.values())
-    assert loss > 0
+    gradients it produces.
+
+    The first version of this test asserted only that the checkpointed gradients existed
+    and were finite — it never built the baseline it was named after, so it could not have
+    failed for any reason short of a crash. Putting every block under `torch.no_grad()`
+    left it green. The comparison is the whole test, so it is made here: same seed, same
+    batches, gradients differenced parameter by parameter.
+    """
+
+    def grads_with(checkpointing: bool) -> dict[str, torch.Tensor]:
+        train_config.runtime.grad_checkpointing = checkpointing
+        torch.manual_seed(0)  # same init and, with a step-derived loader, the same batches
+        trainer = Trainer(train_config)
+        loss = trainer._accumulate_gradients()
+        assert loss > 0
+        params = dict(trainer.model.named_parameters())
+        assert any(
+            "checkpoint" not in n for n in params
+        )  # sanity: the wrapper does not rename anything
+        return {n: p.grad.clone() for n, p in params.items() if p.grad is not None}
+
+    plain = grads_with(False)
+    checkpointed = grads_with(True)
+
+    assert plain and set(plain) == set(checkpointed)
+    for name, g in plain.items():
+        assert torch.isfinite(g).all(), name
+        # Recomputation reruns the same ops on the same inputs, so on CPU in fp32 this is
+        # exact. A tolerance here would admit a subtly different backward pass.
+        torch.testing.assert_close(
+            checkpointed[name], g, rtol=0, atol=0, msg=lambda m, n=name: f"{n}: {m}"
+        )
 
 
 def test_divergence_stops_immediately_and_spares_the_last_checkpoint(train_config: Config) -> None:
@@ -361,3 +484,33 @@ def test_milestones_can_be_disabled(train_config: Config) -> None:
     Trainer(train_config).train()
     run_dir = Path(train_config.log.out_dir) / "test"
     assert not list(run_dir.glob("milestone_*.pt"))
+
+
+def test_the_same_seed_gives_the_same_run_and_a_different_seed_does_not(
+    train_config: Config,
+) -> None:
+    """Determinism, asserted rather than assumed.
+
+    Every ablation delta in the study is a difference between runs, and the whole design
+    — paired seeds, a noise floor measured from three baselines — presumes that a seed
+    fixes a trajectory. That had been verified by hand and never by the suite, which
+    means nothing would have caught a change that quietly introduced run-to-run variation
+    and inflated every delta into it.
+
+    The second half matters as much as the first: a run that ignored its seed entirely
+    would be perfectly reproducible and completely useless as a control.
+    """
+    train_config.train.max_steps = 8
+    train_config.log.eval_interval = 4
+
+    def losses(seed: int, run: str) -> list[float]:
+        train_config.runtime.seed = seed
+        train_config.log.run_name = run
+        return [h["val_loss"] for h in Trainer(train_config).train().history]
+
+    first = losses(1337, "a")
+    again = losses(1337, "b")
+    other = losses(1338, "c")
+
+    assert first == again, f"same seed diverged: {first} vs {again}"
+    assert first != other, "the seed had no effect — the runs are not seeded at all"

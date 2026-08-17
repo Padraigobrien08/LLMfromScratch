@@ -109,12 +109,28 @@ positional information, which is why that control was worth running.
 
 RoPE costs 2.3% throughput here, from rotating queries and keys every layer.
 
-### SwiGLU helps, at matched parameters
+### SwiGLU helps — but this arm is 4.11% larger, and that has to be said
 
-−0.0341, consistent. This is a real gain, not a parameter-count artefact: the SwiGLU
-hidden width is scaled by 2/3 so the block has the same parameters as the GELU block it
-replaces, and a test asserts the two counts stay within 5%. What is being measured is
-the gating, not the size.
+−0.0341, consistent across seeds. The intent of the 2/3 hidden-width scaling is that a
+SwiGLU block, which has three projections instead of two, ends up with the same parameter
+count as the GELU block it replaces — so the ablation measures the gating rather than the
+size.
+
+**At this scale it does not quite hold.** `mlp_hidden` rounds the scaled width up to a
+multiple of 256, and whether that rounding lands back on the GELU count depends on
+`n_embd`. At the reproduction's 768 it is exact (2048 either way). At this sweep's 512 the
+2/3 width is 1365, which rounds up to 1536, and the SwiGLU block ends up with **12.5% more
+parameters** than the GELU block — **4.11%** more in the model as a whole. The test that
+asserted "within 5%" ran at 768, the width where the claim is trivially true, and the sweep
+ran at 512.
+
+So −0.0341 is an upper bound on the gating effect, not a clean measurement of it. It is
+still the right sign and still small next to the optimiser arms, and 4% more parameters at
+10 tokens/parameter buys very little — but the honest statement is that this arm varies two
+things, and the study's own single-axis discipline is what makes that worth flagging rather
+than absorbing. Re-running it at 768, or at any width where the rounding is exact, would
+settle it. `tests/test_norm_and_mlp.py` now pins the ratio at five widths, so which of them
+are honest is no longer something a reader has to work out.
 
 It costs 2.2% throughput — three projections rather than two, partly offset by fusing
 gate and up into one GEMM.
@@ -153,8 +169,9 @@ agreeing on the sign is what makes it a result.
 
 ### Untied embeddings do not pay for themselves
 
-+0.0025 — untying is slightly *worse* despite adding ~26M parameters, half again the
-non-embedding parameter count.
++0.0025 — untying is slightly *worse* despite adding 25.8M parameters: a second copy of
+the token embedding, and about as much again as every block in the model put together
+(25.2M).
 
 The likely explanation is data, not capacity. At 524M tokens the output embedding
 sees each vocabulary item comparatively rarely, so an untied output matrix is

@@ -79,10 +79,12 @@ key, pod = os.environ["RUNPOD_API_KEY"], os.environ["POD_ID"]
 body = json.dumps(
     {"query": "mutation { podStop(input: {podId: \"%s\"}) { id desiredStatus } }" % pod}
 ).encode()
+# Bearer header rather than ?api_key= in the URL: query strings land in proxy and
+# access logs, and this key can start and stop billable machines.
 req = urllib.request.Request(
-    "https://api.runpod.io/graphql?api_key=" + key,
+    "https://api.runpod.io/graphql",
     data=body,
-    headers={"Content-Type": "application/json"},
+    headers={"Content-Type": "application/json", "Authorization": f"Bearer {key}"},
 )
 try:
     print(json.dumps(json.load(urllib.request.urlopen(req, timeout=30))))

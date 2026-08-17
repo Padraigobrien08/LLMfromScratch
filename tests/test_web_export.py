@@ -102,6 +102,11 @@ def test_readme_status_table_states_the_live_test_count() -> None:
     assert f"{count} tests green" in readme, (
         f"README.md does not say '{count} tests green' — the suite has {count} tests"
     )
+    # The repository tree further down restates the count, and it had gone stale twice
+    # over while the status row above it stayed current. One check, both places.
+    assert f"tests/        {count} tests" in readme, (
+        f"the repository tree in README.md does not say '{count} tests'"
+    )
 
 
 def test_site_reports_the_real_number_of_architecture_variants() -> None:

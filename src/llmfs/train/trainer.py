@@ -30,7 +30,7 @@ from ..config import Config
 from ..data.loader import ShardDataLoader, read_meta
 from ..model import Transformer
 from ..utils.device import autocast_context, enable_tf32, peak_flops, resolve_dtype
-from ..utils.seed import seed_everything
+from ..utils.seed import load_rng_state, seed_everything
 from .checkpoint import (
     find_latest_checkpoint,
     load_checkpoint,
@@ -267,7 +267,13 @@ class Trainer:
 
         # The loader carries no state of its own; the step alone determines it.
         self.train_loader.set_step(self.state.step, self.grad_accum_steps)
-        print(f"[resume] {path} at step {self.state.step:,}")
+
+        # Pick the random stream back up where it stopped rather than reseeding from the
+        # config, which would replay step 0's dropout masks. Checkpoints written before
+        # this was recorded have no `rng` key and keep the old, reseeded behaviour.
+        restored = load_rng_state(ckpt.get("rng"))
+        note = "" if restored else "  (no RNG state in this checkpoint; reseeded)"
+        print(f"[resume] {path} at step {self.state.step:,}{note}")
 
     # ---------------------------------------------------------------- training
 
@@ -314,8 +320,15 @@ class Trainer:
                 self.logger.close()
             raise
         else:
+            # Every rank, not just the main one: the final eval runs `evaluate()`, which
+            # ends in an `all_reduce_mean` over the whole group. Guarding the call with
+            # `is_main` left the other ranks to exit while rank 0 waited on a collective
+            # that could no longer complete, and the run hung after its last step with no
+            # `final.pt` written. Only reachable when the last step misses an eval boundary
+            # — `gpt2-124m` is 19073 steps at an interval of 250, so: the documented run.
+            # Saving inside is already `is_main`-guarded, so this writes nothing extra.
+            self._evaluate_and_checkpoint(final=True)
             if self.dist.is_main:
-                self._evaluate_and_checkpoint(final=True)
                 self.logger.close()
 
         return self.state
@@ -439,9 +452,12 @@ class Trainer:
 
     def _evaluate_and_checkpoint(self, final: bool = False) -> None:
         # The loop always evaluates once more on exit; skip the redundant pass when
-        # the last training step already landed on an eval boundary.
+        # the last training step already landed on an eval boundary. This branch runs on
+        # every rank — it contains no collective — so the write has to be guarded here,
+        # the same way the writes at the bottom of the method are.
         if final and self.state.last_eval_step == self.state.step:
-            self._save("final.pt", val_loss=self.state.history[-1]["val_loss"])
+            if self.dist.is_main:
+                self._save("final.pt", val_loss=self.state.history[-1]["val_loss"])
             return
 
         val_loss = self.evaluate()

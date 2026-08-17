@@ -33,18 +33,21 @@ from ..utils.device import autocast_context, get_device, resolve_dtype
 from ..utils.provenance import capture
 from .quantize import QuantConfig, model_memory_bytes, quantize_model
 
-# The sweep. The per-tensor rows are included as the control that shows why grouping
-# exists: one scale over a whole matrix is set by its largest outlier, and at 4 bits
-# that is the difference between a usable model and a broken one.
+# The sweep. The per-channel rows (``group_size=-1``: one group per row, so one scale per
+# output channel) are the control that shows why grouping exists — a scale shared across
+# all 768 input features of a channel is set by the largest outlier among them, and at 4
+# bits that is the difference between a usable model and a broken one. These rows were
+# labelled "per-tensor" until 2026-08-16, which overstated the coarseness by a factor of
+# `out_features`; see the `label_correction` note in the results files.
 #
 # The tied embedding is never quantized here — with tie_embeddings the head shares its
 # weight with nn.Embedding, so replacing it adds a quantized copy instead of
 # substituting one, and quantize_model refuses. See docs/efficiency.md.
 SWEEP: list[dict[str, Any]] = [
     {"name": "fp32 baseline", "bits": None},
-    {"name": "int8 per-tensor", "bits": 8, "group_size": -1},
+    {"name": "int8 per-channel", "bits": 8, "group_size": -1},
     {"name": "int8 g128", "bits": 8, "group_size": 128},
-    {"name": "int4 per-tensor", "bits": 4, "group_size": -1},
+    {"name": "int4 per-channel", "bits": 4, "group_size": -1},
     {"name": "int4 g128", "bits": 4, "group_size": 128},
     {"name": "int4 g32", "bits": 4, "group_size": 32},
 ]
@@ -52,7 +55,19 @@ SWEEP: list[dict[str, Any]] = [
 
 @torch.no_grad()
 def perplexity(model, tokens: torch.Tensor, dtype, block_size: int, stride: int = 512) -> float:
-    """Perplexity over a token stream, in non-overlapping blocks.
+    """Perplexity over a token stream, in a sliding window.
+
+    The window is ``block_size`` wide and advances by ``stride``. With the defaults
+    (1024 and 512) consecutive windows overlap by half, so every token past the first 512
+    is scored twice — once with a short left context and once with a long one. This is
+    **not** the non-overlapping estimator the docstring used to claim, and it is not the
+    standard strided estimator either, which scores only the newly-revealed tokens.
+
+    That makes the absolute number a nonstandard estimator and not comparable to a
+    published perplexity. It does not affect what this module reports: every scheme is
+    evaluated on exactly the same windows, so the Δppl column — which is the whole point —
+    is unaffected. Fixing it would move all six numbers together and invalidate the
+    committed sweep for no gain in what it measures.
 
     HellaSwag cannot answer this question: a 4-way accuracy over 1,000 examples has a
     standard error of 1.5 points, and every quantization scheme here lands inside it.

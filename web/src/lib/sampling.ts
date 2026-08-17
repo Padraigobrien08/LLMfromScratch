@@ -62,9 +62,21 @@ export function scoreCandidates(candidates: Candidate[], options: SamplingOption
 
   if (options.topK !== null) {
     const k = Math.max(0, Math.min(options.topK, candidates.length));
-    order.forEach((entry, rank) => {
-      if (rank >= k) kept[entry.i] = false;
-    });
+    if (k === 0) {
+      kept.fill(false);
+    } else {
+      // Threshold at the k-th value rather than truncating at rank k, because
+      // `transformer.py:222` masks `logits < kth` and so keeps *every* token tied with
+      // the k-th. Cutting by rank kept an arbitrary one of them — arbitrary because the
+      // sort is only defined up to ties — and this page samples from bigram counts,
+      // where ties are the common case, not a corner one. With counts [50, 30, 30, 5] at
+      // k = 2 the rank rule gave [0.625, 0.375, 0, 0]; torch gives all three survivors a
+      // share, and now so does this.
+      const kth = order[k - 1]!.p;
+      order.forEach((entry) => {
+        if (entry.p < kth) kept[entry.i] = false;
+      });
+    }
   }
 
   if (options.topP !== null) {

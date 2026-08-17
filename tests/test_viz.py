@@ -17,9 +17,8 @@ import numpy as np
 import pytest
 import torch
 
-from conftest import tiny_config
+from conftest import gpt2_tokenizer, tiny_config
 from llmfs.config import load_config
-from llmfs.data.tokenizer import load_tokenizer
 from llmfs.export.web import ROOT
 from llmfs.model import Transformer
 from llmfs.train.checkpoint import save_checkpoint
@@ -131,11 +130,7 @@ def checkpoint(tmp_path: Path) -> Path:
 @pytest.fixture
 def model_and_tokenizer():
     cfg = tiny_config(vocab_size=50304, n_layer=2, n_head=4, n_embd=64, block_size=64)
-    try:
-        tokenizer = load_tokenizer("gpt2")
-    except Exception as exc:  # noqa: BLE001 - offline CI must not fail here
-        pytest.skip(f"gpt2 vocabulary unavailable: {exc}")
-    return Transformer(cfg).eval(), tokenizer
+    return Transformer(cfg).eval(), gpt2_tokenizer()
 
 
 def test_extracted_weights_are_causal_and_normalised(model_and_tokenizer) -> None:

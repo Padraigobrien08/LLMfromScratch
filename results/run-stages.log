@@ -1,0 +1,44 @@
+# Stage timings from the reproduction pipeline, extracted verbatim from the pod's
+# run.log. The log itself is 1.4MB of progress redraws and is not committed; these are
+# the lines the documented wall-clocks come from.
+#
+#   grep "stage '" results/run.log
+#
+# The 'repro' stage at 25,167s is the 6.99 h in docs/reproduction.md. The two earlier
+# failed pipelines (rc=1) are included rather than trimmed: the run took three attempts
+# to get through, and a timing file that showed only the successful one would be a
+# tidier account than the truth.
+[pipeline] started 2026-08-09T20:59:06Z
+[2026-08-09T20:59:06Z] stage 'data': starting
+[2026-08-09T21:14:02Z] stage 'data': done in 896s
+[2026-08-09T21:14:02Z] stage 'sweep': starting
+[2026-08-10T01:31:32Z] stage 'sweep': done in 15450s
+[2026-08-10T01:31:32Z] stage 'sweep_report': starting
+[2026-08-10T01:31:33Z] stage 'sweep_report': FAILED — stopping the pipeline
+[2026-08-10T01:31:33Z] stage 'repro': starting
+[2026-08-10T01:31:33Z] stage 'repro': FAILED — stopping the pipeline
+[pipeline] exited 2026-08-10T01:31:33Z rc=1
+[pipeline] started 2026-08-10T07:08:48Z
+[2026-08-10T07:08:48Z] stage 'data': already complete, skipping
+[pipeline] exited 2026-08-10T07:08:48Z rc=1
+[pipeline] started 2026-08-10T07:11:42Z
+[2026-08-10T07:11:42Z] stage 'data': already complete, skipping
+[2026-08-10T07:11:42Z] stage 'sweep': starting
+[2026-08-10T10:40:24Z] stage 'sweep': done in 12522s
+[2026-08-10T10:40:24Z] stage 'sweep_report': starting
+[2026-08-10T10:40:26Z] stage 'sweep_report': done in 2s
+[2026-08-10T10:40:26Z] stage 'repro': starting
+[2026-08-10T17:39:53Z] stage 'repro': done in 25167s
+[2026-08-10T17:39:53Z] stage 'repro_eval': starting
+[2026-08-10T17:42:01Z] stage 'repro_eval': done in 128s
+[2026-08-10T17:42:01Z] stage 'preserve': starting
+[2026-08-10T17:42:02Z] stage 'preserve': done in 1s
+[2026-08-10T17:42:02Z] stage 'repro_hellaswag': starting
+[2026-08-10T17:42:45Z] stage 'repro_hellaswag': done in 43s
+[2026-08-10T17:42:45Z] stage 'samples': starting
+[2026-08-10T17:43:06Z] stage 'samples': done in 21s
+[2026-08-10T17:43:06Z] stage 'viz': starting
+[2026-08-10T17:43:12Z] stage 'viz': done in 6s
+[2026-08-10T17:43:12Z] stage 'bench': starting
+[2026-08-10T17:45:25Z] stage 'bench': done in 133s
+[pipeline] exited 2026-08-10T17:45:25Z rc=0

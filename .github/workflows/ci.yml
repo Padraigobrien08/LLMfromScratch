@@ -10,6 +10,12 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+# Read-only by default rather than whatever the repository default happens to be. No job
+# here writes anything; `pages.yml` asks for the extra scopes it needs, and asks for them
+# there rather than inheriting them everywhere.
+permissions:
+  contents: read
+
 jobs:
   lint:
     runs-on: ubuntu-latest
@@ -32,6 +38,29 @@ jobs:
         # Without this the committed lock silently drifts from the declared
         # dependencies, and "pinned" stops meaning anything.
         run: uv lock --check
+
+  # `uv lock --check` proves the lock *agrees with* pyproject.toml. It does not prove the
+  # locked versions install and work together, and nothing did: every other job here
+  # installs with `uv pip install -e .`, which re-resolves the `>=` ranges and can quietly
+  # pick versions the lock has never seen. So a locked environment is built once and the
+  # suite is run inside it. This job is the slow one — the linux torch wheel in the lock
+  # is the CUDA build, several GB — which is why it is one job at one Python version
+  # rather than part of the matrix below, and why the uv cache is keyed on uv.lock.
+  locked:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: astral-sh/setup-uv@v9.0.0
+        with:
+          enable-cache: true
+          prune-cache: true
+          cache-dependency-glob: uv.lock
+      - name: Install exactly what the lockfile says
+        run: uv sync --locked --extra dev
+      - name: The locked environment must pass the suite
+        env:
+          LLMFS_REQUIRE_VOCAB: "1"
+        run: uv run --no-sync pytest tests -q
 
   test:
     runs-on: ubuntu-latest
@@ -58,6 +87,12 @@ jobs:
             -e ".[dev]"
 
       - name: Test
+        # LLMFS_REQUIRE_VOCAB turns "GPT-2 vocabulary unavailable, skipping" into a
+        # failure. The runner has a network, so a skip here means the vocab-size pin,
+        # the Python half of the bidirectional tokenizer pin and the attention-viz
+        # tests silently did not run — which used to look identical to passing.
+        env:
+          LLMFS_REQUIRE_VOCAB: "1"
         run: uv run pytest tests -q --durations=10
 
   site:
