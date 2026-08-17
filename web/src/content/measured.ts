@@ -11,8 +11,8 @@
  */
 export const MEASURED = {
   "tests": {
-    "python": 346,
-    "browser": 139
+    "python": 381,
+    "browser": 149
   },
   "reproduction": {
     "split": "val",
@@ -42,6 +42,68 @@ export const MEASURED = {
     "gpu": "NVIDIA H100 80GB HBM3"
   },
   "ablations": {
+    "armDeltas": {
+      "lr-3e-3": {
+        "delta": -0.12512445449829102,
+        "significant": true,
+        "verdict": "better"
+      },
+      "sched-wsd": {
+        "delta": -0.10338703791300456,
+        "significant": true,
+        "verdict": "better"
+      },
+      "modern-stack": {
+        "delta": -0.08863170941670735,
+        "significant": true,
+        "verdict": "better"
+      },
+      "pos-rope": {
+        "delta": -0.08862551053365071,
+        "significant": true,
+        "verdict": "better"
+      },
+      "mlp-swiglu": {
+        "delta": -0.034117698669433594,
+        "significant": true,
+        "verdict": "better"
+      },
+      "wd-zero": {
+        "delta": 0.0004134178161621094,
+        "significant": false,
+        "verdict": "within noise"
+      },
+      "norm-rmsnorm": {
+        "delta": 0.0007304350535074869,
+        "significant": false,
+        "verdict": "within noise"
+      },
+      "untied-embeddings": {
+        "delta": 0.0025375684102376304,
+        "significant": true,
+        "verdict": "worse"
+      },
+      "no-bias": {
+        "delta": 0.0037523110707600913,
+        "significant": true,
+        "verdict": "worse"
+      },
+      "gqa-2": {
+        "delta": 0.03106856346130371,
+        "significant": true,
+        "verdict": "worse"
+      },
+      "pos-none": {
+        "delta": 0.09279274940490723,
+        "significant": true,
+        "verdict": "worse"
+      },
+      "lr-3e-4": {
+        "delta": 0.44566980997721356,
+        "significant": true,
+        "verdict": "worse"
+      }
+    },
     "arms": 12,
     "seeds": 3,
     "runs": 39,
@@ -429,7 +491,7 @@ export const MEASURED = {
         "decodeTokS": 191.7555400059163
       },
       {
-        "name": "int8 per-tensor",
+        "name": "int8 per-channel",
         "bits": 8,
         "groupSize": -1,
         "memoryMib": 232.470703125,
@@ -449,7 +511,7 @@ export const MEASURED = {
         "decodeTokS": 139.77704520153742
       },
       {
-        "name": "int4 per-tensor",
+        "name": "int4 per-channel",
         "bits": 4,
         "groupSize": -1,
         "memoryMib": 191.970703125,

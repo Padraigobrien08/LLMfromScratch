@@ -16,6 +16,7 @@ it is the one that was silently at risk.
 from __future__ import annotations
 
 import json
+import math
 from pathlib import Path
 
 import pytest
@@ -139,7 +140,7 @@ def test_amortisation_fit_is_the_one_quoted() -> None:
 def test_quantization_figures_match_artifact() -> None:
     schemes = {r["name"]: r for r in load("quantization-cuda.json")["results"]}
     base = schemes["fp32 baseline"]["perplexity"]
-    for name in ("fp32 baseline", "int8 g128", "int4 g128", "int4 per-tensor"):
+    for name in ("fp32 baseline", "int8 g128", "int4 g128", "int4 per-channel"):
         r = schemes[name]
         must_appear(f"{r['perplexity']:.3f}", "README.md", "docs/efficiency.md", why=name)
         must_appear(f"{r['memory_mib']:,.0f} MiB", "README.md", "docs/efficiency.md", why=name)
@@ -150,6 +151,56 @@ def test_quantization_figures_match_artifact() -> None:
                 "docs/efficiency.md",
                 why=f"{name} delta perplexity",
             )
+
+
+def test_the_embedding_ceiling_is_the_fraction_the_model_actually_has() -> None:
+    """ "33% of this model — 147 MiB of the 471" disagreed with itself and with the model.
+
+    147 ÷ 471 is 31.2%, the model's own arithmetic gives 31.0%, and the total is 475 MiB,
+    not 471 — three numbers in one clause, two of them wrong, on the claim that explains
+    the whole compression ceiling. The site had 31% right the entire time.
+    """
+    import yaml
+
+    from llmfs.model.config import ModelConfig
+    from llmfs.model.transformer import Transformer
+    from llmfs.quant.quantize import model_memory_bytes
+
+    cfg = yaml.safe_load((DOCS / "configs/gpt2-124m.yaml").read_text())
+    model = Transformer(ModelConfig(**cfg["model"]))
+    total = model_memory_bytes(model)
+    embedding = model.tok_emb.weight.numel() * 4
+
+    # The same total the fp32 baseline row was measured at, so doc and artifact agree.
+    baseline = next(
+        r for r in load("quantization-cuda.json")["results"] if r["name"] == "fp32 baseline"
+    )
+    assert total / 2**20 == pytest.approx(baseline["memory_mib"])
+
+    must_appear(
+        f"{embedding / total * 100:.0f}% of this model", "docs/efficiency.md", "docs/roadmap.md"
+    )
+    must_appear(f"{embedding / 2**20:.0f} MiB of", "docs/efficiency.md")
+    must_appear(f"{total / 2**20:,.0f} MiB", "docs/efficiency.md")
+
+
+def test_quantization_throughput_loss_ranges_match_both_artifacts() -> None:
+    """The MPS-versus-CUDA contrast, recomputed from the two files it compares.
+
+    The document said quantization "lost 74–85% of throughput on MPS"; the artifact says
+    81–86%. A range is as much a claim as a number, and this one was wrong at both ends
+    while sitting in the sentence that draws the section's conclusion.
+    """
+    ranges = (("quantization.json", "81–86%"), ("quantization-cuda.json", "25–53%"))
+    for artifact, doc_range in ranges:
+        rows = load(artifact)["results"]
+        base = next(r for r in rows if r["name"] == "fp32 baseline")["decode_tok_s"]
+        losses = [
+            (1 - r["decode_tok_s"] / base) * 100 for r in rows if r["name"] != "fp32 baseline"
+        ]
+        lo, hi = math.floor(min(losses)), math.ceil(max(losses))
+        assert f"{lo}–{hi}%" == doc_range, f"{artifact}: measured {lo}–{hi}%, doc says {doc_range}"
+        must_appear(doc_range, "docs/efficiency.md")
 
 
 # ------------------------------------------------------- speculative decoding
@@ -247,6 +298,114 @@ def test_readme_scaling_table_cells(world_size: int) -> None:
     assert row[2] == f"{p['tokens_per_sec']:,.0f}", f"tokens/sec cell for {world_size} GPUs"
     expected_eff = "—" if world_size == 1 else f"{p['efficiency'] * 100:.1f}%"
     assert row[3] == expected_eff, f"efficiency cell for {world_size} GPUs"
+
+
+# -------------------------------------------------------------------- ablations
+
+
+def test_ablation_scale_is_stated_as_it_was_run() -> None:
+    """The README described the sweep as "~1B tokens"; every one of its 39 runs was 524M.
+
+    That is the size of the whole study, stated in the document most people read first,
+    and it matched no unit in any artifact — not the per-run budget, not the total, not
+    the config. It is pinned to the artifact now, in every document that quotes it.
+    """
+    arms = load("ablations.json")["arms"]
+    tokens = {a["tokens"] for a in arms}
+    assert len(tokens) == 1, f"arms disagree on token budget: {sorted(tokens)}"
+    must_appear(
+        f"{tokens.pop() / 1e6:.0f}M tokens", "README.md", "docs/ablations.md", "docs/gpu-runbook.md"
+    )
+    must_appear(f"{len(arms)} runs", "README.md", "docs/ablations.md")
+    assert len({a["seed"] for a in arms}) == 3
+
+
+# ------------------------------------------------------------------ utilisation
+
+
+def flops_per_token() -> float:
+    """The model's own FLOP/token, which every ``achieved TFLOP/s`` figure is derived from."""
+    import yaml
+
+    from llmfs.model.config import ModelConfig
+    from llmfs.model.transformer import Transformer
+
+    cfg = yaml.safe_load((DOCS / "configs/gpt2-124m.yaml").read_text())
+    return Transformer(ModelConfig(**cfg["model"])).flops_per_token()
+
+
+def test_scaling_achieved_tflops_column_matches_artifact() -> None:
+    """`achieved` is throughput × the model's FLOP/token, and nothing else."""
+    fpt = flops_per_token()
+    text = (DOCS / "docs/scaling.md").read_text()
+    assert f"{fpt / 1e9:.3f} GFLOP/token" in text
+    for p in load("scaling-5090x8.json")["points"]:
+        achieved = p["tokens_per_sec"] * fpt / 1e12
+        must_appear(f"{achieved:,.0f} TFLOP/s", "docs/scaling.md")
+
+
+def test_of_measured_ceiling_column_matches_artifact() -> None:
+    """The per-GPU utilisation table, against the 5090's own measured matmul ceiling.
+
+    The ceiling is quoted from the doc rather than an artifact because the probe that
+    produced it was not captured to ``results/`` — the doc says so. What is checked here is
+    that every percentage in the table follows from that one number and the measured
+    throughputs, so the column cannot drift away from the run it describes.
+    """
+    text = (DOCS / "docs/scaling.md").read_text()
+    ceiling = 234.7
+    assert f"**{ceiling} TFLOP/s measured.**" in text, "the stated ceiling moved"
+    fpt = flops_per_token()
+    for p in load("scaling-5090x8.json")["points"]:
+        achieved = p["tokens_per_sec_per_gpu"] * fpt / 1e12
+        assert f"{achieved / ceiling * 100:.1f}%" in text, f"{p['world_size']} GPUs"
+
+
+def test_4090_cross_check_is_the_same_arithmetic_on_the_4090_artifact() -> None:
+    """ "The 4090 measured the same way" must actually be the same way.
+
+    It was not: the figure in the doc traced to no artifact, and recomputing it moved the
+    number. Same model, same formula, the 4090's compiled training throughput (the scaling
+    config compiles too) over the 4090's own measured ceiling — from one file.
+    """
+    bench = load("benchmarks-cuda.json")
+    compiled = next(
+        r for r in bench["results"] if r["suite"] == "training" and r["variant"] == "compile"
+    )
+    achieved = compiled["tokens_per_sec"] * flops_per_token() / 1e12
+    ceiling = bench["provenance"]["measured_bf16_tflops"]
+    must_appear(f"{achieved / ceiling * 100:.1f}%", "docs/scaling.md")
+    must_appear(f"{ceiling} TFLOP/s", "docs/scaling.md", "README.md", "docs/efficiency.md")
+
+
+BATCHING_ROWS = {
+    "naive (no cache), batch 1": "naive (no cache) b1",
+    "kv-cache, batch 1": "kv-cache b1",
+    "kv-cache, batch 4": "kv-cache b4",
+    "kv-cache, batch 16": "kv-cache b16",
+}
+
+
+@pytest.mark.parametrize("label,variant", sorted(BATCHING_ROWS.items()))
+def test_efficiency_batching_table_cells(label: str, variant: str) -> None:
+    """The batching table in docs/efficiency.md, cell by cell against benchmarks-cuda.json.
+
+    This table is why the check exists. Its tokens/sec column came from the artifact measured
+    after the attention-mask fix and its time-to-first-token column from the one measured
+    before it — one table quoting two commits, undetectable by a substring check because both
+    files are in ``results/`` and each number was true of *a* run. Every column is pinned now,
+    and to the same file.
+    """
+    bench = {r["variant"]: r for r in load("benchmarks-cuda.json")["results"]}[variant]
+    rows = markdown_rows((DOCS / "docs/efficiency.md").read_text(), label)
+    assert len(rows) == 1, f"expected exactly one batching row for {label!r}"
+    row = rows[0]
+
+    assert row[1] == f"{bench['tokens_per_sec']:,.0f}", f"tokens/sec cell for {label}"
+    assert row[2] == f"{bench['extra']['time_to_first_token_ms']:.1f} ms", f"ttft cell for {label}"
+    mib = bench["extra"]["kv_cache_mib"]
+    expected_cache = "—" if mib == 0 else f"{mib:g} MiB"
+    assert row[3] == expected_cache, f"kv cache cell for {label}"
 
 
 @pytest.mark.parametrize("accum", [1, 2, 4, 8])

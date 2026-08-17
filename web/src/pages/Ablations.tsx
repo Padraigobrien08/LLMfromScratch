@@ -308,8 +308,8 @@ export default function Ablations() {
         </p>
         <p className="prose">
           <b>The components are additive.</b> Summing the five individual modern-stack parts predicts
-          almost exactly what the combined arm measured — within a third of the noise floor — so they
-          compose without interacting. That is a real finding and it is also why the playground
+          almost exactly what the combined arm measured — the gap is a third of the noise floor — so
+          they compose without measurably interacting. That is a real finding and it is also why the playground
           refuses to add deltas for any <i>other</i> combination: this one was checked, and the rest
           were not.
         </p>

@@ -148,6 +148,109 @@ def test_top_p_keeps_nucleus_non_empty() -> None:
     assert out.shape == (1, 10)
 
 
+# ------------------------------------------------------------------- the cutoffs
+#
+# Everything above sampling checks an *outcome*: a shape, or that top_k=1 agrees with
+# greedy. None of it looks at the distribution the cutoffs actually produce, and it
+# showed — replacing the whole nucleus filter with a no-op left all 63 tests in this file
+# and test_kv_cache.py green. So these tests read the filtered distribution off the call
+# that consumes it, and compare it against a case worked out by hand.
+
+
+def filtered_probs(counts: list[float], cfg: GenerationConfig, monkeypatch) -> torch.Tensor:
+    """The probabilities `_sample` hands to `multinomial`, for logits `log(counts)`.
+
+    Counts rather than logits because `softmax(log(count))` is `count/total` exactly, so
+    the expected numbers below are ratios of small integers and can be checked by eye.
+    """
+    captured: list[torch.Tensor] = []
+    real = torch.multinomial
+
+    def spy(probs, num_samples, *args, **kwargs):
+        captured.append(probs.clone())
+        return real(probs, num_samples, *args, **kwargs)
+
+    monkeypatch.setattr(torch, "multinomial", spy)
+    logits = torch.log(torch.tensor([counts], dtype=torch.float32))
+    Transformer._sample(logits, cfg, None)
+    assert len(captured) == 1
+    return captured[0][0]
+
+
+def test_top_p_keeps_the_token_that_crosses_the_threshold(monkeypatch) -> None:
+    """The exclusive-cumsum rule at `transformer.py:229`, on a hand-computed case.
+
+    Masses are 0.5, 0.3, 0.15, 0.05. At `top_p=0.6` the third token is dropped because
+    the mass *before* it is 0.8; the second is kept because the mass before *it* is only
+    0.5, even though including it takes the total past 0.6. An inclusive cumsum would drop
+    it, and `top_p` below the top token's own mass would then keep nothing at all.
+    """
+    cfg = GenerationConfig(temperature=1.0, top_k=None, top_p=0.6)
+    probs = filtered_probs([50, 30, 15, 5], cfg, monkeypatch)
+    torch.testing.assert_close(probs, torch.tensor([0.625, 0.375, 0.0, 0.0]), rtol=0, atol=1e-6)
+
+
+def test_top_p_of_zero_keeps_exactly_the_argmax(monkeypatch) -> None:
+    cfg = GenerationConfig(temperature=1.0, top_k=None, top_p=0.0)
+    probs = filtered_probs([50, 30, 15, 5], cfg, monkeypatch)
+    torch.testing.assert_close(probs, torch.tensor([1.0, 0.0, 0.0, 0.0]), rtol=0, atol=1e-6)
+
+
+def test_top_p_of_one_keeps_everything(monkeypatch) -> None:
+    cfg = GenerationConfig(temperature=1.0, top_k=None, top_p=1.0)
+    probs = filtered_probs([50, 30, 15, 5], cfg, monkeypatch)
+    torch.testing.assert_close(probs, torch.tensor([0.5, 0.3, 0.15, 0.05]), rtol=0, atol=1e-6)
+
+
+def test_top_k_above_one_renormalises_over_exactly_k(monkeypatch) -> None:
+    cfg = GenerationConfig(temperature=1.0, top_k=3, top_p=None)
+    probs = filtered_probs([50, 30, 15, 5], cfg, monkeypatch)
+    expected = torch.tensor([50, 30, 15, 0], dtype=torch.float32) / 95
+    torch.testing.assert_close(probs, expected, rtol=0, atol=1e-6)
+
+
+def test_top_k_keeps_every_token_tied_with_the_kth(monkeypatch) -> None:
+    """`masked_fill(logits < kth)` keeps ties, so k=2 over 50/30/30/5 keeps three tokens.
+
+    Which is the behaviour the site's sampler had to be corrected to match: truncating at
+    rank k instead picks an arbitrary one of the tied tokens, arbitrary because the sort
+    does not define an order between equal logits.
+    """
+    cfg = GenerationConfig(temperature=1.0, top_k=2, top_p=None)
+    probs = filtered_probs([50, 30, 30, 5], cfg, monkeypatch)
+    expected = torch.tensor([50, 30, 30, 0], dtype=torch.float32) / 110
+    torch.testing.assert_close(probs, expected, rtol=0, atol=1e-6)
+
+
+def test_top_p_applies_to_the_set_top_k_already_truncated(monkeypatch) -> None:
+    """Order matters: top-k first, then top-p on the renormalised survivors.
+
+    After k=2 the masses are 0.625 and 0.375. The mass before the second is 0.625, which
+    is not under 0.6, so it goes — a threshold that keeps two tokens on its own keeps one
+    here. Applying the cutoffs the other way round would keep both.
+    """
+    cfg = GenerationConfig(temperature=1.0, top_k=2, top_p=0.6)
+    probs = filtered_probs([50, 30, 15, 5], cfg, monkeypatch)
+    torch.testing.assert_close(probs, torch.tensor([1.0, 0.0, 0.0, 0.0]), rtol=0, atol=1e-6)
+
+
+def test_temperature_widens_the_distribution_the_cutoffs_then_act_on(monkeypatch) -> None:
+    """Temperature is applied before the cutoffs, so a hotter setting changes *which*
+    tokens survive top-p, not merely how the survivors are weighted."""
+    counts = [50, 30, 15, 5]
+
+    def at(temperature: float) -> torch.Tensor:
+        cfg = GenerationConfig(temperature=temperature, top_k=None, top_p=0.7)
+        return filtered_probs(counts, cfg, monkeypatch)
+
+    cold, hot = at(1.0), at(2.0)
+    # At T=1 the mass before the third token is 0.80 and it is dropped. At T=2 the
+    # distribution flattens to 0.379/0.294/0.208/0.120, that mass falls to 0.673, and the
+    # same threshold now admits it. Applying temperature after the cutoff could not do this.
+    assert (cold > 0).tolist() == [True, True, False, False]
+    assert (hot > 0).tolist() == [True, True, True, False]
+
+
 def test_sequence_longer_than_block_size_rejected() -> None:
     model = tiny_model()  # block_size=32
     with pytest.raises(ValueError, match="exceeds block_size"):

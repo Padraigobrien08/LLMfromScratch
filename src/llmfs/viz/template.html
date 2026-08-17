@@ -337,7 +337,13 @@
     const items = [
       "Padraig O'Brien",
       m.params != null ? (m.params / 1e6).toFixed(1) + "M parameters" : null,
-      m.val_loss != null ? "val loss " + m.val_loss.toFixed(3) : null,
+      /* Labelled "checkpoint" because it is not the number the rest of the site quotes.
+         This is the in-training estimate the trainer stored alongside the weights;
+         `results/reproduction.json` holds a full pass over 100M held-out tokens, and the
+         two differ in the second decimal for the same run at the same step. Printing a
+         bare "val loss" here made the explorer look like it disagreed with the chapter
+         that links to it. */
+      m.val_loss != null ? "checkpoint val loss " + m.val_loss.toFixed(3) : null,
       "Built by CI from a model CI trains",
       "MIT",
     ].filter(Boolean);
@@ -349,7 +355,7 @@
     const m = BOOT.model || {};
     const items = [
       ["run", m.run_name], ["step", m.step != null ? m.step.toLocaleString() : null],
-      ["val loss", m.val_loss != null ? m.val_loss.toFixed(4) : null],
+      ["checkpoint val loss", m.val_loss != null ? m.val_loss.toFixed(4) : null],
       ["params", m.params != null ? (m.params / 1e6).toFixed(1) + "M" : null],
       ["layers", m.n_layer], ["heads", m.n_head], ["kv heads", m.n_kv_head],
       ["norm", m.norm], ["pos", m.pos_emb], ["mlp", m.mlp],
@@ -363,7 +369,7 @@
     const box = $("controls");
     if (LIVE) {
       box.innerHTML = `
-        <input type="text" id="promptInput" placeholder="Type any text…"
+        <input type="text" id="promptInput" aria-label="Prompt" placeholder="Type any text…"
                value="${(BOOT.default_prompt || "").replace(/"/g, "&quot;")}" />
         <button class="primary" id="runBtn">Run</button>`;
       $("runBtn").onclick = runLive;
@@ -372,7 +378,7 @@
         "Type any text and the model runs a forward pass over it.";
     } else {
       const keys = Object.keys(views);
-      box.innerHTML = `<select id="promptSelect">` +
+      box.innerHTML = `<select id="promptSelect" aria-label="Prompt">` +
         keys.map((k, i) => `<option value="${i}">${k.replace(/</g, "&lt;")}</option>`).join("") +
         `</select>`;
       $("promptSelect").onchange = e => show(decode(views[keys[+e.target.value]]));
@@ -411,8 +417,10 @@
       Array.from({ length: H }, (_, h) => `<th>H${h}</th>`).join("") + "</tr>";
     for (let l = 0; l < L; l++) {
       html += `<tr><th>L${l}</th>` + Array.from({ length: H }, (_, h) =>
-        `<td><button class="head-cell" data-l="${l}" data-h="${h}" title="Layer ${l}, head ${h}">
-           <canvas width="${THUMB}" height="${THUMB}"></canvas></button></td>`).join("") + "</tr>";
+        `<td><button class="head-cell" type="button" data-l="${l}" data-h="${h}"
+           aria-label="Layer ${l}, head ${h}" title="Layer ${l}, head ${h}">
+           <canvas width="${THUMB}" height="${THUMB}" aria-hidden="true"></canvas></button></td>`)
+          .join("") + "</tr>";
     }
     tbl.innerHTML = html;
 

@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
 
 import { GPT2_124M, parameters } from "../lib/modelsize";
-import { frontFigures, ropeLogitSpread } from "./frontFigures";
+import { frontFigures } from "./frontFigures";
+import { MEASURED } from "./measured";
 
 describe("front page figures", () => {
   it("prints the parameter count the budget figure computes, not a quoted one", () => {
@@ -9,20 +10,21 @@ describe("front page figures", () => {
     expect(frontFigures()[0]!.value).toBe("124.5M");
   });
 
-  /**
-   * The claim the figure exists to make. If RoPE's logit ever depended on absolute
-   * position this would climb off float64 noise and the front page would say so —
-   * which is the point of computing it rather than quoting it.
-   */
-  it("finds the logit stays put while the pair slides the whole context", () => {
-    const { spread, samples } = ropeLogitSpread();
-    expect(samples).toBe(497);
-    expect(spread).toBeLessThan(1e-9);
+  it("reads the loss, the suite and the sweep from the measured export", () => {
+    const [, loss, tests, runs] = frontFigures();
+    expect(loss!.value).toBe(MEASURED.reproduction.loss.toFixed(2));
+    expect(tests!.value).toBe(String(MEASURED.tests.python));
+    expect(runs!.value).toBe(String(MEASURED.ablations.runs));
   });
 
-  it("labels the loss as measured against the pre-registered target", () => {
-    const [, loss] = frontFigures();
-    expect(loss!.value).toBe("3.05");
-    expect(loss!.label).toContain("3.29");
+  /**
+   * The pairing is the point. A figure with no page behind it is an assertion, which is
+   * the one thing this site is built not to make.
+   */
+  it("gives every figure a different page that proves it", () => {
+    const figures = frontFigures();
+    expect(figures).toHaveLength(4);
+    expect(new Set(figures.map((f) => f.href)).size).toBe(4);
+    for (const f of figures) expect(f.href, `${f.label} links nowhere`).toMatch(/^#\/\w/);
   });
 });

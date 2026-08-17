@@ -32,19 +32,26 @@ the default. That triples the compute, and how it is paid for is a real choice:
 | | runs | H100 | RTX 5090 |
 | --- | --- | --- | --- |
 | 13 arms × 1 seed, 1B tokens | 13 | 10 h / $34 | 27 h / $26 |
-| **13 arms × 3 seeds, 1B tokens** (default) | 39 | **31 h / $102** | 80 h / $79 |
-| 13 arms × 3 seeds, 500M tokens | 39 | 16 h / $51 | 40 h / $39 |
+| 13 arms × 3 seeds, 1B tokens | 39 | 31 h / $102 | 80 h / $79 |
+| **13 arms × 3 seeds, 524M tokens** (shipped) | 39 | **16 h / $51** | 40 h / $39 |
 
-The last row halves the per-run token budget to pay for the extra seeds:
+The shipped row is the last one: `configs/ablations/_base.yaml` sets `max_steps: 2000` at
+`tokens_per_step: 262144`, which is 524M tokens per run, and that is what
+[docs/ablations.md](ablations.md) reports. Doubling the budget is the override, not
+halving it:
 
 ```bash
-SWEEP_EXTRA="--set train.max_steps=2000"
+SWEEP_EXTRA="--set train.max_steps=4000"
 ```
 
-That takes each arm from 20 tokens/parameter (Chinchilla-optimal) to 10
+The shipped setting takes each arm from 20 tokens/parameter (Chinchilla-optimal) to 10
 (undertrained). For *relative* comparisons between architectures this is usually the
 better trade — replication is what makes an effect visible, and run length mostly is
 not — but it is a trade, and the write-up should say which was used.
+
+(The hours above are estimates from the MFU column, and the sweep beat them: 7.6 H100
+hours actually, against 16 estimated. The estimate was pessimistic about a 51M model on
+an H100, which is the uncertainty this section opens by naming.)
 
 ### Ablation sweep — per-run cost, 7.6e18 FLOPs for 15 runs
 

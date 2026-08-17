@@ -3,7 +3,7 @@ import { resolve } from "node:path";
 
 import { describe, expect, it } from "vitest";
 
-import { SIZES, type Variant } from "./blocks";
+import { BLOCKS, SIZES, type Variant } from "./blocks";
 import { FIGURE_LABELS, figurePanel } from "./stackFigure";
 import { parameters } from "../lib/modelsize";
 import { figureParts } from "../lib/stackGeometry";
@@ -74,5 +74,23 @@ describe("every drawn part has a panel", () => {
       expect(panel.shape.length).toBeGreaterThan(0);
       expect(panel.links.length).toBeGreaterThan(0);
     }
+  });
+});
+
+describe("the output-head panel's arithmetic", () => {
+  it("quotes the cost of untying that modelsize.ts computes", () => {
+    // "Untying would cost as much as adding two whole blocks" was off by 2.7×, on the
+    // page that advertises that nothing here is arithmetic anybody did by hand. The
+    // prose is checked against the computation it describes.
+    const tied = parameters(SIZES.gpt2);
+    const added = parameters({ ...SIZES.gpt2, tieEmbeddings: false }).total - tied.total;
+    const perBlock =
+      parameters({ ...SIZES.gpt2, nLayer: SIZES.gpt2.nLayer + 1 }).total - tied.total;
+
+    const head = BLOCKS.find((b) => b.id === "output-head")!;
+    expect(head.what).toContain(`${(added / 1e6).toFixed(1)}M parameters`);
+    expect(added / perBlock).toBeGreaterThan(5);
+    expect(added / perBlock).toBeLessThan(6);
+    expect(head.what).toContain("five and a half");
   });
 });

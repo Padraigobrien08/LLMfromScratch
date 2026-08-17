@@ -11,6 +11,7 @@ from pathlib import Path
 
 import pytest
 
+from conftest import REQUIRE_VOCAB, gpt2_tokenizer
 from llmfs.data.tokenizer import load_tokenizer
 
 LOCAL_TOKENIZER = Path(__file__).resolve().parents[1] / "data" / "bpe_tokenizer.json"
@@ -86,10 +87,7 @@ def test_missing_file_is_reported() -> None:
 
 def test_gpt2_vocabulary_matches_the_published_size() -> None:
     """50257 is the number the reproduction target's loss was measured against."""
-    try:
-        tokenizer = load_tokenizer("gpt2")
-    except Exception as exc:  # noqa: BLE001 - offline CI must not fail here
-        pytest.skip(f"gpt2 vocabulary unavailable: {exc}")
+    tokenizer = gpt2_tokenizer()
 
     assert tokenizer.vocab_size == 50257
     assert tokenizer.eot_token == 50256
@@ -119,7 +117,9 @@ def test_committed_fixture_still_matches_gpt2() -> None:
     tiktoken = pytest.importorskip("tiktoken")
     try:
         enc = tiktoken.get_encoding("gpt2")
-    except Exception as exc:  # pragma: no cover - offline CI
+    except Exception as exc:  # pragma: no cover - offline runner
+        if REQUIRE_VOCAB:
+            raise AssertionError(f"LLMFS_REQUIRE_VOCAB=1 but gpt2 is unavailable: {exc}") from exc
         pytest.skip(f"gpt2 vocabulary unavailable: {exc}")
 
     fixture = json.loads(FIXTURE_PATH.read_text())

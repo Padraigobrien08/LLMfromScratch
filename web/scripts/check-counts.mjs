@@ -6,7 +6,10 @@
  * Node toolchain that CI's Python job does not install. So the one field that job has
  * to take on trust is checked here instead, in the job that always has vitest.
  *
- * Between the two, no figure the site prints is unchecked.
+ * Those two cover every *generated* figure. Numbers spelled out in prose — "31% of the
+ * entire model", "all 14 cases" — are not generated and were checked by nobody until
+ * `src/content/prose.test.ts` existed; the claim that used to sit here, that between the
+ * two of them nothing the site prints is unchecked, was wider than the truth.
  *
  *     npm run check:counts --prefix web
  */

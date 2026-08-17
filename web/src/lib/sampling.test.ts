@@ -52,6 +52,29 @@ describe("top-k", () => {
   it("is a no-op when k exceeds the candidate count", () => {
     expect(probs({ ...all, topK: 99 })).toEqual(probs(all));
   });
+
+  it("keeps every token tied with the k-th, the way torch does", () => {
+    // `transformer.py:222` masks `logits < kth`, so a tie at the cutoff survives whole.
+    // Truncating at rank k instead kept an arbitrary one of the tied tokens — arbitrary
+    // because the sort does not define an order between equal probabilities — and this
+    // page samples bigram counts, where ties are ordinary. Torch gives 50/30/30 the
+    // shares below; the rank rule gave [0.625, 0.375, 0, 0].
+    const tied: Candidate[] = [
+      { id: 1, text: " cat", count: 50 },
+      { id: 2, text: " dog", count: 30 },
+      { id: 3, text: " fox", count: 30 },
+      { id: 4, text: " zebra", count: 5 },
+    ];
+    const scored = scoreCandidates(tied, { ...all, topK: 2 });
+    expect(scored.filter((s) => s.kept).map((s) => s.text)).toEqual([" cat", " dog", " fox"]);
+    expect(scored.map((s) => s.prob)).toEqual(
+      [50 / 110, 30 / 110, 30 / 110, 0].map((p) => expect.closeTo(p, 12)),
+    );
+  });
+
+  it("drops everything at k = 0", () => {
+    expect(scoreCandidates(candidates, { ...all, topK: 0 }).some((s) => s.kept)).toBe(false);
+  });
 });
 
 describe("top-p", () => {

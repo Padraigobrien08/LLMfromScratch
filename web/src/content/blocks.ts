@@ -159,7 +159,7 @@ export const BLOCKS: Block[] = [
     title: "Output head",
     summary: "Back to one score per vocabulary entry — the same matrix as the embedding",
     what:
-      "The head projects the final hidden state to a logit per token. Both configs tie it to the token embedding, so it adds no parameters at all: the same matrix maps ids to vectors on the way in and vectors to scores on the way out. Untying would cost as much as adding two whole blocks — and it is also why the quantizer refuses to quantize the head while the weights are tied, since that would store a compressed copy beside the original and make the model larger.",
+      "The head projects the final hidden state to a logit per token. Both configs tie it to the token embedding, so it adds no parameters at all: the same matrix maps ids to vectors on the way in and vectors to scores on the way out. Untying would add 38.6M parameters — about five and a half more blocks' worth — and it is also why the quantizer refuses to quantize the head while the weights are tied, since that would store a compressed copy beside the original and make the model larger.",
     differs: (v) =>
       resolved(v).tieEmbeddings
         ? "Tied to the token embedding — zero additional parameters."

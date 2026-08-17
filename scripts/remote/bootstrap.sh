@@ -142,6 +142,35 @@ tflops = 30 * 2 * 8192**3 / (time.perf_counter() - t) / 1e12
 print(f"\nMEASURED bf16 matmul: {tflops:,.0f} TFLOP/s")
 print("  (docs/gpu-runbook.md assumes ~105 TF/s for an RTX 5090, ~989 for an H100 SXM;")
 print("   if this is far below the assumption, re-read the cost table before running.)")
+
+# Write it down. This number is the denominator of the "of measured ceiling" column in
+# docs/scaling.md, and the 5090 run's 234.7 lives only in a terminal that has since been
+# destroyed with the pod — the one figure in that document backed by no artifact. It is
+# free to record and impossible to recover afterwards, so it is recorded.
+import json, pathlib, subprocess
+from datetime import datetime, timezone
+
+probe = {
+    "probe": "8192^3 bf16 matmul, 30 iterations after 3 warmups",
+    "tflops": round(tflops, 1),
+    "gpu": torch.cuda.get_device_name(0),
+    "arch": arch,
+    "memory_gib": round(props.total_memory / 2**30, 1),
+    "torch": torch.__version__,
+    "cuda": torch.version.cuda,
+    "timestamp_utc": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+}
+try:
+    probe["git_commit"] = subprocess.check_output(
+        ["git", "rev-parse", "HEAD"], text=True, stderr=subprocess.DEVNULL
+    ).strip()
+except Exception as exc:  # noqa: BLE001 - a missing commit must not fail the bootstrap
+    probe["git_commit"] = f"unavailable: {exc}"
+
+out = pathlib.Path("results") / f"gpu-probe-{arch}.json"
+out.parent.mkdir(parents=True, exist_ok=True)
+out.write_text(json.dumps(probe, indent=2) + "\n")
+print(f"  wrote {out} — fetched back by `gpu.sh fetch` with the rest of results/")
 PY
 
 echo "--- building the model on the GPU ---"

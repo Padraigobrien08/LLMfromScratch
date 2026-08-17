@@ -119,6 +119,18 @@ jobs:
           cp results/*.json web/public/data/
           echo "published $(ls -1 web/public/data | wc -l) results files"
 
+      # The deploy gate. This workflow triggers on push to main independently of ci.yml,
+      # so without these two steps a red suite would publish anyway — and the site's whole
+      # claim is that its figures are the tested ones. Both suites are fast (seconds), and
+      # they run here rather than being inferred from a green tick on another workflow.
+      - name: Tests must pass before anything is published
+        env:
+          LLMFS_REQUIRE_VOCAB: "1"
+        run: |
+          uv run pytest tests -q
+          npm test --prefix web
+          npm run check:counts --prefix web
+
       - name: Build the site
         run: npm run build --prefix web
 

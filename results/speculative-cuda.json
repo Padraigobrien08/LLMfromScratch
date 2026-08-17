@@ -30,7 +30,8 @@
       "bf16_supported": true,
       "driver": "580.173.02",
       "cpu_count": 48
-    }
+    },
+    "known_issue": "`drafter_forwards` is cumulative in the model-draft rows of this file, not per run. `ModelDrafter` did not override `Drafter.reset()`, so its forward counter was a lifetime total on the single drafter object `benchmark.py` reuses across every prompt and every k; each model-draft row after the first carries the sum of the rows above it. Fixed on 2026-08-16 (tests/test_speculative.py pins it), but this file predates the fix and was not re-measured. No other field is affected: speedup, acceptance rate, tokens per target forward and the lossless check are all computed from `target_forwards` and the generated tokens, and no document quotes `drafter_forwards`."
   },
   "results": [
     {

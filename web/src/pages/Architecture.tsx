@@ -4,6 +4,7 @@ import DataTable from "../components/DataTable";
 import Caveat from "../components/Caveat";
 import { ARCHITECTURES } from "../content/architecture";
 import { BLOCKS, SIZES, type Variant } from "../content/blocks";
+import { MEASURED } from "../content/measured";
 import { PROJECT } from "../content/projectState";
 import { formatCount, parameters } from "../lib/modelsize";
 
@@ -41,7 +42,7 @@ export default function Architecture() {
             control: this is one choice out of two, so a radio group gives arrow-key
             navigation and the correct announcement for free, where `role="tab"` would
             have promised a `tabpanel` that does not exist. */}
-        <div className="seg" role="radiogroup" aria-label="Architecture">
+        <div className="seg seg-paper" role="radiogroup" aria-label="Architecture">
           {VARIANTS.map((v) => (
             <label key={v.id} className="seg-opt">
               <input
@@ -195,7 +196,12 @@ export default function Architecture() {
         attention shrinks the KV half of every QKV matrix by three quarters. The last of those is
         the largest single line here and it buys a 3× smaller cache at inference, which is a
         memory result rather than a quality one — the ablation study is where the quality cost gets
-        measured, and it came to +0.0311 validation loss.
+        measured, and it came to{" "}
+        {/* Read from the export, not typed. The line thirty rows down promises nothing on this
+            page is arithmetic anyone did by hand, and a hand-copied delta here would have
+            been the one thing on it that was. */}
+        {MEASURED.ablations.armDeltas["gqa-2"]!.delta! > 0 ? "+" : ""}
+        {MEASURED.ablations.armDeltas["gqa-2"]!.delta!.toFixed(4)} validation loss.
       </Caveat>
 
       <div className="rule-heavy" style={{ margin: "var(--space-6) 0 var(--space-4)" }} />

@@ -1,6 +1,10 @@
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
+
 import { describe, expect, it } from "vitest";
 
 import { MEASURED } from "../content/measured";
+import { floorFor } from "../components/LossCurve";
 import { type ValPoint, crossingOf, thin, valAt } from "./reproductionCurve";
 
 const VAL: ValPoint[] = [
@@ -42,11 +46,27 @@ describe("crossingOf", () => {
    * The generator recorded the crossing in the artifact so the page would not have to
    * compute it. This asserts the two agree — if they ever did not, one of them would be
    * telling a reader the run hit its target at the wrong moment.
+   *
+   * The comment here used to promise exactly that comparison and the test made only half
+   * of it: it checked the recorded crossing was at or below the target, which any point
+   * past the crossing also satisfies. Recomputing it from the curve is the check the
+   * comment described, and it is the one that would catch an exporter drifting from the
+   * page. (They agree: step 6,500, byte-identical.)
    */
   it("agrees with the crossing the exporter recorded", () => {
     const { crossing, targetLoss } = MEASURED.reproduction;
     expect(crossing).not.toBeNull();
     expect(crossing!.loss).toBeLessThanOrEqual(targetLoss);
+
+    // The curve the page actually plots, read from the same artifact the site fetches.
+    const curve = JSON.parse(
+      readFileSync(resolve(__dirname, "../../../results/reproduction-curve.json"), "utf8"),
+    ) as { val: ValPoint[]; targetLoss: number };
+
+    const recomputed = crossingOf(curve.val, curve.targetLoss);
+    expect(recomputed).not.toBeNull();
+    expect(recomputed!.step).toBe(crossing!.step);
+    expect(recomputed!.loss).toBe(crossing!.loss);
   });
 });
 
@@ -62,5 +82,26 @@ describe("thin", () => {
     expect(out.length).toBeLessThanOrEqual(101);
     expect(out.at(-1)).toBe(999);
     expect(out[0]).toBe(0);
+  });
+});
+
+describe("the chart's window", () => {
+  it("drops its floor rather than clipping a better run", () => {
+    // Y_LO was a constant 2.95. The shipped run's validation curve bottoms out at 3.08 so
+    // it fits, but a rerun that trained further would have drawn itself outside the frame
+    // — silently, on the one chart whose whole job is showing a curve reach a target.
+    const curve = {
+      finalStep: 100,
+      targetLoss: 3.29,
+      train: [{ step: 100, loss: 2.4, mfu: null }],
+      val: [{ step: 100, loss: 2.5, perplexity: 12.2 }],
+    };
+    expect(floorFor(curve as never)).toBeLessThanOrEqual(2.5);
+
+    const shipped = JSON.parse(
+      readFileSync(resolve(__dirname, "../../../results/reproduction-curve.json"), "utf8"),
+    );
+    // The published run keeps the window the static figure uses.
+    expect(floorFor(shipped)).toBe(2.95);
   });
 });

@@ -218,11 +218,21 @@ def _reproduction(repro: dict[str, Any], hella: dict[str, Any]) -> dict[str, Any
 
 
 def _ablations(payload: dict[str, Any]) -> dict[str, Any]:
-    from llmfs.ablation.report import baseline_noise
+    from llmfs.ablation.report import baseline_noise, compare
 
     arms = payload["arms"]
     mean, spread, seeds_counted = baseline_noise(arms)
+    # Per-arm paired deltas, so a page quoting one arm's cost reads it from here rather
+    # than retyping it. `/architecture` quotes grouped-query attention's; without this it
+    # carried a hand-typed +0.0311 directly above a line promising nothing on the page was
+    # arithmetic done by hand.
+    rows, _ = compare(payload)
     return {
+        "armDeltas": {
+            r.name: {"delta": r.delta, "significant": r.significant, "verdict": r.verdict}
+            for r in rows
+            if r.delta is not None
+        },
         # `meta.arms` includes `_base.yaml`; the study is twelve arms *against* a baseline.
         "arms": len(payload["meta"]["arms"]) - 1,
         "seeds": payload["meta"]["seeds"],

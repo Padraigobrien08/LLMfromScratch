@@ -105,6 +105,17 @@ class ModelDrafter(Drafter):
         self.name = name
         self._forwards = 0
 
+    def reset(self) -> None:
+        """Zero the forward counter along with the per-sequence state.
+
+        The base-class hook is a no-op, and this class did not override it, so the counter
+        was a lifetime total on an object the benchmark reuses across every prompt and
+        every ``k``. `speculative-cuda.json` therefore reports a running sum in every
+        model-draft row after the first — two identical runs read 13 and then 26. The
+        benchmark already calls ``reset()`` per run, so the counter belongs here.
+        """
+        self._forwards = 0
+
     @torch.inference_mode()
     def propose(self, tokens: torch.Tensor, k: int) -> torch.Tensor:
         # Deliberately without a KV cache: with one, the drafter's cache would have to

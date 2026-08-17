@@ -10,7 +10,8 @@
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest",
-    "check:counts": "node scripts/check-counts.mjs"
+    "check:counts": "node scripts/check-counts.mjs",
+    "snapshot": "node scripts/snapshot.mjs"
   },
   "dependencies": {
     "react": "^19.2.0",

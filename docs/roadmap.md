@@ -79,7 +79,7 @@ paid it. Verification happens once per accepted block, so the ceiling is lower.
 ## 3. `QuantEmbedding`
 
 **The problem it solves.** 4-bit compression caps at 2.42×, not the ~8× the bit-width
-implies, because the token embedding is 33% of this model — 147 MiB of 471 — and is left in
+implies, because the token embedding is 31% of this model — 147 MiB of 475 — and is left in
 fp32. It cannot simply be quantized: with `tie_embeddings: true`, `lm_head.weight` *is*
 `tok_emb.weight`, so replacing the head with a quantized layer stores a quantized copy while
 `nn.Embedding` keeps the original, and the model gets **larger** (196 MiB → 217 MiB measured).
@@ -166,22 +166,6 @@ which is a different product tier from anything rented so far.
 
 ---
 
-## Outside the ordering: one small thing
-
-Not engineering, so not ranked with the seven above — the list is ordered by value per unit of
-effort, and this would sit somewhere that says something false about what the roadmap is for.
-
-**The front page fetches the ablation sweep to decide what not to draw.** `Front.tsx` requests
-`data/ablations.json` — 7,681 bytes gzipped, 52.5 KB raw — on every visit, purely to learn
-whether the file exists: the illustrative preview block below the status table hides itself
-once the real sweep has published. It published, so that block no longer renders, and the
-request now buys nothing that a build-time flag could not. Two things would end it: deleting
-the preview block outright rather than leaving it conditional, or having the export write a
-one-line manifest the front page can read instead. Neither is urgent at this size; both get
-more attractive as the sweep grows.
-
----
-
 ## Not on this list, deliberately
 
 **An NVLink comparison.** Measured out of relevance rather than skipped. PCIe achieves 95.1%
@@ -194,3 +178,5 @@ chase that. [docs/scaling.md](scaling.md) has the reasoning.
 209.5 TFLOP/s dense bf16 figure is contradicted by measurement — an 8192³ bf16 matmul reached
 234.7 TFLOP/s on one, and nothing exceeds its own peak. Adding a number that produces 96% MFU
 would be worse than reporting none. If a vendor figure can be confirmed, the entry is one line.
+(That 234.7 was printed on a pod and never captured to `results/`; `bootstrap.sh` now writes
+the probe to an artifact so the next one is not lost the same way.)

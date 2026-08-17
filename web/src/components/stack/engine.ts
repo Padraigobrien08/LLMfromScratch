@@ -49,12 +49,40 @@ export type StackEngine = {
 
 const VARIANTS: Variant[] = ["gpt2", "llama"];
 
-/** Below this width the labels leave the margins and become a list — see `layoutLabels`.
- *  Kept in step with the matching breakpoint in `styles.css`. */
-const LIST_BELOW = 700;
+/**
+ * Below this much *plate* width the labels leave the margins and become a list — see
+ * `layoutLabels`.
+ *
+ * Measured on the plate, not on the window and not on the drawing. The window is wrong
+ * because the plate is one column of a three-column page and says nothing about the room
+ * the object has. The drawing is worse: it is downstream of the decision. In list mode
+ * the plate drops its gutters, so the drawing gets ~200px wider — wide enough to look
+ * like it wants margins again, which puts the gutters back, which narrows it. Measuring
+ * that was an oscillation, and the browser quietly stopped delivering the resize
+ * notifications rather than run it forever.
+ *
+ * The plate's own width is the same in both modes, so the decision is stable. 540px is
+ * two gutters at their 104px floor plus a drawing wide enough to read as a solid.
+ */
+const LIST_BELOW_PLATE = 540;
 
 export function mountStackFigure(o: StackEngineOptions): StackEngine {
   const { canvasWrap, flat, leaders, labelLayer } = o;
+
+  /**
+   * Tell the plate which way its labels are set.
+   *
+   * The gutters are the area's padding, so the area is what has to drop them when the
+   * labels come out of the margins. The label layer knows the mode; the area is its
+   * parent and is the element the rule needs to hang on.
+   */
+  const setAreaLayout = (mode: "list" | "margins") => {
+    const area = labelLayer.parentElement;
+    if (area) area.dataset.figLayout = mode;
+  };
+
+  /** The plate's own width — unchanged by which way its labels are set. */
+  const plateWidth = () => labelLayer.parentElement?.clientWidth ?? canvasWrap.clientWidth;
 
   const css = (n: string) => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
   const INK = css("--color-text");
@@ -285,11 +313,19 @@ export function mountStackFigure(o: StackEngineOptions): StackEngine {
     };
     // A narrow column cannot hold two margins of type either side of an object: the
     // gutters eat the width and the drawing collapses to a speck with fourteen leaders
-    // converging on it. Below the breakpoint the labels stop being ruled out and become
+    // converging on it. Below the threshold the labels stop being ruled out and become
     // a list under the figure — still buttons, still tiered, still selecting. The
     // drawing takes the full width instead.
-    if (matchMedia(`(max-width: ${LIST_BELOW}px)`).matches) {
+    //
+    // Measured against the plate rather than the window. As a viewport query this asked
+    // the wrong question: on the front page the plate sits in the middle of three
+    // columns, so a 1400px window could leave it 174px of drawing between two 176px
+    // gutters and still report "wide". The figure was ruled out into margins it did not
+    // have and the labels ran off the side of the page.
+    if (plateWidth() < LIST_BELOW_PLATE) {
       labelLayer.dataset.layout = "list";
+      /* The area drops its gutters in this mode, and it is the area that owns them. */
+      setAreaLayout("list");
       items.forEach((p) => {
         p.el.style.top = "";
         p.el.style.left = "";
@@ -301,6 +337,7 @@ export function mountStackFigure(o: StackEngineOptions): StackEngine {
       return;
     }
     labelLayer.dataset.layout = "margins";
+    setAreaLayout("margins");
 
     place(items.filter((p) => !p.left));
     place(items.filter((p) => p.left));
@@ -471,6 +508,10 @@ export function mountStackFigure(o: StackEngineOptions): StackEngine {
     THREE = T;
     const canvas = document.createElement("canvas");
     canvas.className = "stack-gl";
+    /* Hidden from assistive technology, like the two SVG layers beside it. An empty
+       canvas is an unlabelled node to a screen reader; the figure's content is carried by
+       the fourteen label buttons and the detail panel, which are real text. */
+    canvas.setAttribute("aria-hidden", "true");
     canvasWrap.appendChild(canvas);
     renderer = new T.WebGLRenderer({ canvas, antialias: true, alpha: true });
     renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
@@ -537,7 +578,49 @@ export function mountStackFigure(o: StackEngineOptions): StackEngine {
     addEventListener("pointerup", onUp);
     canvasWrap.addEventListener("pointerleave", onLeave);
     canvasWrap.addEventListener("click", onClick);
+
+    /**
+     * The orbit, by keyboard.
+     *
+     * Dragging was the only way to turn the object, which made the one genuinely
+     * exploratory thing on the page pointer-only. The plate becomes a focusable group and
+     * the arrows step the same two angles the drag sets, against the same clamps; Home
+     * returns to the rest pose. The labels stay separately tabbable, so a reader who only
+     * wants the content still tabs straight through them without entering the orbit.
+     */
+    canvasWrap.tabIndex = 0;
+    canvasWrap.setAttribute("role", "group");
+    canvasWrap.setAttribute(
+      "aria-label",
+      "The model, in three dimensions. Use the arrow keys to turn it, Home to reset.",
+    );
+    canvasWrap.addEventListener("keydown", onKey);
   }
+
+  const KEY_STEP = 0.09;
+  const onKey = (ev: KeyboardEvent) => {
+    const step = ev.shiftKey ? KEY_STEP * 3 : KEY_STEP;
+    let handled = true;
+    if (ev.key === "ArrowLeft") cam.a -= step;
+    else if (ev.key === "ArrowRight") cam.a += step;
+    else if (ev.key === "ArrowUp") cam.e += step;
+    else if (ev.key === "ArrowDown") cam.e -= step;
+    else if (ev.key === "Home") {
+      cam.a = REST.a;
+      cam.e = REST.e;
+    } else handled = false;
+    if (!handled) return;
+    // The same clamps the drag obeys, so the keyboard cannot reach a pose the pointer
+    // cannot, and the figure never ends up looking at the object edge-on.
+    cam.a = Math.min(MOTION.clampA[1], Math.max(MOTION.clampA[0], cam.a));
+    cam.e = Math.min(MOTION.clampE[1], Math.max(MOTION.clampE[0], cam.e));
+    // Arrow keys scroll the page by default; inside the plate they turn the object.
+    ev.preventDefault();
+    // Counts as input, so the idle return does not start dragging the object back out
+    // from under a reader who is still turning it a step at a time.
+    lastInput = performance.now();
+    updateGL();
+  };
 
   function pickAt(ev: PointerEvent | MouseEvent): string | null {
     const r = canvasWrap.getBoundingClientRect();
@@ -626,7 +709,25 @@ export function mountStackFigure(o: StackEngineOptions): StackEngine {
 
     const rect = { w: canvasWrap.clientWidth, h: canvasWrap.clientHeight };
     if (rect.w === 0 || rect.h === 0) return;
-    if (rect.w !== renderer.domElement.clientWidth || rect.h !== renderer.domElement.clientHeight) {
+    /**
+     * Size the drawing buffer, and compare against the drawing buffer to decide.
+     *
+     * This used to test `domElement.clientWidth`, which is the canvas's *laid-out* size —
+     * and `.stack-gl` is `width: 100%; height: 100%`, so CSS had already made that equal
+     * to the wrap's width before the test ran. The condition was never true, `setSize`
+     * never ran, and the canvas kept WebGL's default 300×150 buffer for its whole life:
+     * on a 2× screen, 600×300 pixels stretched across 835×420 of layout. The model was
+     * drawn at roughly a third of the resolution it was displayed at.
+     *
+     * `setSize(w, h, false)` deliberately does not write the style — CSS owns the layout
+     * size — so the style can never disagree with the wrap and can never be the signal.
+     * `width`/`height` are the buffer's own dimensions in device pixels, which is the
+     * thing that actually changes here.
+     */
+    const dpr = renderer.getPixelRatio();
+    const bufW = Math.round(rect.w * dpr);
+    const bufH = Math.round(rect.h * dpr);
+    if (renderer.domElement.width !== bufW || renderer.domElement.height !== bufH) {
       renderer.setSize(rect.w, rect.h, false);
     }
 
@@ -743,15 +844,34 @@ export function mountStackFigure(o: StackEngineOptions): StackEngine {
   validate(FIGURE_LABELS, [...new Set(SPECS.gpt2.solids.map((s) => s.blockId)), "tie"]);
   renderFlat();
 
-  const FLAT_NOTE = "Flat axonometric plate — every label, explainer and link, without the orbit.";
+  const FLAT_NOTE = "Click a component to inspect it · flat plate, every label and link, without the orbit.";
   o.onMode(
     reduced
-      ? "Reduced motion: the flat plate. Click a block for its shape, its share of the budget and the test that pins it."
+      ? "Click a component to inspect it · reduced motion, so the plate stays flat."
       : FLAT_NOTE,
   );
 
   const onResize = () => paint();
   addEventListener("resize", onResize);
+
+  /**
+   * Repaint when the plate's own box changes, not only when the window does.
+   *
+   * The window is the wrong thing to watch. On the front page the drawing is the middle
+   * of three columns, so it changes width whenever the panel's track does, whenever the
+   * banner rewraps, or simply as the layout settles after mount — none of which fire a
+   * `resize`. The visible symptom was a figure that had chosen its label layout against
+   * whatever width it had for the first frame and never reconsidered: at 1280px the
+   * drawing ended up 282px wide, under the threshold that should have put the labels in
+   * a list, still ruled out into margins it did not have, with ten of them hanging off
+   * the side of the plate.
+   *
+   * Watching the plate rather than the drawing, for the same reason the threshold is
+   * measured on it: the drawing's width is downstream of the layout mode, so observing it
+   * meant every repaint resized the thing being observed.
+   */
+  const boxObserver = new ResizeObserver(() => paint());
+  boxObserver.observe(labelLayer.parentElement ?? canvasWrap);
 
   if (canGL()) {
     // Dynamic, so three.js lands in its own chunk and never blocks the headline.
@@ -761,9 +881,7 @@ export function mountStackFigure(o: StackEngineOptions): StackEngine {
         initGL(T);
         mode = "gl";
         flat.style.display = "none";
-        o.onMode(
-          "Drag to orbit; scrolling here scrolls the page. Click a block for its shape, its share of the budget and the test that pins it.",
-        );
+        o.onMode("Drag to orbit · click a component to inspect it");
         updateGL();
         loop();
       })
@@ -788,11 +906,13 @@ export function mountStackFigure(o: StackEngineOptions): StackEngine {
       disposed = true;
       cancelAnimationFrame(raf);
       removeEventListener("resize", onResize);
+      boxObserver.disconnect();
       removeEventListener("pointermove", onMove);
       removeEventListener("pointerup", onUp);
       canvasWrap.removeEventListener("pointerdown", onDown);
       canvasWrap.removeEventListener("pointerleave", onLeave);
       canvasWrap.removeEventListener("click", onClick);
+      canvasWrap.removeEventListener("keydown", onKey);
       labelEls.forEach((el) => el.remove());
       renderer?.dispose();
       Object.values(geoms ?? {}).forEach((g) => g.dispose());

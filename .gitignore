@@ -28,14 +28,17 @@ data/openwebtext*/
 data/**/*.bin
 data/**/*.npy
 
-# Benchmark scratch output (committed results live in results/)
-bench/scratch/
-
 # Generated attention explorer (rebuilt by `llmfs-viz`, deployed by CI)
 site/
 
-# Interactive site: dependencies, build output, and results copied in at deploy time
-web/node_modules/
+# A reviewable snapshot of the deployed site, built to be served from the filesystem
+# root rather than /LLMfromScratch/. Build output like any other: kept, not committed.
+local-site/
+
+# Interactive site: dependencies, build output, and results copied in at deploy time.
+# `node_modules` unanchored because vitest writes a cache to web/src/node_modules/ too,
+# which the old `web/node_modules/` rule did not cover.
+node_modules/
 web/dist/
 web/public/data/
 
@@ -48,9 +51,12 @@ web/public/data/
 # Downloadable eval data (fetched on demand by llmfs-eval-hellaswag)
 data/hellaswag/
 
-# Raw pod run log (1.4MB of progress redraws; kept locally, not committed)
+# Raw pod run log (1.4MB of progress redraws; kept locally, not committed). Its stage
+# timings — the source of the 6.99 h wall-clock — are committed as run-stages.log.
 results/run.log
 
-# Private working plans — scratch documents, not part of the published docs.
+# Private working plans — scratch documents, not part of the published docs. Both were
+# written, executed and deleted; the rules stay as guards against either being recreated
+# and committed by accident.
 docs/completion-plan.md
 docs/design-audit-plan.md

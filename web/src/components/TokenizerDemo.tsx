@@ -60,6 +60,13 @@ export default function TokenizerDemo() {
         aria-label="Text to tokenize"
       />
 
+      {/* What to manipulate, what to watch, and what it shows — the three things a figure
+          has to answer without a caption explaining it. */}
+      <p className="fig-note" style={{ margin: "var(--space-2) 0" }}>
+        Type anything above and watch the vocabulary cut it up. Each shaded run is one token; the
+        count below is what the model actually receives.
+      </p>
+
       <div className="token-strip">
         {tokens.map((t, i) => (
           <span key={i} className={`token token-${i % TINTS}`} title={`id ${t.id}`}>

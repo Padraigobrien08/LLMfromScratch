@@ -91,14 +91,21 @@ def test_target_loss_matches_where_it_was_pre_registered() -> None:
 def test_readme_status_table_states_the_live_test_count() -> None:
     """The README is the site's ceiling, so a stale README drags the site down with it.
 
-    ``content/status.ts`` mirrors this table by design — the site may not claim more
-    than the README — which means the site cannot fix this by mirroring harder. The
-    count has to be true at the source.
+    The site may not claim more than the README does. It used to hold that line by
+    mirroring the table row for row in ``content/status.ts``; the front page now prints
+    one strip and reads its figures from ``measured.ts``, so the mirror is gone and the
+    ceiling is enforced here instead. Either way the site cannot fix this by mirroring
+    harder — the count has to be true at the source.
     """
     readme = (ROOT / "README.md").read_text()
     count = collect_python_tests()[0]
     assert f"{count} tests green" in readme, (
         f"README.md does not say '{count} tests green' — the suite has {count} tests"
+    )
+    # The repository tree further down restates the count, and it had gone stale twice
+    # over while the status row above it stayed current. One check, both places.
+    assert f"tests/        {count} tests" in readme, (
+        f"the repository tree in README.md does not say '{count} tests'"
     )
 
 
@@ -121,9 +128,9 @@ def test_the_site_does_not_retype_the_reproduction_loss() -> None:
     Re-typing it is what this whole phase exists to stop, and it is an easy thing to do
     again when a page wants one figure and importing feels like ceremony.
 
-    Comments are stripped first, deliberately. ``status.ts`` quotes the README's own
-    wording — "**Done** — 3.0503 val loss" — to explain the format it mirrors, and prose
-    about a number is not a claim of one. Only code can lie to a reader.
+    Comments are stripped first, deliberately. A comment may quote a figure to explain
+    where it came from or why a page stopped printing it, and prose about a number is
+    not a claim of one. Only code can lie to a reader.
     """
     for path in sorted((ROOT / "web" / "src" / "content").glob("*.ts")):
         if path.name == "measured.ts":

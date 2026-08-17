@@ -31,7 +31,8 @@
       "bf16_supported": true,
       "driver": "580.173.02",
       "cpu_count": 48
-    }
+    },
+    "label_correction": "The two group_size=-1 rows were emitted as 'per-tensor'. group_size=-1 sets one group per row of the weight, so what was measured is one scale per output channel, not one per tensor. Only these two name strings were changed, on 2026-08-16; no measured value in this file was touched."
   },
   "results": [
     {
@@ -48,7 +49,7 @@
       "extra": {}
     },
     {
-      "name": "int8 per-tensor",
+      "name": "int8 per-channel",
       "bits": 8,
       "group_size": -1,
       "quantized_embedding": false,
@@ -88,7 +89,7 @@
       }
     },
     {
-      "name": "int4 per-tensor",
+      "name": "int4 per-channel",
       "bits": 4,
       "group_size": -1,
       "quantized_embedding": false,

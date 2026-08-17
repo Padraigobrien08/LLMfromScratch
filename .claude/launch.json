@@ -7,6 +7,13 @@
       "runtimeArgs": ["run", "dev", "--prefix", "web", "--", "--port", "5173"],
       "port": 5173,
       "url": "http://localhost:5173"
+    },
+    {
+      "name": "local-site",
+      "runtimeExecutable": "python3",
+      "runtimeArgs": ["-m", "http.server", "4173", "--directory", "local-site"],
+      "port": 4173,
+      "url": "http://localhost:4173"
     }
   ]
 }

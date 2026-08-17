@@ -26,9 +26,13 @@ Asymmetric per-group affine quantization:
 with ``s`` and ``z`` computed per group of ``group_size`` consecutive input features.
 Asymmetric (with a zero point) rather than symmetric because a weight distribution is
 rarely exactly centred, and at 4 bits — 16 levels — wasting one to a phantom symmetry
-is expensive. Grouping along the input dimension rather than per-tensor because a
-single scale over a whole matrix is dominated by its largest outlier, which is the
-main reason naive 4-bit quantization destroys quality.
+is expensive. Grouping along the input dimension because a scale shared across many
+features is dominated by the largest outlier among them, which is the main reason naive
+4-bit quantization destroys quality.
+
+``group_size=-1`` means one group per row: a scale per output channel, which is the
+coarsest granularity this API expresses. It is not per-tensor — a single scale for the
+whole matrix is coarser still, and is not implemented here.
 """
 
 from __future__ import annotations

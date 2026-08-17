@@ -132,3 +132,22 @@ def test_the_recompute_path_is_the_untouched_control(sweeps) -> None:
     for length in sorted(length for length, cached in before["points"] if not cached):
         ratio = after["points"][(length, False)] / before["points"][(length, False)]
         assert 0.95 < ratio < 1.05, f"the control moved {ratio:.2f}× at {length}"
+
+
+def test_the_reproduction_wall_clock_is_the_stage_timing_that_was_recorded() -> None:
+    """The "7.1 h of training" figure was in neither the log nor the stepping arithmetic.
+
+    The pipeline recorded 25,167 s for the `repro` stage — 6.99 h — and 19,073 steps at
+    1,305 ms/step is 6.91 h of stepping, so 7.1 was between two real numbers and equal to
+    neither. The run log itself is 1.4 MB of progress redraws and is not committed, so the
+    stage timings are, and the document is checked against them.
+    """
+    import re
+
+    stages = (RESULTS / "run-stages.log").read_text()
+    seconds = int(re.search(r"stage 'repro': done in (\d+)s", stages).group(1))
+    hours = seconds / 3600
+
+    doc = (RESULTS.parent / "docs" / "reproduction.md").read_text()
+    assert f"{hours:.2f} h" in doc, f"the repro stage took {hours:.2f} h"
+    assert f"{seconds:,} s" in doc

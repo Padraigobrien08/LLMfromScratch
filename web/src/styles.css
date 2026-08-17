@@ -34,13 +34,50 @@ input[type="checkbox"] {
   background: var(--color-accent-200);
 }
 
+/* No `min-height` here. `#root` below sets it in `dvh`, and body wraps root, so stating it
+   twice in two different units was a way for the two to disagree by a pixel on any browser
+   where `vh` and `dvh` differ — which is a scrollbar with nothing behind it. */
 body {
+  margin: 0;
+}
+
+/**
+ * The footer sits on the bottom of the window, not on the bottom of the content.
+ *
+ * `min-height` alone only guarantees the page is at least a screen tall; it says nothing
+ * about where the last element inside it lands. The front page is written to fit one
+ * screen and now finishes short of it, so the footer was ruling off wherever the figure
+ * happened to end and leaving a band of blank page beneath itself — and the size of that
+ * band changed with the window, which is what made it look unanchored.
+ *
+ * `main` takes the slack instead, so the footer is always on the bottom edge when the
+ * page fits and simply follows the content when it does not. `dvh` because a phone's
+ * toolbars make `vh` a number that is wrong for most of a scroll.
+ */
+#root {
   min-height: 100vh;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+}
+#root > main {
+  flex: 1 0 auto;
+}
+#root > .site-footer {
+  flex: 0 0 auto;
 }
 
 /* ── the shared measure ─────────────────────────────────────────────────────── */
 
+/* `width: 100%` is load-bearing, not decoration. As a block this rule worked without it —
+   a block fills its container by default. The masthead and the footer are flex items of
+   `#root` now, and `margin: 0 auto` on the cross axis suppresses the stretch a flex item
+   would otherwise get, leaving each one shrink-wrapped to its own contents: the nameplate
+   came out 1007px wide inside a 2440px page, centred, as if the site had changed measure
+   between the masthead and the headline. Stating the width restores the block behaviour;
+   `max-width` still sets the measure and the auto margins still centre it. */
 .shell {
+  width: 100%;
   max-width: var(--column);
   margin: 0 auto;
   padding: 0 var(--space-6);
@@ -135,19 +172,58 @@ body {
 /* ── footer ─────────────────────────────────────────────────────────────────── */
 
 .site-footer {
-  padding-top: var(--space-8);
-  padding-bottom: var(--space-8);
+  padding-top: var(--space-3);
+  padding-bottom: var(--space-3);
 }
 .site-footer .rule-heavy {
   margin-bottom: var(--space-3);
 }
 .footer-row {
-  display: flex;
-  justify-content: space-between;
-  gap: var(--space-4);
-  flex-wrap: wrap;
-  font: 400 14px/1.6 var(--font-body);
+  display: grid;
+  gap: var(--space-2) var(--space-6);
+  font: 400 13.5px/1.6 var(--font-body);
   color: var(--color-neutral-700);
+}
+.footer-row p {
+  margin: 0;
+}
+/* Set across the page rather than stacked: the claim, the provenance and the source
+   are three short things, and three stacked blocks with rules between them cost the
+   front page its last screenful. */
+@media (min-width: 1240px) {
+  .footer-row {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: baseline;
+  }
+  .footer-meta {
+    justify-self: end;
+    white-space: nowrap;
+  }
+  /**
+   * On an article the three cells do not fit across the reading measure.
+   *
+   * The front page's footer has 2440px and sets all three on one line. An article's has
+   * 1180px, where the claim takes 464 of it and the provenance sentence is left 433 — so
+   * it wrapped to four lines and the footer stood 131px tall at the bottom of a page that
+   * was trying to fit a screen. Two rows gives the sentence the full measure and two
+   * lines, which is both shorter and the right shape for it.
+   */
+  .site-footer:not(.front-shell) .footer-row {
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      "claim meta"
+      "colophon colophon";
+    row-gap: var(--space-2);
+  }
+  .site-footer:not(.front-shell) .footer-claim {
+    grid-area: claim;
+  }
+  .site-footer:not(.front-shell) .footer-meta {
+    grid-area: meta;
+  }
+  .site-footer:not(.front-shell) .colophon {
+    grid-area: colophon;
+  }
 }
 
 /* ── the plate numeral ──────────────────────────────────────────────────────── */
@@ -173,8 +249,10 @@ body {
 
 /* ── shared page furniture ──────────────────────────────────────────────────── */
 
+/* The masthead's hairline already closes the chrome; this is the gap before the page's own
+   first line, and 40px of it was a third of the slack the short chapters had to spare. */
 .page {
-  padding-top: var(--space-8);
+  padding-top: var(--space-6);
 }
 
 /* Kickers are cyan — the interactive ink — except where a section is deliberately
@@ -211,31 +289,522 @@ body {
 
 /* ── front page ─────────────────────────────────────────────────────────────── */
 
+/* The front page is the one page that is not a column of prose, so it is the one page
+   that should not be set to `--column`. An article is measure-bound — 1180px exists to
+   stop lines running past what an eye tracks comfortably — but this page's job is to
+   show a model and three doors, and holding it to a reading measure left ~370px of dead
+   paper down each side of a 1920 screen while the page itself ran to three screens.
+   Every other page keeps the narrow measure; the individual columns inside this one are
+   still bound in `ch`, so nothing here sets a long line.
+
+   Widened only from the two-column breakpoint up. Applied at every width it also
+   narrowed the phone — `100% - var(--space-8)` compounds with the padding `.shell`
+   already carries — and the figure's flat plate, whose gutters are fixed geometry,
+   overflowed the viewport. There is no reclaimed margin to spend below the breakpoint. */
+
+/* Two columns where there is room for two, and the figure gets the larger one.
+   The lede and the routes stack down the left; the figure spans both their rows, so it
+   is as tall as they are together and the page ends where the taller column ends. */
+.front-grid {
+  display: grid;
+  gap: 0 var(--space-8);
+  align-items: start;
+}
+
+/**
+ * One column: claim, then where to go, then the model.
+ *
+ * The markup order is lede → figure → routes, which is what the wide layout wants and
+ * what a desktop reader should meet: the model is the argument, and the routes belong in
+ * the column beside it. Stacked, that order buried the navigation under 1300px of plate —
+ * and on a phone the plate is not even interactive, because the engine keeps WebGL off
+ * below 768px. A reader scrolled two and a half screens past a static drawing to find out
+ * where they could go.
+ *
+ * So on narrow screens the routes come second and the figure last. `order` moves them
+ * without touching the markup; above the breakpoint every item is placed by grid area, and
+ * explicit placement ignores `order`, so these have no effect there.
+ */
+.front-lede {
+  order: 1;
+}
+.front-routes {
+  order: 2;
+}
+.front-figure {
+  order: 3;
+}
+/**
+ * 1280px: a laptop gets the designed page, not a fallback of it.
+ *
+ * This sat at 1600px, which meant the three-column front page — the whole point of the
+ * layout — existed only on a workstation. At 1440×900, the commonest professional screen
+ * there is, the page ran to 2.45 viewports and all three navigation buttons sat below the
+ * fold. The reason was the plate's gutters: fixed at 176px, two of them took 352px before
+ * the drawing got anything, so a narrower column crushed the model to a speck. They are
+ * fluid now, and the engine decides margins-versus-list from the drawing's own width, so
+ * the plate degrades honestly instead of dictating the page's breakpoint.
+ */
+@media (min-width: 1280px) {
+  /* No absolute cap. A cap is a measure, and the columns inside already carry their own
+     in `ch`; all a page-level one did here was hold 360px of margin down each side of a
+     2480px screen — the exact space the figure's panel was asked to reach into. What is
+     left is the page's own padding, which is what the margin should have been. */
+  .front-shell {
+    max-width: calc(100% - var(--space-8));
+  }
+  /* The banner headline runs the full width, the way a front page sets its lead; the
+     routes and the figure share the measure beneath it. */
+  .front-grid {
+    grid-template-columns: minmax(280px, 21%) minmax(0, 1fr);
+    grid-template-areas:
+      "lede lede"
+      "routes figure";
+  }
+  /* The banner and its deck share the top rule: headline to the measure it wants, deck
+     in a narrow column at the right, the way a front page sets a lead and its summary
+     rather than stacking one under the other. */
+  .front-lede {
+    grid-area: lede;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(260px, 24%);
+    gap: 0 var(--space-8);
+    align-items: start;
+    padding-bottom: var(--space-4);
+  }
+  .front-routes {
+    grid-area: routes;
+    padding-right: var(--space-6);
+  }
+  /* The rules between the three columns are the page's own furniture, not the figure's. */
+  .front-figure {
+    grid-area: figure;
+    border-left: 1px solid var(--color-divider);
+    padding-left: var(--space-6);
+  }
+  .front-figure .stack-fig-panel {
+    border-left: 1px solid var(--color-divider);
+    padding-left: var(--space-6);
+  }
+  /* The figure prints its own hairline above the plate. Here it would be the only rule
+     across the top of the columns and would stop at the figure's own left edge — a line
+     under two thirds of the page, which reads as an unfinished rule rather than a
+     deliberate one. The banner is separated by space instead. */
+  .front-figure .stack-figure > .rule-hair {
+    display: none;
+  }
+  /* Across the top, so it is set as a banner: no `ch` ceiling, because the constraint on
+     a banner is the page, and two lines of it is the whole point.
+     Scoped to `.front-lede` rather than written bare: the base rules below are later in
+     the file at equal specificity, and a media query adds none, so a bare selector here
+     loses to them. */
+  .front-lede .front-headline {
+    font-size: clamp(46px, 4vw, 80px);
+    max-width: none;
+    margin-bottom: 0;
+  }
+  /* The deck sits in the banner's right-hand column, justified, at the size a summary
+     is set — it is the only paragraph above the fold and it should read as one. */
+  .front-lede .front-standfirst {
+    font-size: 16.5px;
+    line-height: 1.5;
+    text-align: justify;
+    hyphens: auto;
+    max-width: none;
+    margin: 6px 0 0;
+  }
+  /* The figures sit under the headline in the banner's left column, not under the deck:
+     they belong to the claim, and the deck's column is too narrow to set four of them. */
+  .front-lede .front-metrics {
+    grid-column: 1;
+    margin: var(--space-3) 0 0;
+  }
+  /* The figure sets its own top rule, so the column does not need the page's padding
+     above it — this is what lines the model up with the headline rather than with the
+     standfirst. */
+  .front-figure .stack-figure {
+    margin-top: 0;
+  }
+
+  /* Everything below is one budget: at this width the page is meant to be read without
+     scrolling, so the two columns are sized against the viewport rather than against
+     their contents. The figure gives up height in `vh` and the left column gives up
+     leading; both stop at a floor, and under the breakpoint none of this applies and the page
+     goes back to being as tall as it needs to be. */
+  /* One height for the plate's top row, declared once and used by both cells.
+     The panel used to size that row along with the canvas, so the row — and the foot, and
+     the page's bottom edge — was as tall as whatever block the reader had clicked. Across
+     the fourteen parts the panel runs 374px to 547px, so choosing "Attention" moved the
+     footer 170px from where "Final norm" had left it. A detail pane is not supposed to
+     relayout the page it sits in.
+     Now the row is a fixed height, the canvas fills it, and the panel is bound to it and
+     scrolls its own overflow. The bottom of the figure is a constant, and stays one when
+     someone adds a sentence to a block later. */
+  /**
+   * The figure takes the height the page has left, rather than a guessed fraction of it.
+   *
+   * It was `clamp(280px, 34vh, 460px)`: a number tuned against one window, which left
+   * 117px of empty page under the footer on a 1236px screen and would have left more on
+   * a taller one. The alternative — subtracting a measured constant from `100dvh` — is
+   * the same guess written as arithmetic, and it goes stale the first time the deck wraps
+   * to another line.
+   *
+   * So the chain from the viewport down to the plate is flexible instead, and the figure's
+   * row is the one part that grows: `main` fills the window, the page fills `main`, the
+   * columns row fills the page, and the stage's top row takes what is left of that. No
+   * constant anywhere, so it is right at every window height and stays right when the
+   * copy around it changes.
+   *
+   * `min-height: 0` at each step because a flex item's default floor is its content, and
+   * one of them refusing to shrink is what would push the page into scrolling.
+   */
+  /**
+   * The front page may shrink; every other page may not.
+   *
+   * `#root > main` is `flex: 1 0 auto` — grow into spare height, never compress — which
+   * is right for an article: a long chapter should overflow the window and scroll, not be
+   * squashed into it. But it also meant this chain could only ever grow. The figure's row
+   * is `minmax(300px, 1fr)`, and a `1fr` row in an auto-height grid resolves to its
+   * content, so on a window a little too short the plate held its full natural height and
+   * pushed the page a few pixels past the fold — a scrollbar with almost nothing behind
+   * it.
+   *
+   * The front page is written to fit, so here `main` is allowed to compress and the
+   * figure gives way first, down to its 300px floor, with the panel scrolling inside it.
+   * Past that the page scrolls, which by then it has earned. The `#root >` prefix is only
+   * there to outrank the base rule's ID.
+   */
+  /**
+   * Bind the front page to the window, so "1fr" means a share of the screen rather than a
+   * share of the content.
+   *
+   * With `min-height` alone the chain had nothing to push back with: when the figure
+   * wanted more room than the window had, `#root` simply grew, `main` filled the larger
+   * box, and nothing was ever asked to compress — a scrollbar with a few pixels behind it.
+   *
+   * The height goes on `#root` and the overflow on `main`, and both halves are needed. A
+   * fixed-height root alone pins the footer at the bottom while the content spills over
+   * it, so on a short window the third signpost printed straight through the footer.
+   * Giving `main` the overflow means the figure compresses first, then the columns scroll
+   * within their own box, and the footer stays where it belongs. Only here: below this
+   * width the page is a normal document that scrolls normally.
+   */
+  #root:has(> main > .front-shell) {
+    height: 100vh;
+    height: 100dvh;
+  }
+  /**
+   * No document scrollbar on a page written to fit the document.
+   *
+   * `#root` is exactly one viewport and `main` owns any overflow, so the few pixels the
+   * document could still scroll were never content — they were rounding: fractional
+   * element heights summing a hair past an integer viewport, which is enough for a
+   * browser to offer a scrollbar with nothing behind it. Clipping the document says the
+   * thing the layout already means.
+   *
+   * Safe because it is not where the content lives. Anything that genuinely does not fit
+   * is inside `main`, which scrolls, so nothing here is made unreachable — and it applies
+   * only to this page at this width. Every other page, and this one on a narrower screen,
+   * is an ordinary scrolling document.
+   */
+  html:has(.front-shell),
+  body:has(.front-shell) {
+    overflow: hidden;
+  }
+  #root > main:has(> .front-shell) {
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+  }
+  .front-shell.page {
+    flex: 1 1 auto;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+  }
+  /* A `0` minimum on the columns row, so the row is free to take the height the window
+     has rather than the height its contents would like.
+     It was `minmax(min-content, 1fr)` for a while, to stop the routes column running past
+     the grid and printing over the footer. That turned out to be both the wrong fix and
+     the thing pinning the page: the row's `min-content` resolved to the figure's full
+     natural height, so the row never shrank, and the front page sat ~240px taller than the
+     window. The overlap it was guarding against is handled properly now — `main` scrolls
+     its own overflow, so anything that will not fit is reachable rather than painted over
+     the footer — and with the signposts set tighter the routes column no longer comes
+     close to the ceiling anyway. */
+  .front-grid {
+    flex: 1 1 auto;
+    min-height: 0;
+    grid-template-rows: auto minmax(0, 1fr);
+  }
+  .front-figure {
+    align-self: stretch;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+  }
+  .front-figure .stack-figure {
+    flex: 1 1 auto;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+  }
+  .front-figure .stack-fig-area {
+    height: 100%;
+  }
+  /* Widening the panel is what keeps that scroll rare: the same words across a wider
+     measure are simply shorter, and on a 2400px screen there is width to spend. The model
+     gives up ~120px it was not using. Capped so the measure stays readable rather than
+     growing with the window forever. */
+  /* The top row takes the slack; the foot under it stays its own size. A floor of 300px
+     so a short window shrinks the plate rather than crushing it — past that the page is
+     allowed to scroll, which is the honest outcome on a window too short to hold it. */
+  .front-figure .stack-fig-stage {
+    flex: 1 1 auto;
+    min-height: 0;
+    /* The panel takes a share of the width, but never so much that the model is left
+       without a drawing area worth having. The reserve is 520px — two fluid gutters at
+       their 104px floor plus ~300px of stack — rather than the 800px it was when the
+       gutters were fixed at 176px and the layout only ran on a workstation. */
+    grid-template-columns: minmax(0, 1fr) min(clamp(300px, 26vw, 700px), calc(100% - 520px));
+    grid-template-rows: minmax(250px, 1fr) auto;
+    align-items: stretch;
+  }
+  /* The prose scrolls inside the box; the exit is pinned under it. The box is now the
+     stretched grid row rather than a stated height, so the panel grows with the plate —
+     which is what makes the inner scroll rarer on a tall screen instead of constant. */
+  .front-figure .stack-fig-panel {
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  /**
+   * A slot per field, so the labels hold still while the copy changes under them.
+   *
+   * The body used to be one scrolling column of paragraphs, which meant every row sat
+   * wherever the row above it ended. The description runs from two lines to five and only
+   * some parts carry a variant note, so "Its shape", "Its share of the budget" and "What
+   * holds it" swung through 119px depending on which block was selected — a reader
+   * comparing two of them had to find the same four labels again each time.
+   *
+   * Now the description is a fixed eight lines of its own leading, the two short fields are
+   * their natural size, and the assertion takes whatever is left. The three labels land in
+   * the same place for all fourteen parts. Anything longer than its slot scrolls inside
+   * that slot, so nothing is lost and nothing below it moves.
+   */
+  .front-figure .stack-fig-panel-body {
+    flex: 1 1 auto;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    /* `auto`, not `hidden`: the slots below have fixed sizes, so on a short window their
+       sum can exceed the box. Scrolling keeps them reachable; clipping would not. */
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding-right: var(--space-3);
+  }
+  .front-figure .stack-fig-prose {
+    flex: none;
+  }
+  /* Every field is its natural height, including the last one. Giving the assertion the
+     leftover space and its own scrollbar turned the longest of them into a three-line
+     peephole — a worse thing to read than the misalignment the slots were added to fix.
+     It sits at the bottom of the body, so letting it run its full length moves nothing
+     above it, and the body's own scroll is the one place any overflow shows up. */
+  .front-figure .stack-fig-field {
+    flex: none;
+  }
+  .front-figure .stack-fig-panel-exit {
+    flex: 0 0 auto;
+    padding-right: var(--space-3);
+  }
+}
+
+/**
+ * The reserved slots, and the height at which they start being worth having.
+ *
+ * Fixing the description at eight lines and the exit at its tallest is what stops the
+ * labels moving as the reader clicks from block to block. It costs height, though: about
+ * 190px of the panel is then spoken for whatever the part says. On a 950px window the
+ * plate's row is only ~280px, so paying that left roughly 128px of readable body — the
+ * description cut off mid-sentence with the three fields somewhere below the fold. The
+ * cure was worse than the disease it was mixed for.
+ *
+ * So the slots apply only where the panel can afford them. Below this the panel flows
+ * naturally and scrolls as one, which is what a short window needs: alignment between
+ * parts matters least when the reader is scrolling the pane anyway.
+ */
+@media (min-width: 1280px) and (min-height: 1100px) {
+}
+
+@media (min-width: 1280px) {
+  /* Five eyebrows down the panel, so 5px off each is 25px of measure — enough to bring
+     four of the fourteen parts back inside the box entirely rather than scrolling by
+     single digits, which is the worst version of a scroll: invisible and pointless. */
+  .front-figure .stack-fig-panel .eyebrow {
+    margin-top: var(--space-2);
+  }
+  /* The panel takes the column's full height, and the foot goes back under the model.
+     The foot spanning both tracks bought the legend a wider measure, but it cost the panel
+     everything below the plate — the panel was capped at the model's row while its own
+     content ran to twice that, so it scrolled while ~170px of its column sat unused under
+     it. The panel is the part with more to say than room to say it; the legend is a caption
+     and can wrap. */
+  /* Both placed explicitly. With only the panel's span stated, auto-placement pushed the
+     foot into an implicit third row and left row 2 at zero height, so the panel spanned
+     two rows and gained nothing. */
+  .front-figure .stack-fig-foot {
+    grid-column: 1;
+    grid-row: 2;
+  }
+  .front-figure .stack-fig-panel {
+    grid-column: 2;
+    grid-row: 1 / 3;
+  }
+  /* The last of the budget comes out of the furniture rather than the content: the page's
+     top padding, the space under the figure's title, and the title itself, which was sized
+     for a figure sitting in a column of prose rather than heading its own half of a page. */
+  .front-shell.page {
+    padding-top: var(--space-4);
+  }
+  .front-figure .stack-fig-head {
+    margin-bottom: 0;
+  }
+  .front-figure .stack-fig-title {
+    font-size: 27px;
+  }
+  .front-figure .stack-fig-stage {
+    margin-top: 0;
+    row-gap: var(--space-3);
+  }
+  .front-figure .stack-fig-foot {
+    gap: var(--space-2);
+  }
+  /**
+   * Sized for a laptop, not for a workstation.
+   *
+   * This layout was tuned against a 1236px-tall window, where there was room to spare. On
+   * a 1920×1080 screen the browser leaves about 950px, and at that height the columns row
+   * gets 575px while the routes column alone wanted 728px and the figure's floor was 637px
+   * — so the page overflowed by 267px and `main` grew a scrollbar of its own, at the right
+   * edge of the window where it read as the document's.
+   *
+   * So the signposts and the plate's chrome are set tighter here. The figure's drawing
+   * area is untouched: it is the one thing on the page that should get the space, and
+   * everything below is what was taken to give it to it.
+   */
+  .front-routes .section-label {
+    margin: 0 0 var(--space-2);
+  }
+  .front-routes .destinations {
+    margin-bottom: 0;
+  }
+  .front-routes .destination {
+    padding: var(--space-3) 0;
+  }
+  .front-routes .destination-num {
+    font-size: 12px;
+    margin-bottom: 4px;
+  }
+  .front-routes .destination-title {
+    font-size: clamp(17px, 1.1vw, 22px);
+    margin-bottom: 4px;
+    max-width: 24ch;
+  }
+  .front-routes .destination-blurb {
+    font-size: 13.5px;
+    line-height: 1.4;
+    margin-bottom: var(--space-2);
+    max-width: 40ch;
+  }
+  .front-routes .destination-cta {
+    padding: 7px var(--space-3);
+    font-size: 13px;
+  }
+  /* The plate's own furniture, on the same diet. */
+  .front-figure .stack-fig-title {
+    font-size: clamp(20px, 1.3vw, 27px);
+  }
+  .front-figure .stack-fig-foot {
+    gap: 6px;
+  }
+}
+
+/* The floor is 36px, not 42px: on a 375px screen the headline is the whole first screen
+   at 42, and five lines of display type is a wall rather than a claim. */
 .front-headline {
-  font: var(--font-heading-weight) clamp(42px, 6vw, 86px) / 0.98 var(--font-heading);
+  font: var(--font-heading-weight) clamp(36px, 6vw, 86px) / 1 var(--font-heading);
   letter-spacing: -0.025em;
   margin: 0 0 var(--space-4);
   max-width: 20ch;
   text-wrap: balance;
 }
 
-.standfirst-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-  gap: var(--space-6);
-  max-width: 96ch;
-  margin: 0 0 var(--space-8);
-}
 .standfirst {
   font: 400 20px/1.55 var(--font-body);
   margin: 0;
   text-wrap: pretty;
 }
-.standfirst-secondary {
-  font: 400 17px/1.6 var(--font-body);
-  color: var(--color-neutral-800);
-  margin: 0;
-  text-wrap: pretty;
+
+/* Two lines, and the measure enforces it: the hero's whole job is to get a reader to
+   the figure, and a third line of prose is the one that stops being read. */
+.front-standfirst {
+  max-width: 62ch;
+  margin: 0 0 var(--space-4);
+}
+
+/* The evidence as one rule of type rather than four display numerals. Set inline it costs
+   about 30px and still reads as measurement; set as a strip of plate figures it cost most
+   of a screen and pushed the model below the fold, which is what it did the first time. */
+.front-metrics {
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-2) var(--space-4);
+  /* Stacked, the routes follow straight after these and need the gap; in the banner's
+     grid the row below sets its own spacing and this is overridden to 0. */
+  margin: 0 0 var(--space-8);
+  padding: 0;
+}
+/* Drawn rather than typed, so no empty <li> is read out, and trailing rather than leading
+   so a wrapped line ends on the dot instead of opening with one. */
+.front-metrics li:not(:last-child)::after {
+  content: "·";
+  color: var(--color-neutral-600);
+  margin-left: var(--space-4);
+}
+.front-metrics a {
+  color: inherit;
+  text-decoration: none;
+  border-bottom: 1px solid transparent;
+}
+.front-metrics a:hover,
+.front-metrics a:focus-visible {
+  border-bottom-color: currentColor;
+}
+.front-metric-value {
+  font-size: 18px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+.front-metric-label {
+  font: 400 14px/1.4 var(--font-body);
+  color: var(--color-neutral-700);
+}
+
+@media (max-width: 700px) {
+  .front-metrics {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-3);
+  }
+  .front-metrics li:not(:last-child)::after {
+    content: none;
+  }
 }
 
 /* Baseline, not flex-end: the captions run to different line counts, and aligning the
@@ -286,104 +855,71 @@ body {
   }
 }
 
-.path {
+/* Three signposts stacked down a column, ruled off from each other. Deliberately not a
+   card grid: the whole site is set as print, and boxed equal-height cards are the one
+   gesture that would make it read as a product page. The button is the exception — a
+   choice should look pressable, and these three are the only choices on the page. */
+.destinations {
   list-style: none;
-  margin: 0 0 var(--space-8);
+  margin: 0;
   padding: 0;
   display: grid;
-  gap: var(--space-6);
 }
-.path-item {
-  display: grid;
-  grid-template-columns: 104px minmax(0, 1fr) auto;
-  gap: var(--space-6);
-  align-items: baseline;
-  padding-bottom: var(--space-6);
+.destination {
+  padding: var(--space-4) 0;
   border-bottom: 1px solid var(--color-divider);
 }
-/* A run of the path ends where the next one's heavy rule begins, so the last row of a
-   group drops the hairline it would otherwise print into it. */
-.path-item:has(+ .path-break) {
-  border-bottom: 0;
-  padding-bottom: 0;
-}
-/* The group break is the page's own section furniture — thick rule, tracked label —
-   set inside the list so the path stays one ordered sequence. */
-.path-break {
+.destination:first-child {
   padding-top: var(--space-2);
 }
-.path-break .section-label {
-  margin: var(--space-3) 0 0;
+/* The numeral is a label here rather than a plate figure: at 46px it was the loudest
+   thing in a column whose job is three titles. */
+.destination-num {
+  font: 400 13px/1 var(--mono);
+  color: var(--color-accent-700);
+  letter-spacing: 0.06em;
+  margin: 0 0 var(--space-2);
 }
-.path-num .plate-num {
-  font-size: 46px;
-  line-height: 1;
-  letter-spacing: -0.04em;
-}
-.path-kicker {
-  margin: 0 0 8px;
-  letter-spacing: 0.15em;
-}
-.path-title {
-  font: var(--font-heading-weight) clamp(24px, 2.4vw, 32px) / 1.12 var(--font-heading);
+.destination-title {
+  font: var(--font-heading-weight) clamp(20px, 1.5vw, 27px) / 1.15 var(--font-heading);
   letter-spacing: -0.015em;
-  margin: 0 0 8px;
-  max-width: 30ch;
+  margin: 0 0 6px;
+  max-width: 22ch;
 }
-/* The whole title is a link, printed in the page's own ink: the row already carries
-   its call to action on the right, and a title that only reveals itself as clickable
-   on hover costs the design nothing. */
-.path-title a {
+/* The whole title is a link, printed in the page's own ink: the row already carries its
+   button, and a title that only reveals itself as clickable on hover costs nothing. */
+.destination-title a {
   color: inherit;
 }
-.path-blurb {
-  font: 400 17px/1.55 var(--font-body);
-  color: var(--color-neutral-800);
-  margin: 0;
-  max-width: 62ch;
+.destination-blurb {
+  font: 400 15px/1.5 var(--font-body);
+  color: var(--color-neutral-700);
+  margin: 0 0 var(--space-3);
+  max-width: 34ch;
   text-wrap: pretty;
 }
-.path-cta {
-  font: var(--font-heading-weight) 13px/1 var(--font-body);
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
+.destination-cta {
+  display: inline-block;
+  padding: 9px var(--space-3);
+  border: 1px solid var(--color-neutral-400);
+  border-radius: var(--radius-sm);
+  font: var(--font-heading-weight) 14px/1 var(--font-body);
+  color: inherit;
+  text-decoration: none;
   white-space: nowrap;
 }
+.destination-cta:hover,
+.destination-cta:focus-visible {
+  background: var(--color-text);
+  border-color: var(--color-text);
+  color: var(--color-bg);
+}
 
-.status-note {
-  font: 400 17px/1.55 var(--font-body);
-  color: var(--color-neutral-800);
-  max-width: 66ch;
-  margin: 0 0 var(--space-4);
-}
-.status-table {
-  margin: 0 0 var(--space-8);
-}
-.status-pillar {
-  font-size: 16px;
-}
 .status-state {
   font-size: 15px;
   color: var(--color-neutral-700);
 }
 
-.illustrative {
-  background: var(--color-accent-2-100);
-  padding: var(--space-4) var(--space-6);
-  border-radius: var(--radius-md);
-  max-width: 900px;
-  margin: 0 0 var(--space-8);
-}
-.illustrative-title {
-  font: var(--font-heading-weight) 24px/1.15 var(--font-heading);
-  margin: 0 0 var(--space-2);
-}
-.illustrative-note {
-  font: 400 16px/1.55 var(--font-body);
-  color: var(--color-neutral-800);
-  max-width: 64ch;
-  margin: 0 0 var(--space-3);
-}
 .verdict-better {
   font-size: 15px;
   color: var(--color-accent-700);
@@ -393,27 +929,19 @@ body {
   color: var(--color-neutral-700);
 }
 
-/* Below this the three-column path row has nowhere left to go: the numeral moves
-   above its kicker and the call to action drops under the blurb. */
-@media (max-width: 700px) {
-  .path-item {
-    grid-template-columns: minmax(0, 1fr);
-    gap: var(--space-2);
-  }
-  .path-cta {
-    justify-self: start;
-  }
-}
 
 /* ── chapters ───────────────────────────────────────────────────────────────── */
 
+/* The rail is furniture: it says where you are in eight chapters and lets you jump. It
+   was taking 30px of padding and 40px of margin around a row of 14px numerals — 100px of
+   the screen before the chapter's own kicker, on a page whose figure is the point. */
 .chapter-rail {
   display: flex;
   gap: var(--space-2);
   flex-wrap: wrap;
-  padding: 0 0 var(--space-6);
+  padding: 0 0 var(--space-3);
   border-bottom: 1px solid var(--color-divider);
-  margin-bottom: var(--space-8);
+  margin-bottom: var(--space-4);
 }
 .chapter-rail a {
   font: var(--font-heading-weight) 14px/1 var(--mono);
@@ -430,12 +958,78 @@ body {
   color: var(--color-bg);
 }
 
-.chapter-title {
-  font: var(--font-heading-weight) clamp(34px, 4.6vw, 64px) / 1.03 var(--font-heading);
-  letter-spacing: -0.022em;
+/**
+ * The chapter's question, which is now the page's opening line and its h1.
+ *
+ * Set at the size the title used to be, because it is doing the title's job: it is the
+ * thing a reader lands on. Italic, which is how a question is set in a printed article
+ * and what keeps it from reading as a section heading — this is the page asking, not the
+ * page announcing.
+ */
+.chapter-question {
+  font: var(--font-heading-weight) clamp(30px, 3.3vw, 50px) / 1.08 var(--font-heading);
+  font-style: italic;
+  letter-spacing: -0.02em;
   margin: 0 0 var(--space-4);
-  max-width: 24ch;
+  max-width: 30ch;
   text-wrap: balance;
+}
+
+/**
+ * The chapter's title, printed where the body reaches it as the answer.
+ *
+ * Smaller than the question above it and upright where that is italic, so the pair reads
+ * as ask-then-answer rather than as two competing headlines. It keeps the display face:
+ * it is still the sentence the chapter is named for.
+ */
+.chapter-answer {
+  font: var(--font-heading-weight) clamp(22px, 2vw, 30px) / 1.15 var(--font-heading);
+  letter-spacing: -0.015em;
+  margin: var(--space-4) 0 var(--space-3);
+  max-width: 30ch;
+  text-wrap: balance;
+}
+
+/**
+ * Where the reader has got to. Two or three short lines above the question.
+ *
+ * Deliberately the quietest thing on the page — the size of a caption, ranged left
+ * against a hairline rather than boxed. It is a reminder for someone arriving from the
+ * previous chapter and skippable furniture for anyone else, and the moment it gets a
+ * panel or a progress indicator it becomes courseware.
+ */
+.chapter-recap {
+  font: 400 15px/1.55 var(--font-body);
+  color: var(--color-neutral-800);
+  max-width: 68ch;
+  margin: 0 0 var(--space-3);
+  text-wrap: pretty;
+}
+.chapter-recap-lead {
+  font-variant-caps: all-small-caps;
+  letter-spacing: 0.06em;
+  color: var(--color-neutral-700);
+}
+
+/**
+ * A question asked of the reader before the page answers it.
+ *
+ * Same furniture as `Caveat.` and `Provenance.` — a named lead in small caps and then
+ * body copy — because it is the same kind of object: an aside in the paper's own voice.
+ * Reusing that pattern is what keeps a prediction from looking like a quiz.
+ */
+.chapter-predict {
+  font: 400 17px/1.55 var(--font-body);
+  max-width: 62ch;
+  margin: var(--space-4) 0;
+  text-wrap: pretty;
+}
+.chapter-predict-lead {
+  font: var(--font-heading-weight) 11px/1 var(--font-body);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--color-accent-700);
+  margin-right: 4px;
 }
 
 .prose {
@@ -457,17 +1051,39 @@ body {
 }
 .prose code,
 .prose-secondary code,
-.prose-caveat code {
+.prose-caveat code,
+.caveat-wide code {
   font-family: var(--mono);
   font-size: 0.92em;
 }
+/**
+ * A file path inside a provenance note is the artifact the claim rests on, so it reads as
+ * an artifact: monospace, in the interactive ink, and underlined on its own line rather
+ * than sharing the paragraph's underline.
+ *
+ * These notes name a test or a corpus and that name is the most checkable thing in the
+ * sentence — a reader who wants to verify the claim goes straight to it. Set as ordinary
+ * link text among ordinary prose it was the least findable part of the paragraph.
+ */
+.prose-caveat a > code,
+.caveat-wide a > code {
+  color: inherit;
+  overflow-wrap: anywhere;
+}
+.prose-caveat a:has(> code),
+.caveat-wide a:has(> code) {
+  text-decoration-thickness: 1px;
+  text-underline-offset: 2px;
+}
 
+/* The rule above it already separates it from the chapter; 40px of margin on top of a
+   2px rule was separating it twice. */
 .chapter-foot {
   display: flex;
   justify-content: space-between;
   gap: var(--space-4);
-  margin: var(--space-8) 0 0;
-  padding: var(--space-4) 0;
+  margin: var(--space-4) 0 0;
+  padding: var(--space-3) 0;
   border-top: 2px solid var(--color-text);
 }
 .chapter-foot a {
@@ -477,6 +1093,26 @@ body {
 }
 .chapter-foot a:last-child {
   text-align: right;
+}
+/* The forward link is two lines: the question the next chapter answers, then its name.
+   The question is the reason to keep going, so it is set as the sentence and the title
+   below it as the label — the reverse of the emphasis a nav link usually carries. */
+.chapter-foot-next {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  max-width: 44ch;
+}
+.chapter-foot-question {
+  font: italic 400 15px/1.35 var(--font-heading);
+  letter-spacing: normal;
+  text-transform: none;
+  color: var(--color-neutral-800);
+}
+.chapter-foot-title {
+  font: var(--font-heading-weight) 13px/1.4 var(--font-body);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
 }
 
 /* Below this the eight-item rail would wrap to three lines and push the chapter's
@@ -534,12 +1170,14 @@ body {
 /* The one deliberate departure from "no boxes": an interactive figure is a discrete
    instrument, not a layout container. It is the only surface on the page, and it
    never wraps prose. */
+/* An 11px label announcing the figure directly beneath it does not need 40px of air above
+   it to be read as a new thing — it is set in caps at a third the size of the prose. */
 .figure-label {
   font: 400 11px/1 var(--font-body);
   letter-spacing: 0.15em;
   text-transform: uppercase;
   color: var(--color-neutral-700);
-  margin: var(--space-8) 0 var(--space-2);
+  margin: var(--space-6) 0 var(--space-2);
 }
 .figure-panel {
   background: var(--color-neutral-100);
@@ -595,12 +1233,27 @@ body {
   margin: var(--space-2) 0 0;
 }
 
+
 .field {
   display: flex;
   align-items: center;
   gap: 10px;
   font-size: 15px;
   color: var(--color-neutral-700);
+}
+/**
+ * A checkbox's target is its label, and the label has to be big enough to hit.
+ *
+ * The box itself renders at 15px, which is the platform's size and not worth fighting —
+ * but the label around it was 23px tall, just under the 24px minimum, on a control whose
+ * whole job is to be tapped on a phone. Padding the label rather than scaling the box
+ * keeps the figure's type where it is and moves only the hit area.
+ */
+.field:has(input[type="checkbox"]),
+.field:has(input[type="radio"]) {
+  min-height: 28px;
+  padding: 2px 0;
+  cursor: pointer;
 }
 .field-inline {
   display: inline-flex;
@@ -688,18 +1341,63 @@ body {
 
 /* ── figure 3: attention intuition ──────────────────────────────────────────── */
 
+/**
+ * Chapter three's sentence, which is the chapter.
+ *
+ * Unboxed, unlike every other figure here. The page's argument is that one sentence
+ * changes meaning when a word four positions away changes, and that is a thing to be read
+ * at reading size — set inside a tinted panel at 30px it looked like a widget
+ * demonstrating a feature. Everything else on that page is deliberately sparse so this can
+ * be the largest thing on it after the question.
+ */
+.intuition {
+  margin: 0 0 var(--space-4);
+}
 .sentence {
-  font: 400 clamp(22px, 2.4vw, 30px) / 2 var(--font-heading);
-  margin: 0 0 var(--space-3);
+  font: 400 clamp(26px, 3vw, 42px) / 1.5 var(--font-heading);
+  letter-spacing: -0.015em;
+  margin: 0 0 var(--space-4);
+  max-width: 30ch;
+  text-wrap: balance;
 }
 .sentence-word {
   padding: 2px 5px;
   border-radius: var(--radius-sm);
 }
+/* A real button, so it is tabbable and announced as one; the type has to be reset back to
+   the sentence's, or the browser sets the words it interrupts in 13px system sans. */
+button.sentence-word {
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: 0;
+  cursor: pointer;
+  text-decoration: underline dotted;
+  text-underline-offset: 6px;
+}
+button.sentence-word:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
 .sentence-word-target {
   cursor: pointer;
   text-decoration: underline dotted;
   text-underline-offset: 6px;
+}
+/* The swap sits under the explanation, so the reader reads what "it" means before being
+   offered the word that changes it. */
+.sentence-swap {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+  margin-top: var(--space-4);
+}
+.sentence-swap-lead {
+  font: var(--font-heading-weight) 11px/1 var(--font-body);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--color-neutral-700);
 }
 .sentence-word-source {
   background: var(--color-accent-200);
@@ -754,13 +1452,50 @@ body {
   border-radius: var(--radius-sm);
   height: 14px;
 }
+/**
+ * The bars move rather than jump.
+ *
+ * The lesson of this figure is that probability is conserved — turn temperature up and
+ * mass moves out of the favourite and into the tail. Snapping between two states shows
+ * the before and the after but not the transfer, which is the thing being taught. 160ms
+ * is long enough to read as movement and short enough that dragging a slider still feels
+ * attached to the hand.
+ */
 .candidate-bar {
   height: 100%;
   border-radius: var(--radius-sm);
   background: var(--color-accent);
+  transition: width 160ms ease-out, background-color 160ms ease-out;
+}
+.candidate {
+  transition: opacity 160ms ease-out;
 }
 .candidate-dropped .candidate-bar {
   background: var(--color-neutral-500);
+}
+/* Someone who has asked for less motion is told the same thing by the endpoints. */
+@media (prefers-reduced-motion: reduce) {
+  .candidate-bar,
+  .candidate {
+    transition: none;
+  }
+}
+
+/* The sampler's two stages, in the order the real sampler applies them. */
+.sampler-stage {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  font: var(--font-heading-weight) 11.5px/1.4 var(--font-body);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--color-neutral-700);
+  margin: 0 0 var(--space-2);
+}
+.sampler-stage-num {
+  font: var(--font-heading-weight) 12px/1 var(--mono);
+  letter-spacing: normal;
+  color: var(--color-accent-700);
 }
 .candidate-pct {
   font: 13px var(--mono);
@@ -798,8 +1533,12 @@ body {
   font-family: var(--font-body);
   color: var(--color-text);
 }
+/* The tint was the whole signal for "the slider is here", which fails for anyone who
+   cannot separate it from the paper. The rule in the margin says it in shape as well —
+   the same pull-quote marker `.sentence-why` uses, so it reads as the page's own mark. */
 .loss-mark-current {
   background: var(--color-accent-100);
+  box-shadow: inset 3px 0 0 var(--color-accent);
 }
 .loss-mark-label {
   font: var(--font-heading-weight) 16px/1.3 var(--font-body);
@@ -827,17 +1566,30 @@ body {
 
 /* ── the deep end: shared page furniture ────────────────────────────────────── */
 
+/**
+ * 58px over 28ch, not 70px over 22ch.
+ *
+ * The two together were costing a line. At 70px inside a 22ch measure, five of these
+ * pages set their headline over three lines — 212px of display type before the standfirst
+ * had started — and on a results plate that pushed the first figure past 850px, so the
+ * page opened on its own title and nothing else. A wider measure at a smaller size sets
+ * the same words in two lines inside the same 1180px column.
+ *
+ * Still display type, and still the loudest thing on the page: the front page's banner
+ * runs to 84px because it has a whole screen to itself, and these are articles that have
+ * an argument to get to.
+ */
 .page-headline {
-  font: var(--font-heading-weight) clamp(36px, 5vw, 70px) / 1.01 var(--font-heading);
-  letter-spacing: -0.025em;
-  margin: 0 0 var(--space-4);
-  max-width: 22ch;
+  font: var(--font-heading-weight) clamp(32px, 3.6vw, 58px) / 1.04 var(--font-heading);
+  letter-spacing: -0.022em;
+  margin: 0 0 var(--space-3);
+  max-width: 28ch;
   text-wrap: balance;
 }
 .page-standfirst {
   font: 400 20px/1.55 var(--font-body);
   max-width: 70ch;
-  margin: 0 0 var(--space-8);
+  margin: 0 0 var(--space-6);
 }
 .section-h2 {
   font: var(--font-heading-weight) clamp(26px, 2.8vw, 36px) / 1.12 var(--font-heading);
@@ -1273,7 +2025,9 @@ main:focus {
   -webkit-overflow-scrolling: touch;
 }
 
-.table-scroll:focus-visible {
+.table-scroll:focus-visible,
+.stack-fig-panel-body:focus-visible,
+.stack-fig-canvas:focus-visible {
   outline: 2px solid var(--color-accent);
   outline-offset: 2px;
 }
@@ -1326,11 +2080,12 @@ figcaption {
 
 /* The colophon: where the project came from, in the register a newspaper uses for it —
    quiet, at the very bottom, and on every page rather than buried in one. */
+/* No `ch` ceiling: it sits in the footer's middle cell now, and the grid track is the
+   measure. Capped at 78ch it wrapped to three lines with the rest of the row empty. */
 .colophon {
   font: 400 13px/1.6 var(--font-body);
   color: var(--color-neutral-700);
-  margin: var(--space-2) 0 0;
-  max-width: 78ch;
+  margin: 0;
 }
 
 /* ── Figure V: the stack, in three dimensions ───────────────────────────────────
@@ -1355,10 +2110,6 @@ figcaption {
   gap: var(--space-4);
   padding-top: var(--space-3);
 }
-.stack-fig-numeral .plate-num {
-  font-size: 54px;
-  line-height: 0.82;
-}
 .stack-fig-title {
   font: var(--font-heading-weight) 30px/1.1 var(--font-heading);
   max-width: 26ch;
@@ -1376,8 +2127,12 @@ figcaption {
 .stack-fig-area {
   position: relative;
   height: 500px;
-  --gutter-l: 176px;
-  --gutter-r: 176px;
+  /* Fluid, because the label max-widths below are derived from these — a narrower gutter
+     wraps a label rather than spilling it. Fixed at 176px they were the reason the plate
+     could not be given a column narrower than a full page: two of them took 352px before
+     the drawing got anything. */
+  --gutter-l: clamp(104px, 8vw, 176px);
+  --gutter-r: clamp(104px, 8vw, 176px);
   --fig-leader-gap: 24px;
   padding-left: var(--gutter-l);
   padding-right: var(--gutter-r);
@@ -1389,8 +2144,18 @@ figcaption {
      halfway down a long read. */
   touch-action: pan-y;
 }
+/* Positioned out of flow, like the two SVG layers it sits behind.
+   In flow it was a replaced element with a resolvable width and a `height: 100%` that is
+   indefinite while the browser is working out how short the figure is allowed to get — so
+   it fell back to its own aspect ratio and reported the height its WebGL buffer implied.
+   That number became the plate's minimum, then the figure column's, then the whole page's:
+   the reason the layout would compress to a point and then refuse, leaving the front page
+   a couple of hundred pixels taller than the window with a scrollbar to match. Out of flow
+   it contributes nothing, and the row's own 300px floor is what applies. */
 .stack-fig-canvas .stack-gl {
   display: block;
+  position: absolute;
+  inset: 0;
   width: 100%;
   height: 100%;
 }
@@ -1490,11 +2255,68 @@ figcaption {
 .stack-fig-unpinned {
   color: var(--color-neutral-700);
 }
+/* The panel's call to action: the chapter that explains whatever block is selected.
+   Set as a bar rather than a link because it is the one thing in the panel a reader
+   is meant to do next — the rest of the panel describes, this leaves. */
+.stack-fig-read {
+  display: block;
+  margin-top: var(--space-4);
+  padding: var(--space-2) var(--space-3);
+  background: var(--color-text);
+  color: var(--color-bg);
+  font: var(--font-heading-weight) 13.5px/1.35 var(--font-body);
+  text-decoration: none;
+  text-wrap: pretty;
+  border-radius: var(--radius-sm);
+}
+.stack-fig-read:hover,
+.stack-fig-read:focus-visible {
+  background: var(--color-accent-700);
+}
+/* "Read" is the verb, tracked and small, so the chapter's own title carries the line. */
+.stack-fig-read-label {
+  display: block;
+  font-size: 10.5px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  opacity: 0.72;
+  margin-bottom: 3px;
+}
 .stack-fig-links {
   display: flex;
   flex-direction: column;
   gap: 5px;
   font-size: 13px;
+}
+
+/**
+ * The stacked fields: every part's value in one grid cell, all but the selected one
+ * hidden. See `StackFigure.tsx` — this is what makes each field as tall as its own
+ * longest entry at whatever width the panel has, so the labels below it hold still.
+ *
+ * Unconditional, and it has to be. This is not a refinement layered on top of a normal
+ * stack of paragraphs — it is the mechanism by which one of fourteen is shown. Scoped
+ * inside the height query that gates the *reservations*, everything under 1100px tall
+ * rendered all fourteen descriptions down the panel at once.
+ */
+.stack-fig-prose,
+.stack-fig-stack {
+  display: grid;
+}
+.stack-fig-prose > *,
+.stack-fig-stack > * {
+  grid-area: 1 / 1;
+}
+.stack-fig-prose > [data-on="0"],
+.stack-fig-stack > [data-on="0"] {
+  visibility: hidden;
+}
+
+/* The encoding line: a caption, set beside the variant control rather than under it. */
+.fig-encoding {
+  font: 400 12.5px/1.4 var(--font-body);
+  color: var(--color-neutral-700);
+  margin: 0;
 }
 
 .stack-fig-foot {
@@ -1508,14 +2330,19 @@ figcaption {
 }
 /* The control in the paper's register: no box, small caps, an ink underline on the
    one that is on. A filled pill was the loudest thing on the page, and it is a
-   control — it should not out-rank the figure it steers. */
-.stack-figure .seg {
+   control — it should not out-rank the figure it steers.
+
+   A named class rather than `.stack-figure .seg`, because the same argument applies
+   wherever this choice is offered. The Architecture page steers its whole block list
+   from the same GPT-2/Llama switch and was still printing it as a filled pill, so the
+   two pages disagreed about what a control looks like in this paper. */
+.seg-paper {
   border: 0;
   border-radius: 0;
   gap: var(--space-4);
   overflow: visible;
 }
-.stack-figure .seg-opt {
+.seg-paper .seg-opt {
   padding: 0 0 3px;
   gap: 0;
   font-size: 14px;
@@ -1526,16 +2353,16 @@ figcaption {
   border: 0;
   border-bottom: 1px solid transparent;
 }
-.stack-figure .seg-opt:has(input:checked) {
+.seg-paper .seg-opt:has(input:checked) {
   background: none;
   color: var(--color-text);
   border-bottom-color: var(--color-text);
 }
-.stack-figure .seg-opt:not(:has(input:checked)):hover {
+.seg-paper .seg-opt:not(:has(input:checked)):hover {
   background: none;
   color: var(--color-text);
 }
-.stack-figure .seg-opt:has(input:focus-visible) {
+.seg-paper .seg-opt:has(input:focus-visible) {
   outline: 2px solid var(--color-accent);
   outline-offset: 3px;
 }
@@ -1560,39 +2387,42 @@ figcaption {
   .stack-fig-title {
     font-size: 24px;
   }
-  .stack-fig-numeral .plate-num {
-    font-size: 42px;
-  }
 }
 
-/* Below 700px the two label gutters would consume the whole column and leave the
-   drawing a speck, so the labels stop being ruled out to margins and become a list
-   beneath it — the engine switches at the same width and empties the leaders. The
-   phone reader gets a full-width plate and every label, explainer and link; what they
-   lose is the leader lines, which had nowhere to go. */
+/* When the drawing is too narrow to hold two margins of type, the labels stop being
+   ruled out and become a list beneath it — every label, explainer and link intact; what
+   is lost is the leader lines, which had nowhere to go.
+
+   Keyed on the attribute the engine sets, not on a viewport width. The engine decides
+   from the drawing's own width (`LIST_BELOW_DRAWING`), because the plate is one column
+   of a three-column page and the window says nothing about how much room the object
+   has. These rules used to sit inside `@media (max-width: 700px)`, which meant a plate
+   that went to list layout on a wide screen — exactly the case the measurement was
+   added to catch — got no styling for it. */
+.stack-fig-area[data-fig-layout="list"] {
+  height: auto;
+  padding-left: 0;
+  padding-right: 0;
+}
+.stack-fig-area[data-fig-layout="list"] .stack-fig-canvas {
+  height: 300px;
+}
+.stack-fig-labels[data-layout="list"] {
+  position: static;
+  pointer-events: auto;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px var(--space-3);
+  margin-top: var(--space-3);
+}
+.stack-figure .stack-fig-labels[data-layout="list"] .lab {
+  position: static;
+  transform: none;
+  max-width: none;
+  text-align: left;
+}
+
 @media (max-width: 700px) {
-  .stack-fig-area {
-    height: auto;
-    padding-left: 0;
-    padding-right: 0;
-  }
-  .stack-fig-canvas {
-    height: 300px;
-  }
-  .stack-fig-labels[data-layout="list"] {
-    position: static;
-    pointer-events: auto;
-    display: flex;
-    flex-wrap: wrap;
-    gap: 7px var(--space-3);
-    margin-top: var(--space-3);
-  }
-  .stack-figure .stack-fig-labels[data-layout="list"] .lab {
-    position: static;
-    transform: none;
-    max-width: none;
-    text-align: left;
-  }
   .stack-fig-head {
     gap: var(--space-3);
   }

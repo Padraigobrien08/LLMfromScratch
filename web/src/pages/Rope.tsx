@@ -92,7 +92,10 @@ export default function Rope() {
       </p>
 
       <div className="figure-panel" style={{ marginBottom: "var(--space-6)" }}>
-        <h3 className="figure-title">Two tokens, one sequence</h3>
+        {/* h2: this figure is a sibling of the two sections below it, not a subsection of
+            anything — as an h3 it left a level skipped straight after the headline, which
+            is a hole in the outline a screen-reader user navigates by. */}
+        <h2 className="figure-title">Two tokens, one sequence</h2>
         <p className="fig-note" style={{ margin: "0 0 var(--space-2)" }}>
           Drag <b>Q</b> or <b>K</b>, or focus one and use the arrow keys (hold shift for ten). With
           the gap held, they move as a rigid pair.

@@ -138,6 +138,34 @@ def test_markdown_states_the_noise_floor_and_labels_weak_arms() -> None:
     assert "Caveats" in md
 
 
+def test_seed_caveat_describes_the_seeds_the_arms_actually_ran() -> None:
+    """The caveat was a hardcoded string, and the published report was wrong because of it.
+
+    ``results/ablations.md`` told its readers "each non-baseline arm is a single seed"
+    while the run behind it used three per arm, 39 runs in all — and the same file's own
+    header described the paired multi-seed design. A generated document asserting a
+    methodology it did not use is worse than no caveat, because it reads as verified.
+    """
+    seeds = (1337, 1338, 1339)
+    base = [arm("baseline", s, 2.00 + i * 0.05) for i, s in enumerate(seeds)]
+    wide = [arm("wide", s, 1.90 + i * 0.05) for i, s in enumerate(seeds)]
+
+    rows, stats = compare(payload(base + wide))
+    md = render_markdown(rows, stats)
+    assert "ran all 3 seeds" in md
+    assert "is a single seed" not in md
+    assert [r.n_seeds for r in rows if r.delta is not None] == [3]
+
+    # One seed per arm: the original caveat, now earned rather than assumed.
+    single = render_markdown(*compare(payload(base + [arm("wide", 1337, 1.90)])))
+    assert "Each non-baseline arm is a single seed" in single
+
+    # And a mixed sweep names the arms that are thin instead of generalising either way.
+    mixed = render_markdown(*compare(payload(base + wide + [arm("thin", 1337, 1.95)])))
+    assert "Seed coverage is uneven" in mixed
+    assert "`thin`" in mixed and "`wide`" not in mixed.split("Seed coverage is uneven")[1]
+
+
 def test_markdown_warns_when_no_noise_floor_was_measured() -> None:
     """A single-seed baseline cannot support any claim, and must say so."""
     rows, stats = compare(payload([arm("baseline", 1, 2.0), arm("other", 1337, 1.9)]))
@@ -256,11 +284,56 @@ def test_missing_results_file_is_an_empty_start(tmp_path: Path) -> None:
     assert _load_existing(tmp_path / "absent.json") == {}
 
 
-def test_write_is_atomic(tmp_path: Path) -> None:
+def test_write_is_atomic(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Written to a temp path and renamed into place — observed, not inferred.
+
+    Asserting only "the file exists and no .tmp is left" is equally true of a plain
+    in-place write, which is the write this forbids: the sweep rewrites this file after
+    every arm, and a crash during one of those rewrites would take the previous 38 runs
+    with it.
+    """
+    arm = {"a@seed1": ArmResult(name="a", config="c", seed=1, status="completed")}
     path = tmp_path / "r.json"
-    _write(path, {"a@seed1": ArmResult(name="a", config="c", seed=1, status="completed")}, {})
+
+    renames: list[tuple[Path, Path]] = []
+    real_replace = Path.replace
+
+    def replace_spy(self, target):
+        renames.append((Path(self), Path(target)))
+        return real_replace(self, target)
+
+    monkeypatch.setattr(Path, "replace", replace_spy)
+    _write(path, arm, {})
+    monkeypatch.undo()
+
+    assert len(renames) == 1, f"expected one rename into place, got {renames}"
+    src, dst = renames[0]
+    assert src != path and dst == path
     assert path.exists()
     assert not list(tmp_path.glob("*.tmp"))
+
+
+def test_a_crash_mid_write_leaves_the_previous_results_intact(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    arm = {"a@seed1": ArmResult(name="a", config="c", seed=1, status="completed")}
+    path = tmp_path / "r.json"
+    _write(path, arm, {"round": 1})
+    good = path.read_text()
+
+    real_write_text = Path.write_text
+
+    def dies_after_writing(self, *args, **kwargs):
+        real_write_text(self, *args, **kwargs)
+        raise RuntimeError("pod terminated mid-sweep")
+
+    monkeypatch.setattr(Path, "write_text", dies_after_writing)
+    with pytest.raises(RuntimeError, match="terminated"):
+        _write(path, arm, {"round": 2})
+    monkeypatch.undo()
+
+    assert path.read_text() == good
+    assert json.loads(path.read_text())["meta"] == {"round": 1}
 
 
 def test_base_config_is_named_baseline() -> None:

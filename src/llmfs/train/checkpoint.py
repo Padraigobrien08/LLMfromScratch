@@ -1,10 +1,15 @@
 """Checkpoint saving and loading.
 
 A checkpoint has to carry everything needed to continue a run as though it had
-never stopped: weights, optimiser moments, the step counter, and the config that
-produced them. Data-loader position is deliberately *not* stored — it is derived
-from the step (see :mod:`llmfs.data.loader`), which removes a whole class of
+never stopped: weights, optimiser moments, the step counter, the RNG state, and the
+config that produced them. Data-loader position is deliberately *not* stored — it is
+derived from the step (see :mod:`llmfs.data.loader`), which removes a whole class of
 resume bugs where the stored position and the stored step disagree.
+
+The RNG state was the gap in "as though it had never stopped": a resumed run reseeded
+from the config and so replayed the dropout masks of step 0. Every shipped config sets
+``dropout: 0.0``, which is why resume was bitwise-identical anyway and why nothing
+caught it — the first config to turn dropout on would have diverged silently.
 
 Writes are atomic: a checkpoint is written to a temporary file and renamed. A
 process killed mid-write therefore leaves the previous checkpoint intact rather
@@ -23,6 +28,7 @@ import torch
 
 from ..config import Config
 from ..model import ModelConfig, Transformer
+from ..utils.seed import rng_state
 
 
 def save_checkpoint(
@@ -46,6 +52,7 @@ def save_checkpoint(
         "step": step,
         "config": dataclasses.asdict(config),
         "metrics": metrics or {},
+        "rng": rng_state(),
         "torch_version": torch.__version__,
     }
 

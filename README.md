@@ -176,8 +176,9 @@ to `out/<run_name>/`. Resume with `--resume auto`.
 
 Twelve arms against a shared baseline: eleven vary exactly one design decision, and
 `modern-stack` combines them to test whether the individual deltas actually add up.
-Run at a smaller scale than the reproduction (8 layers, 512-wide, ~1B tokens) so the
-whole sweep is affordable and every arm can share a seed and a token budget.
+Run at a smaller scale than the reproduction (8 layers, 512-wide, 524M tokens per run) so
+the whole sweep is affordable and every arm can share its seeds and its token budget with
+the baseline. Twelve arms plus the baseline, at three seeds each: 39 runs.
 
 Axes: LayerNorm vs RMSNorm · learned vs RoPE vs none · GELU vs SwiGLU · tied vs untied
 embeddings · bias vs no bias · MHA vs GQA · cosine vs WSD schedule · weight decay ·
@@ -236,13 +237,15 @@ Three things worth pulling out:
 
 - **The optimiser dominates the architecture.** Learning rate and schedule move loss
   more than every architecture change combined. RMSNorm vs LayerNorm is worth 0.0007;
-  the learning rate is worth 0.125 — 180× more.
+  the learning rate is worth 0.1251 — 171× more.
 - **The components are additive.** Summing the five individual modern-stack parts
-  predicts −0.0872; the combined arm measured −0.0886. Within a third of the noise
-  floor, so they compose without interacting.
-- **Loss is the wrong single metric.** Every change that improves loss costs
-  throughput and vice versa. `modern-stack` buys −0.0886 for ±0.0% — which a
-  loss-only table cannot show.
+  predicts −0.0872; the combined arm measured −0.0886. The 0.0014 gap is 33% of the
+  0.0043 noise floor, so they compose without measurably interacting.
+- **Loss is the wrong single metric.** Among the five *architecture* arms the two that
+  improve loss both cost throughput and the three that cost loss all improve it — a
+  trade the loss column alone cannot show. It is not a universal law, and the optimiser
+  arms are the counter-example: `lr-3e-3` and `sched-wsd` take both. `modern-stack`
+  combines the five to −0.0886 for ±0.0%.
 
 The prediction that `lr-3e-3` would diverge was wrong: it won. That means every arm
 was measured at a learning rate now known to be suboptimal, which is the study's
@@ -307,19 +310,20 @@ explained it as a property rather than a defect: decode is bound by streaming we
 from memory, not by attention over the prefix. It also admitted the benchmark ought to
 sweep sequence length, since that is the axis a cache exists for.
 
-The sweep got written. It showed the cache **34% slower** than recomputing from scratch,
-losing at every length — and its throughput flat at ~170 tok/s regardless of length,
-which is the signature of a fixed per-step cost, not of attention. A cache that does
+The sweep got written. It showed the cache losing at every length — **34% slower** at 128
+tokens, still 18% slower at 1024 — and its throughput almost flat, 161–172 tok/s across a
+sweep where the recompute path fell from 254 to 196. Flat throughput is the signature of a
+fixed per-step cost, not of attention. A cache that does
 strictly less arithmetic cannot lose on work; it can only lose on overhead.
 
 The cause was three lines. A decode step has `q_len == 1`, so it took the branch that
 builds an explicit causal mask — and **passing `attn_mask` to SDPA disqualifies it from
 the fused flash kernels**, dropping it onto the math backend, while the naive path kept
 `is_causal=True` and stayed fused. For a single query every cached key precedes it, so
-that mask was all-`True`: pure cost, no information. Removing it (RTX 4090, 128→1024
-generated tokens):
+that mask was all-`True`: pure cost, no information. Removing it (RTX 4090, sweeping
+total sequence length from 128 to 1024 — a 32-token prompt plus the rest generated):
 
-| Generated tokens | naive | KV cache | advantage | gain from the fix |
+| Total length | naive | KV cache | advantage | gain from the fix |
 | --- | --- | --- | --- | --- |
 | 128 | 247 tok/s | 218 | 0.88× | **1.30×** |
 | 512 | 247 | 223 | 0.90× | **1.30×** |
@@ -360,8 +364,9 @@ recorded in the results file: no NVLink, and a dual-socket box where GPUs 0–3 
 on different NUMA nodes, so the 8-way all-reduce crosses the inter-socket link. Per-GPU
 throughput still fell only 4.9%.
 
-That is `no_sync` earning its place — and it was tested rather than asserted. Holding the
-world size at 8 and varying the batch so accumulation goes 8 → 4 → 2 → 1:
+That is `no_sync` earning its place — and it was *measured* rather than asserted, on the
+machine, rather than argued from the code. Holding the world size at 8 and varying the
+batch so accumulation goes 8 → 4 → 2 → 1:
 
 | accum @ 8 GPUs | tokens/step | 8 GPU tok/s | efficiency |
 | --- | --- | --- | --- |
@@ -374,6 +379,11 @@ With one all-reduce per micro-batch, efficiency falls to 86.0%. So communication
 what the accumulation was hiding. A two-parameter fit to the accum 8 and 4 points —
 `loss = 1.975 + 11.134/accum` percentage points — predicted the other two **before they were
 measured**, to within 0.85 points across a further 4× range.
+
+The mechanism itself is pinned by the suite, not only by the sweep: two gloo processes run
+the real trainer and count DDP's suppressed syncs, asserting `grad_accum - 1` of them per
+optimiser step. Deleting `no_sync` costs throughput and nothing else, so without that count
+a CPU test run has no way to see it go.
 
 The honest reading is therefore **the interconnect matters exactly as much as the batch
 fails to hide it**. At the reproduction's configuration a perfect interconnect could recover
@@ -417,7 +427,7 @@ Both hand-implemented and measured. **[Full results: docs/efficiency.md](docs/ef
 | fp32 baseline | 475 MiB | 19.091 | — | 191.8 tok/s |
 | **int8 g128** | 237 MiB (2.00×) | 19.103 | **+0.013** | 139.8 (0.73×) |
 | **int4 g128** | 196 MiB (2.42×) | 20.442 | **+1.351** | 94.1 (0.49×) |
-| int4 per-tensor | 192 MiB (2.47×) | 22.664 | +3.574 | 94.4 (0.49×) |
+| int4 per-channel | 192 MiB (2.47×) | 22.664 | +3.574 | 94.4 (0.49×) |
 
 | Speculative decoding | Speedup | Acceptance | Tokens/target fwd |
 | --- | --- | --- | --- |
@@ -436,14 +446,17 @@ Four findings, each reported against the flattering framing:
   95.8% acceptance and 8.53 tokens per target forward pass — essentially the algorithmic
   ideal — returning 1.08×, level after overhead, because the draft model is the same size
   as the target. A drafter must be cheap first and accurate second.
-- **Grouping is worth 2.2 perplexity points at 4 bits.** One scale per tensor is set by
-  its largest outlier; per-128-feature groups confine the damage. And **HellaSwag could
-  not measure any of this** — a 1.5-point standard error at n=1000 swallowed every
-  scheme, which is why the quality column is perplexity.
+- **Grouping is worth 2.2 perplexity points at 4 bits.** One scale shared across a whole
+  output channel is set by its largest outlier; per-128-feature groups confine the damage.
+  (The coarse rows are per channel, not per tensor — they were mislabelled until
+  2026-08-16; see [docs/efficiency.md](docs/efficiency.md#grouping-is-worth-22-perplexity-points-at-4-bits).)
+  And **HellaSwag could not measure any of this** — a 1.5-point standard error at n=1000
+  swallowed every scheme, which is why the quality column is perplexity.
 - **Every quantized scheme is slower**: −27% at int8, −51% at int4. Dequantize-then-matmul
   materialises a full-size weight, so bytes moved go *up*. The memory saving is in what is
   stored; a fused kernel is what would make it a speed saving. Compression also caps at
-  2.42×, not 8×, because the tied token embedding is a third of this model.
+  2.47× — 2.42× for `g128`, the scheme actually worth using — not 8×, because the tied
+  token embedding is 31% of this model.
 
 Memory and quality are device-independent; throughput is not, and this section is the
 evidence for that. Moving from MPS to CUDA flipped the sign of the prose speculative
@@ -508,7 +521,8 @@ accounting** (exact against the real `Transformer` for twelve configurations), a
 including the off-by-one that makes `top_p = 0` sample from nothing).
 
 The sampling distribution is a bigram model counted from `data/wizard_of_oz.txt` — real
-statistics rather than invented logits, and the model this project began as. It also
+statistics rather than invented logits, and the model this project began as. (Baum's
+*Dorothy and the Wizard in Oz*, public domain; see [data/README.md](data/README.md).) It also
 sets up the next step honestly: draw a few tokens and the text wanders, because it can
 only see one token back, which is precisely what attention exists to fix.
 
@@ -641,7 +655,7 @@ what is built and verified, and what is designed but not yet run.
 
 | Pillar | Status |
 | --- | --- |
-| Package, config system, data pipeline, trainer, CI | **Done** — 346 tests green, end-to-end verified |
+| Package, config system, data pipeline, trainer, CI | **Done** — 381 tests green, end-to-end verified |
 | Modern architecture (RoPE, RMSNorm, SwiGLU, GQA, KV cache) | **Done** — hand-implemented, property-tested |
 | GPT-2 124M reproduction on FineWeb-Edu | **Done** — 3.0503 val loss, [docs/reproduction.md](docs/reproduction.md) |
 | Ablation study (12 arms × 3 seeds) | **Done** — [docs/ablations.md](docs/ablations.md), 39 runs, 7.6 GPU-h |
@@ -670,12 +684,13 @@ src/llmfs/
   ablation/   sweep runner, paired-seed analysis, tables and plots
   bench/      training + inference throughput, memory, cost, provenance
 configs/      gpt2-124m, llama-124m, debug, and 11 single-axis ablation arms
-tests/        346 tests — component correctness, config validation, end-to-end training
-web/          the interactive site: explainer, RoPE explorer, ablations (97 tests)
+tests/        381 tests — component correctness, config validation, end-to-end training
+web/          the interactive site: explainer, RoPE explorer, ablations (149 tests)
 scripts/      GPU pod automation, and the exporters that pin the site to the model
 docs/         index, reproduction protocol, results write-ups, fault-tolerance design
 notebooks/    exploration only; nothing here is the source of truth
 legacy/       the original tutorial scripts, kept for reference
+data/         the demo corpus and its manifest — provenance in data/README.md
 ```
 
 ---
