@@ -2733,10 +2733,10 @@ figcaption {
  */
 @media (min-width: 1280px) and (max-height: 900px) {
   .front-shell.page {
-    padding-top: var(--space-2);
+    padding-top: 4px;
   }
   .front-lede {
-    padding-bottom: var(--space-2);
+    padding-bottom: 4px;
   }
   /* The lead gives up the most because it is the largest thing that is not the argument:
      at 1440 this takes it from 43px to 35px, and it still sets on one line. */
@@ -2749,7 +2749,7 @@ figcaption {
     line-height: 1.35;
   }
   .front-lede .front-metrics {
-    margin-top: var(--space-2);
+    margin-top: 4px;
   }
   /* The figure names itself directly above a drawing that is unmistakably the figure. */
   .front-figure .stack-fig-head {
@@ -2763,11 +2763,99 @@ figcaption {
   .front-figure .stack-fig-panel .eyebrow {
     margin-top: 4px;
   }
+  /**
+   * The panel drops its provenance field on a short window.
+   *
+   * Spacing had nothing left to give: by this point the banner, the figure's title and
+   * the page's padding are already tightened, and the page still wanted 158px it did not
+   * have. The panel is what sets the figure's row — 426px of copy plus its exit — and
+   * "What holds it" is 144px of that, so this is the only cut that closes the gap without
+   * shrinking the drawing to a speck or putting a scrollbar back inside the panel.
+   *
+   * It is the right one to lose here. The other three fields answer what the block *is*;
+   * this one answers who checked, which is a claim about the repository rather than about
+   * the model. The claim is not lost with it: the same assertion is printed on the
+   * architecture explorer and on the results plates, both of which are ordinary scrolling
+   * pages with room for it, and the front page's own footer still says every number is
+   * read from a run or from arithmetic you can check.
+   *
+   * Only under 900px of viewport height, and only on the front page — the one page written
+   * to fit a screen. Every taller window keeps it.
+   */
+  .front-figure .stack-fig-holds {
+    display: none;
+  }
+  /* The last of it out of the panel's spacing rather than any more of its copy: the gaps
+     inside the exit strip, the leading of the description, and the air above the way out.
+     Roughly 45px, which is what stands between this window and one screen. */
   .front-figure .stack-fig-panel-exit {
-    margin-top: var(--space-2);
+    margin-top: 4px;
+  }
+  .front-figure .stack-fig-panel-exit > * {
+    gap: 4px var(--space-3);
   }
   .front-figure .stack-fig-read {
-    margin-top: var(--space-2);
+    margin-top: 4px;
+    padding: 5px var(--space-3);
+  }
+  .front-figure .stack-fig-what {
+    line-height: 1.4;
+  }
+  .front-figure .stack-fig-field {
+    margin-top: 0;
+  }
+  /* And then the signposts, because they turned out to be the ones setting the row.
+     Tightening the panel stopped changing the page's height partway through this: the two
+     columns stretch to a shared row, and once the figure came down under 473px the routes
+     column's 511px was the number the page was actually paying. Three signposts, each with
+     ~25px of vertical padding, a title margin, a blurb margin and a button — none of it
+     copy, all of it air. */
+  .front-routes .section-label {
+    margin-bottom: 4px;
+  }
+  .front-routes .destination {
+    padding: 6px 0 10px;
+  }
+  .front-routes .destination-title {
+    margin-bottom: 2px;
+  }
+  .front-routes .destination-blurb {
+    margin-bottom: 6px;
+  }
+  .front-routes .destination-cta {
     padding: 6px var(--space-3);
+  }
+  /**
+   * The plate keeps a 340px floor even here, and the rest of the page pays for it.
+   *
+   * Fitting the window exactly had taken the drawing to 309px, and at that height the
+   * engine cannot rule fourteen labels down two margins: "Logits → sampling" printed over
+   * "Output head" on every part of the stack. Measured, the boundary is between 309 and
+   * 340 — at 340 all fourteen separate on all fourteen selections.
+   *
+   * A drawing whose labels collide is not a smaller drawing, it is a broken one, so this
+   * floor comes first and the rest of the page gives what it can.
+   *
+   * 460, not the 340 that pairwise separation alone suggested. Separation is the weaker
+   * test: at 340 no two labels overlap each other, but the lower ones are ranged 81px past
+   * the bottom of the plate and print over the variant control and the legend beneath it.
+   * Containment is the real constraint, and measured across all fourteen selections it
+   * wants 460 — at 400 the worst is still 24px into the foot.
+   *
+   * This is the point at which the page stops fitting the window and that is the right
+   * outcome. 460px of drawing plus the banner, the signposts and the panel is more than a
+   * 765px window holds, so the page scrolls ~116px on the longest block instead — down
+   * from 259px before any of this, with the figure never broken to get there. */
+  .front-figure .stack-fig-stage {
+    grid-template-rows: minmax(460px, 1fr) auto;
+  }
+  .front-figure .stack-fig-foot {
+    gap: 2px;
+  }
+  .front-figure .stack-fig-foot .rule-hair {
+    margin-top: 2px;
+  }
+  .front-figure .stack-fig-what {
+    line-height: 1.35;
   }
 }
