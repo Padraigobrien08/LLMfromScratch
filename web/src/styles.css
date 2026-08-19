@@ -2713,6 +2713,16 @@ figcaption {
   }
 }
 
+/* The provenance field goes only where it is paying for itself — see the note in the
+   short-window block below. Its own query because it needs a width bound the rest of that
+   block does not want: the spacing and type rules there are worth having on any short
+   window, and this one is not. */
+@media (min-width: 1280px) and (max-width: 1599px) and (max-height: 900px) {
+  .front-figure .stack-fig-holds {
+    display: none;
+  }
+}
+
 /* ── the front page on a short window ────────────────────────────────────────── */
 /**
  * A laptop window is not a laptop screen.
@@ -2779,12 +2789,16 @@ figcaption {
    * pages with room for it, and the front page's own footer still says every number is
    * read from a run or from arithmetic you can check.
    *
-   * Only under 900px of viewport height, and only on the front page — the one page written
-   * to fit a screen. Every taller window keeps it.
+   * Only where it is actually costing something, which is not every short window. The
+   * panel's copy gets shorter as the panel gets wider, and past about 1600px the plate's
+   * own floor is what sets the figure's height — the panel has slack beneath it and the
+   * field rides along for nothing. Measured at 885px tall: 117px at 1440, 24px at 1520,
+   * and 0 from 1600 up.
+   *
+   * So the cut is short *and* narrow, and a maximised window on a 1080 display keeps the
+   * full panel. Every taller window keeps it at any width, and this is the front page
+   * only — the one page written to fit a screen.
    */
-  .front-figure .stack-fig-holds {
-    display: none;
-  }
   /* The last of it out of the panel's spacing rather than any more of its copy: the gaps
      inside the exit strip, the leading of the description, and the air above the way out.
      Roughly 45px, which is what stands between this window and one screen. */
