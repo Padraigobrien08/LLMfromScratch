@@ -2742,6 +2742,37 @@ figcaption {
  * gets none of this and does not need it.
  */
 @media (min-width: 1280px) and (max-height: 900px) {
+  /**
+   * The footer stops holding 90px of the window open.
+   *
+   * On a tall screen the front page is pinned to `100dvh` with `main` scrolling inside it,
+   * which keeps the colophon on the bottom edge where a paper's colophon belongs. On a
+   * short one that pin is the whole problem: the footer's 90px is subtracted from the
+   * viewport before the columns get any, so the figure was squeezed and then cut anyway,
+   * with the footer sitting under the cut like a lid.
+   *
+   * `min-height` instead of `height`, with the overflow handed back to the document. The
+   * page still fills the window — the footer sits on the bottom edge when the content is
+   * shorter, which is what the pin was for — but it is no longer a ceiling. The columns
+   * row sizes to its contents rather than to what is left after the furniture, and at
+   * 1512x800 that is the difference between the figure being cut and the whole page,
+   * colophon included, fitting with nothing to scroll.
+   *
+   * Nothing is removed to get there, which is why this rather than dropping the band: the
+   * licence, the source link and the sentence about what this project was built from are
+   * the last things a front page should lose to make room.
+   */
+  html:has(.front-shell),
+  body:has(.front-shell) {
+    overflow: visible;
+  }
+  #root:has(> main > .front-shell) {
+    height: auto;
+    min-height: 100dvh;
+  }
+  #root > main:has(> .front-shell) {
+    overflow-y: visible;
+  }
   .front-shell.page {
     padding-top: 4px;
   }
