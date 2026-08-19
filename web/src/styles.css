@@ -10,6 +10,10 @@
 
   /* The measure the masthead, every page and the footer share. */
   --column: 1180px;
+
+  /* How far a figure reaches past the reading column, each side. 176px is what takes
+     the 1120px content box down to the 768px the prose measures at 22px. */
+  --breakout: 176px;
 }
 
 /* Broadsheet already sets the ground, the ink and the serif on <body>; these are the
@@ -1184,6 +1188,13 @@ body {
   max-width: 66ch;
   margin: 0 0 var(--space-4);
 }
+/* The shell stays at 1180. Widening it to 1420 was tried and measured: it takes 120px of
+   dead paper off each side of a 1920 screen, but the figures are not measure-bound and
+   follow the shell, so the gap between the end of a paragraph and the end of the page went
+   from 487px to 622px. The page's own complaint — prose pinned to the left of something
+   much wider — is the interior gap, not the outer margin, and only one of the two can be
+   spent at a time. The type carries the measure instead: at 22px the text reaches 768px
+   inside the same shell, which is the narrowest that gap has been. */
 .prose-secondary {
   font: 400 16px/1.6 var(--font-body);
   color: var(--color-neutral-800);
@@ -2572,5 +2583,81 @@ figcaption {
 @media (max-width: 700px) {
   .stack-fig-head {
     gap: var(--space-3);
+  }
+}
+
+/* ── the reading measure on wide screens ─────────────────────────────────────── */
+/* Last in the file on purpose. These override sizes and measures declared above at the
+   same specificity — `.prose-secondary`, `.prose-caveat` and `.page-standfirst` are all
+   defined after `.prose` — and a media query adds none, so placed next to `.prose` the
+   rules below lost to the very declarations they were written to replace. */
+/**
+ * The reading pages take the room a wide screen has, in both directions at once.
+ *
+ * The measure is bound in `ch`, so the column is only ever as wide as the type is big:
+ * at 19px, 66 characters came to 663px sitting inside an 1180px shell, and the figures
+ * — which are not measure-bound and take the whole shell — ran 500px past the end of
+ * every paragraph. The text read as a column pinned to the left of a much wider page.
+ *
+ * Raising the type to 22px carries the measure to ~768px without changing the line
+ * length a reader tracks, which closes ~105px of that gap inside the existing shell. It
+ * does not close all of it — 66 characters cannot fill 1180px at any size a person wants
+ * to read — but the gap goes from 487px to 382px, from wider than half the text to half.
+ *
+ * Both are gated on width. The measure is already right on a phone, where the shell is
+ * the viewport and 19px is the size this is comfortable at; only a screen with paper to
+ * spare has anything to give.
+ */
+@media (min-width: 1280px) {
+  /**
+   * The text fills the paper, and the type is raised until it can.
+   *
+   * The measure is bound in characters rather than pixels because the cost of a long line
+   * is the return sweep — at the end of one line the eye jumps back to find the start of
+   * the next, and past roughly 75-80 characters it starts landing on the wrong one. That
+   * is why widening the column alone is not free: 22px across this page's 1120px is about
+   * 102 characters a line.
+   *
+   * Raising the type is what buys the width back, because the same pixels hold fewer
+   * characters as the characters get bigger. At 26px the full 1120px comes to ~81
+   * characters — a long line, past the 66 this was set at, but inside the range where the
+   * sweep still lands. The extra leading is part of the same purchase: the longer the
+   * line, the more a reader depends on the vertical gap to find the next one.
+   *
+   * So the text runs the full width of the paper, level with the figures and the masthead
+   * rather than inset from them, and it is four points larger than it was.
+   */
+  .prose {
+    font-size: 26px;
+    line-height: 1.65;
+    max-width: none;
+  }
+  .prose-secondary {
+    font-size: 20px;
+    line-height: 1.6;
+    max-width: none;
+  }
+  .prose-caveat {
+    font-size: 18px;
+    line-height: 1.6;
+    max-width: none;
+  }
+  /* The asides go with them. Each of these carries its own measure, chosen against a
+     663px column; left alone while the prose around them ran the full paper they read as
+     orphaned columns rather than as quieter voices in the same one. They keep their
+     relative sizes — the recap is still the quietest thing on the page, the prediction
+     still an aside — they just stop being narrower than the text they interrupt. */
+  .chapter-recap {
+    font-size: 18px;
+    max-width: none;
+  }
+  .chapter-predict {
+    font-size: 20px;
+    max-width: none;
+  }
+  .page-standfirst {
+    font-size: 24px;
+    line-height: 1.5;
+    max-width: none;
   }
 }
