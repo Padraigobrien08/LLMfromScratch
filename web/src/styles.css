@@ -2712,3 +2712,62 @@ figcaption {
     font-size: clamp(14px, 0.99vw, 19px);
   }
 }
+
+/* ── the front page on a short window ────────────────────────────────────────── */
+/**
+ * A laptop window is not a laptop screen.
+ *
+ * Everything above was checked at 1440x900 and 1920x1080, which are screen sizes. The
+ * window inside them is 100-150px shorter once the browser has taken its chrome, and at
+ * 1440x765 — an ordinary maximised window on a 1440 display — the front page wanted
+ * 1024px and had 765. What that cut was not the bottom of something long but the third
+ * signpost, mid-word, with the model sheared off above it.
+ *
+ * The height here is spent on furniture rather than on content: the banner's display
+ * sizes and its spacing, the figure's own title, the page's top padding and the
+ * colophon's. None of it is the model, the signposts or the panel's copy, which are the
+ * three things a reader came for.
+ *
+ * Gated on height, not width, because that is the axis that runs out. A 1440x1100 window
+ * gets none of this and does not need it.
+ */
+@media (min-width: 1280px) and (max-height: 900px) {
+  .front-shell.page {
+    padding-top: var(--space-2);
+  }
+  .front-lede {
+    padding-bottom: var(--space-2);
+  }
+  /* The lead gives up the most because it is the largest thing that is not the argument:
+     at 1440 this takes it from 43px to 35px, and it still sets on one line. */
+  .front-lede .front-headline {
+    font-size: clamp(30px, 2.4vw, 46px);
+    margin-bottom: var(--space-2);
+  }
+  .front-lede .front-standfirst {
+    font-size: clamp(16px, 1.05vw, 20px);
+    line-height: 1.35;
+  }
+  .front-lede .front-metrics {
+    margin-top: var(--space-2);
+  }
+  /* The figure names itself directly above a drawing that is unmistakably the figure. */
+  .front-figure .stack-fig-head {
+    margin-bottom: 0;
+  }
+  .front-figure .stack-fig-title {
+    font-size: clamp(18px, 1.1vw, 22px);
+  }
+  /* Five eyebrows down the panel, and on a short window the leading above each is the
+     cheapest height on the page: the labels still separate their fields at 4px. */
+  .front-figure .stack-fig-panel .eyebrow {
+    margin-top: 4px;
+  }
+  .front-figure .stack-fig-panel-exit {
+    margin-top: var(--space-2);
+  }
+  .front-figure .stack-fig-read {
+    margin-top: var(--space-2);
+    padding: 6px var(--space-3);
+  }
+}
