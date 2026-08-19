@@ -12,27 +12,23 @@ export default function Footer({ route }: { route: Route }) {
     >
       <div className="rule-heavy" />
       {/*
-        One row, three cells: the claim, where the project came from, and where to get it.
-        It was three stacked blocks separated by rules, which ran to nearly 200px — on a
-        front page written to be read without scrolling, the footer was the thing that
-        made it scroll.
+        One row, two cells: where the project came from, and where to get it. It was three
+        stacked blocks separated by rules, which ran to nearly 200px — on a front page
+        written to be read without scrolling, the footer was the thing that made it scroll.
 
-        The claim used to read "Nothing here is a number typed by hand." It is the site's
-        own honesty rule and it stated it as a riddle: a reader has to work out that the
-        subject is provenance, and that "typed by hand" means transcribed rather than
-        generated from a run. Saying it plainly costs four words.
+        A newspaper prints where it came from, and this began as a tutorial reproduction of
+        a small character-level GPT. Worth stating on the site rather than only in the
+        README: the repository's About box used to point at that write-up, and moving the
+        link here is what makes it safe to point the About box at the finished thing
+        instead.
 
-        The middle cell is the colophon. A newspaper prints where it came from, and this
-        began as a tutorial reproduction of a small character-level GPT — the original
-        scripts are preserved unmodified in `legacy/` and share no logic with anything
-        above. Worth stating on the site rather than only in the README: the repository's
-        About box used to point at that write-up, and moving the link here is what makes
-        it safe to point the About box at the finished thing instead.
+        What the line no longer says is how the rewrite relates to that tutorial — that
+        `legacy/` holds the original scripts unmodified and shares no logic with anything
+        above. That is a claim about the repository rather than about the site, and the
+        README makes it at length; here it was a second sentence that took the colophon to
+        two lines in a footer being asked to fit a window.
       */}
       <div className="footer-row">
-        <p className="footer-claim">
-          Every number here is read from a run or from arithmetic you can check.
-        </p>
         <p className="colophon">
           This project began as a tutorial reproduction of a character-level GPT —{" "}
           <a
@@ -46,8 +42,7 @@ export default function Footer({ route }: { route: Route }) {
           <a href="https://youtu.be/UU1WVnMk4E8" target="_blank" rel="noopener">
             video ↗
           </a>
-          . Everything above the <code>legacy/</code> directory is a rewrite rather than a
-          refactor, and shares no logic with it.
+          .
         </p>
         <p className="footer-meta">
           <a href={PROJECT.repo} target="_blank" rel="noopener">

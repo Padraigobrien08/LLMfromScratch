@@ -194,39 +194,18 @@ body {
 /* Set across the page rather than stacked: the claim, the provenance and the source
    are three short things, and three stacked blocks with rules between them cost the
    front page its last screenful. */
+/* Two cells now, not three: the colophon takes the measure and the licence sits at the
+   end of the same line. The claim that used to open the row — "every number here is read
+   from a run or from arithmetic you can check" — is gone, and with it the two-row
+   arrangement the article pages needed to fit three things across 1180px. */
 @media (min-width: 1240px) {
   .footer-row {
-    grid-template-columns: auto minmax(0, 1fr) auto;
+    grid-template-columns: minmax(0, 1fr) auto;
     align-items: baseline;
   }
   .footer-meta {
     justify-self: end;
     white-space: nowrap;
-  }
-  /**
-   * On an article the three cells do not fit across the reading measure.
-   *
-   * The front page's footer has 2440px and sets all three on one line. An article's has
-   * 1180px, where the claim takes 464 of it and the provenance sentence is left 433 — so
-   * it wrapped to four lines and the footer stood 131px tall at the bottom of a page that
-   * was trying to fit a screen. Two rows gives the sentence the full measure and two
-   * lines, which is both shorter and the right shape for it.
-   */
-  .site-footer:not(.front-shell) .footer-row {
-    grid-template-columns: minmax(0, 1fr) auto;
-    grid-template-areas:
-      "claim meta"
-      "colophon colophon";
-    row-gap: var(--space-2);
-  }
-  .site-footer:not(.front-shell) .footer-claim {
-    grid-area: claim;
-  }
-  .site-footer:not(.front-shell) .footer-meta {
-    grid-area: meta;
-  }
-  .site-footer:not(.front-shell) .colophon {
-    grid-area: colophon;
   }
 }
 
