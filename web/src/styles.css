@@ -698,16 +698,20 @@ body {
    * of the fourteen, and the panel got the second row back. Front page only — the same
    * panel in a column of prose elsewhere is already at the right size for its measure.
    */
+  /* Fluid for the reason the reading pages are: stated flat above the breakpoint, a
+     laptop got the size chosen for a monitor, and this panel is the part of the front page
+     with the least room to absorb it — at 1440 the copy it could not fit was pushing the
+     page half a screen longer. The floors are the sizes this was set at before. */
   .front-figure .stack-fig-what {
-    font-size: 17px;
+    font-size: clamp(14px, 0.885vw, 18px);
     line-height: 1.5;
   }
   .front-figure .stack-fig-differs,
   .front-figure .stack-fig-pin {
-    font-size: 15px;
+    font-size: clamp(13px, 0.78vw, 16px);
   }
   .front-figure .stack-fig-shape {
-    font-size: 14.5px;
+    font-size: clamp(12.5px, 0.755vw, 15px);
   }
   /* Every field is its natural height, including the last one. Giving the assertion the
      leftover space and its own scrollbar turned the longest of them into a three-line
@@ -866,14 +870,14 @@ body {
     max-width: 24ch;
   }
   .front-routes .destination-blurb {
-    font-size: 15px;
+    font-size: clamp(13.5px, 0.78vw, 16px);
     line-height: 1.45;
     margin-bottom: var(--space-2);
     max-width: 40ch;
   }
   .front-routes .destination-cta {
     padding: 8px var(--space-3);
-    font-size: 14px;
+    font-size: clamp(13px, 0.73vw, 15px);
   }
   /* The plate's own furniture, on the same diet. */
   .front-figure .stack-fig-title {
@@ -2624,23 +2628,33 @@ figcaption {
    * sweep still lands. The extra leading is part of the same purchase: the longer the
    * line, the more a reader depends on the vertical gap to find the next one.
    *
-   * So the text runs the full width of the paper, level with the figures and the masthead
-   * rather than inset from them, and it is four points larger than it was.
+   * The sizes are fluid, and that is the whole of the second version of this rule. Stated
+   * as fixed pixels above a `min-width` they did not scale — they switched on. A 1280
+   * laptop was handed the same 26px as a 2560 monitor, which is a body size chosen for a
+   * screen at arm's length being read at a laptop's distance, and it looked it.
+   *
+   * The measure is capped in `ch` rather than left at `none` for the same reason from the
+   * other side. The shell is 1180 at every width from 1280 up, so the column is 1120 on a
+   * laptop as well as on a monitor: with the type scaled down and nothing capping it, the
+   * line would have run past 110 characters on the screen least able to carry it. At 85ch
+   * the cap does not bind on a wide screen — the text still fills the paper — and pulls
+   * the column in where the type is small. The page gives back width exactly when it can
+   * no longer afford the line.
    */
   .prose {
-    font-size: 26px;
+    font-size: clamp(19px, 1.35vw, 27px);
     line-height: 1.65;
-    max-width: none;
+    max-width: 85ch;
   }
   .prose-secondary {
-    font-size: 20px;
+    font-size: clamp(16px, 1.04vw, 21px);
     line-height: 1.6;
-    max-width: none;
+    max-width: 85ch;
   }
   .prose-caveat {
-    font-size: 18px;
+    font-size: clamp(15px, 0.94vw, 19px);
     line-height: 1.6;
-    max-width: none;
+    max-width: 85ch;
   }
   /* The asides go with them. Each of these carries its own measure, chosen against a
      663px column; left alone while the prose around them ran the full paper they read as
@@ -2648,16 +2662,16 @@ figcaption {
      relative sizes — the recap is still the quietest thing on the page, the prediction
      still an aside — they just stop being narrower than the text they interrupt. */
   .chapter-recap {
-    font-size: 18px;
-    max-width: none;
+    font-size: clamp(15px, 0.94vw, 19px);
+    max-width: 85ch;
   }
   .chapter-predict {
-    font-size: 20px;
-    max-width: none;
+    font-size: clamp(17px, 1.04vw, 21px);
+    max-width: 85ch;
   }
   .page-standfirst {
-    font-size: 24px;
+    font-size: clamp(20px, 1.25vw, 25px);
     line-height: 1.5;
-    max-width: none;
+    max-width: 85ch;
   }
 }
