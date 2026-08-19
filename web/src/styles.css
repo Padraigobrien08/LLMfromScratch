@@ -2836,18 +2836,24 @@ figcaption {
    * A drawing whose labels collide is not a smaller drawing, it is a broken one, so this
    * floor comes first and the rest of the page gives what it can.
    *
-   * 460, not the 340 that pairwise separation alone suggested. Separation is the weaker
+   * 440, not the 340 that pairwise separation alone suggested. Separation is the weaker
    * test: at 340 no two labels overlap each other, but the lower ones are ranged 81px past
    * the bottom of the plate and print over the variant control and the legend beneath it.
-   * Containment is the real constraint, and measured across all fourteen selections it
-   * wants 460 — at 400 the worst is still 24px into the foot.
+   * Containment is the real constraint. Measured across all fourteen selections at both
+   * ends of this query's range, it sits between 400 and 430, so 440 carries a margin
+   * without spending height the labels do not need.
    *
-   * This is the point at which the page stops fitting the window and that is the right
-   * outcome. 460px of drawing plus the banner, the signposts and the panel is more than a
-   * 765px window holds, so the page scrolls ~116px on the longest block instead — down
-   * from 259px before any of this, with the figure never broken to get there. */
+   * The 460 this was first set to was measured at 1440 alone and then applied everywhere,
+   * which cost the wider windows 17px they had no reason to pay: at 1920 the plate settles
+   * at 443 of its own accord and the floor was overriding it upward. A 1920x885 window —
+   * a maximised window on a 1080 display — fits exactly at 440 and did not at 460.
+   *
+   * Where it still does not fit, that is the right outcome: 440px of drawing plus the
+   * banner, the signposts and the panel is more than a 765px window holds, so the page
+   * scrolls ~99px there instead — down from 259px before any of this, with the figure
+   * never broken to get there. */
   .front-figure .stack-fig-stage {
-    grid-template-rows: minmax(460px, 1fr) auto;
+    grid-template-rows: minmax(440px, 1fr) auto;
   }
   .front-figure .stack-fig-foot {
     gap: 2px;
