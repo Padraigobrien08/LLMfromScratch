@@ -2,6 +2,7 @@ import { Suspense, lazy } from "react";
 
 import Footer from "./components/Footer";
 import Masthead from "./components/Masthead";
+import About from "./pages/About";
 import Front from "./pages/Front";
 import { type Route, useRoute } from "./router";
 
@@ -71,6 +72,8 @@ function Page({ route }: { route: Route }) {
       return <Efficiency />;
     case "scaling":
       return <Scaling />;
+    case "about":
+      return <About />;
   }
 }
 

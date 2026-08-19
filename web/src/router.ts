@@ -21,7 +21,8 @@ export type Route =
   | { kind: "reproduction" }
   | { kind: "ablations" }
   | { kind: "efficiency" }
-  | { kind: "scaling" };
+  | { kind: "scaling" }
+  | { kind: "about" };
 
 export const FRONT: Route = { kind: "front" };
 
@@ -43,6 +44,7 @@ export function parseRoute(hash: string): Route {
   if (path === "ablations") return { kind: "ablations" };
   if (path === "efficiency") return { kind: "efficiency" };
   if (path === "scaling") return { kind: "scaling" };
+  if (path === "about") return { kind: "about" };
 
   const chapter = /^chapter\/(\d+)$/.exec(path);
   if (chapter) {

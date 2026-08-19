@@ -22,6 +22,11 @@ describe("parseRoute", () => {
     expect(parseRoute("#/scaling")).toEqual({ kind: "scaling" });
   });
 
+  it("reads the about page", () => {
+    expect(parseRoute("#/about")).toEqual({ kind: "about" });
+    expect(parseRoute("#/about/")).toEqual({ kind: "about" });
+  });
+
   it("reads every chapter", () => {
     for (let n = 1; n <= CHAPTER_COUNT; n++) {
       expect(parseRoute(`#/chapter/${n}`)).toEqual({ kind: "chapter", n });
