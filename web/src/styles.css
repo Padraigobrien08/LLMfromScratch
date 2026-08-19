@@ -2674,4 +2674,41 @@ figcaption {
     line-height: 1.5;
     max-width: 85ch;
   }
+
+  /* The same treatment for the reading text the other pages carry under their own names:
+     the results pages' figure titles and wide notes, the tests page's claims, the
+     architecture explorer's block copy. Same shape as the rules above — the old size is
+     the floor, so nothing shrinks on a laptop, and the ceiling is ~1.37x it, which is the
+     ratio the body copy moves by between 1280 and 1920.
+
+     What is deliberately left alone: tables, the demos' own controls and token chips, and
+     the display numerals in the figure panels. Those sit in geometry measured against
+     their own boxes rather than against the page, they are read at a glance rather than
+     along, and scaling them is how a panel that fits at one width stops fitting at
+     another. Their measures are already bound in `ch`, so the character counts here hold
+     as the sizes move. */
+  .figure-title {
+    font-size: clamp(22px, 1.56vw, 30px);
+  }
+  .note-wide {
+    font-size: clamp(17px, 1.2vw, 23px);
+  }
+  .caveat-wide {
+    font-size: clamp(15px, 1.04vw, 20px);
+  }
+  .claim-pins {
+    font-size: clamp(22px, 1.56vw, 30px);
+  }
+  .claim-why {
+    font-size: clamp(16px, 1.15vw, 22px);
+  }
+  .stack-block-title {
+    font-size: clamp(17px, 1.2vw, 23px);
+  }
+  .stack-detail-what {
+    font-size: clamp(15px, 1.04vw, 20px);
+  }
+  .stack-detail-pin {
+    font-size: clamp(14px, 0.99vw, 19px);
+  }
 }
