@@ -2453,13 +2453,6 @@ figcaption {
   visibility: hidden;
 }
 
-/* The encoding line: a caption, set beside the variant control rather than under it. */
-.fig-encoding {
-  font: 400 12.5px/1.4 var(--font-body);
-  color: var(--color-neutral-700);
-  margin: 0;
-}
-
 .stack-fig-foot {
   grid-column: 1;
   display: flex;

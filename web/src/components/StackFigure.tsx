@@ -300,15 +300,6 @@ export default function StackFigure({ attentionHref }: { attentionHref: string }
               </label>
             ))}
           </div>
-          {/* What the geometry means, in one line.
-              The full legend was cut for height, and with it went the only statement that
-              the drawing is derived rather than drawn: a slab whose thickness encodes a
-              share of the parameter budget is decoration until a reader is told so. This
-              is the shortest form of that claim, and it sits beside the variant control
-              where the reader is already looking. */}
-          <p className="fig-encoding">
-            Thickness is share of parameters · colour is role
-          </p>
           {/* The interaction note is kept for assistive technology and taken off the page.
               On screen the figure announces itself — the cursor changes over a block and
               the labels are buttons — but a reader who cannot see it has nothing else that
