@@ -2879,3 +2879,15 @@ figcaption {
     line-height: 1.35;
   }
 }
+
+/* The plate's floor is width-aware, because the height its labels need is.
+   The floor exists to keep fourteen labels inside the drawing, and the room they have to
+   be ranged in grows with the plate: measured at 1440 the boundary sits between 400 and
+   430, and by 1512 it is under 360. One number tuned at the narrow end therefore
+   overcharges every width above it — at 1512x800 a 440 floor costs 63px of page where 370
+   costs none, with containment still measuring clean at 360. Above 1500 the floor comes down; below it the narrow measurement stands. */
+@media (min-width: 1500px) and (max-height: 900px) {
+  .front-figure .stack-fig-stage {
+    grid-template-rows: minmax(370px, 1fr) auto;
+  }
+}
