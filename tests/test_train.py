@@ -514,3 +514,27 @@ def test_the_same_seed_gives_the_same_run_and_a_different_seed_does_not(
 
     assert first == again, f"same seed diverged: {first} vs {again}"
     assert first != other, "the seed had no effect — the runs are not seeded at all"
+
+
+def test_compiled_training_saves_clean_checkpoints(train_config: Config, monkeypatch) -> None:
+    """The compile path had zero coverage: every test forces `compile=False`, so the
+    wrapper plumbing — building on the OptimizedModule, unwrapping `_orig_mod` on save —
+    could break without a test noticing. The backend is swapped to `eager` so this
+    exercises the repository's plumbing rather than paying for an inductor build; what
+    it pins is dynamo wrapping plus the unwrap on every save path."""
+    real_compile = torch.compile
+    monkeypatch.setattr(
+        torch, "compile", lambda model, **kwargs: real_compile(model, backend="eager")
+    )
+
+    train_config.runtime.compile = True
+    train_config.train.max_steps = 2
+    trainer = Trainer(train_config)
+    state = trainer.train()
+    assert state.step == 2
+
+    ckpt_path = Path(train_config.log.out_dir) / "test" / "final.pt"
+    model, ckpt = model_from_checkpoint(ckpt_path)
+    assert not any(key.startswith("_orig_mod") for key in ckpt["model"]), (
+        "the checkpoint carries compile-wrapper prefixes and would not reload into a bare model"
+    )

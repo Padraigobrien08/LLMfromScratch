@@ -169,3 +169,39 @@ def test_invalid_head_configs_rejected() -> None:
         ModelConfig(n_embd=64, n_head=8, n_kv_head=3)
     with pytest.raises(ValueError, match="cannot exceed"):
         ModelConfig(n_embd=64, n_head=4, n_kv_head=8)
+
+
+def test_gqa_reaches_sdpa_unrepeated_with_the_fused_flag(monkeypatch) -> None:
+    """The same failure shape as the mask bug, one branch over.
+
+    With `enable_gqa` support, SDPA must receive K/V at their true `n_kv_head` width;
+    the fallback materialises `repeat_kv` copies — numerically identical, so every
+    correctness test passes while the KV cache is read `n_head / n_kv_head` times
+    instead of once. The head count of the K tensor SDPA actually receives is the
+    mechanism, so that is what is asserted.
+    """
+    import torch.nn.functional as F
+
+    from llmfs.model import attention as attention_module
+
+    if not attention_module._SDPA_HAS_ENABLE_GQA:
+        pytest.skip("this torch has no enable_gqa; the repeat_kv fallback is the fast path")
+
+    seen: list[tuple[bool, int]] = []
+    real_sdpa = F.scaled_dot_product_attention
+
+    def recording_sdpa(q, k, v, attn_mask=None, **kwargs):  # type: ignore[no-untyped-def]
+        seen.append((kwargs.get("enable_gqa", False), k.shape[1]))
+        return real_sdpa(q, k, v, attn_mask=attn_mask, **kwargs)
+
+    monkeypatch.setattr(attention_module.F, "scaled_dot_product_attention", recording_sdpa)
+
+    model = tiny_model(n_kv_head=2)
+    model(torch.randint(0, 97, (1, 8)))
+
+    assert seen, "no SDPA calls were recorded"
+    assert all(flag for flag, _ in seen), "GQA fell back to repeat_kv despite enable_gqa support"
+    assert all(kv_heads == 2 for _, kv_heads in seen), (
+        "K was materialised to full head width before SDPA — the cache would be "
+        "read n_head/n_kv_head times instead of once"
+    )
