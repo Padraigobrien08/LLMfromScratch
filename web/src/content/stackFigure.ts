@@ -52,7 +52,7 @@ const FROM_BLOCKS: Record<string, string> = {
  *  by `figurePanel` because only the page knows that URL. */
 const LINKS: Record<string, Array<[string, string]>> = {
   whole: [
-    [href({ kind: "chapter", n: 8 }), "So does any of the design actually matter?"],
+    [href({ kind: "chapter", n: 8 }), "Do the design choices actually change anything?"],
     [href({ kind: "ablations" }), "Plate II — the ablation table"],
   ],
   inputs: [[href({ kind: "chapter", n: 1 }), "A model never sees your text"]],
@@ -61,13 +61,13 @@ const LINKS: Record<string, Array<[string, string]>> = {
     [href({ kind: "efficiency" }), "Plate III, for the quantization cap"],
   ],
   pos_emb: [
-    [href({ kind: "chapter", n: 5 }), "Telling the model where each token sits"],
+    [href({ kind: "chapter", n: 5 }), "The model knows where each token sits"],
     [href({ kind: "rope" }), "The RoPE explorer"],
     [href({ kind: "ablations" }), "Plate II"],
   ],
   norm: [[href({ kind: "ablations" }), "Plate II — RMSNorm measurably did nothing to loss"]],
   attn: [
-    [href({ kind: "chapter", n: 4 }), "Letting every token look back"],
+    [href({ kind: "chapter", n: 4 }), "Every token looks back"],
     [href({ kind: "efficiency" }), "Plate III"],
   ],
   kv: [[href({ kind: "efficiency" }), "Plate III — the bug that hid in the numbers"]],
@@ -149,7 +149,7 @@ const EXTRAS: Record<string, Extra> = {
         "The dashed strand is not a part. It marks that the output head and the token " +
         "embedding are one tensor: the table that turns a token into a vector, transposed, " +
         "turns a vector back into a score per token. Untying them would add " +
-        `${formatCount(c.vocabSize * c.nEmbd)} parameters — about as much as two more blocks.`,
+        `${formatCount(c.vocabSize * c.nEmbd)} parameters — about five and a half blocks' worth.`,
       shape: `${int(c.vocabSize)} × ${c.nEmbd}, shared`,
       params: null,
       differs: null,

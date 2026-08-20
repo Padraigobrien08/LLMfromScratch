@@ -1,5 +1,11 @@
 import { ARCHITECTURES } from "./architecture";
+import { MEASURED } from "./measured";
 import { GPT2_124M, LLAMA_124M, type SizeConfig, headDim, mlpHidden, parameters } from "../lib/modelsize";
+
+/** The compression ceiling quantization actually reaches — read from the export, not
+ *  typed, so the token-embedding panel cannot quote a different scheme's number than
+ *  the one the Efficiency plate derives and prints. */
+const QUANTIZATION_CEILING = Math.max(...MEASURED.quantization.schemes.map((s) => s.compression));
 
 /**
  * The stack, block by block — one class, two architectures, decided by config.
@@ -48,7 +54,7 @@ export const BLOCKS: Block[] = [
     title: "Token embedding",
     summary: "One row per vocabulary entry — a lookup, before any computation happens",
     what:
-      "The only thing the model ever sees is a list of integers, and this table is what turns each of them into a vector. It is a lookup, not a matrix multiply: no arithmetic happens here at all. It is also, at this scale, a third of the entire parameter budget — which is why 4-bit quantization of the weights caps out at 2.42× compression rather than the 8× the bit width suggests.",
+      `The only thing the model ever sees is a list of integers, and this table is what turns each of them into a vector. It is a lookup, not a matrix multiply: no arithmetic happens here at all. It is also, at this scale, a third of the entire parameter budget — which is why 4-bit quantization of the weights caps out at ${QUANTIZATION_CEILING.toFixed(2)}× compression rather than the 8× the bit width suggests.`,
     params: (v) => p(v).tokenEmbedding,
     shape: (v) => `${resolved(v).vocabSize.toLocaleString()} × ${resolved(v).nEmbd}`,
     pins: {

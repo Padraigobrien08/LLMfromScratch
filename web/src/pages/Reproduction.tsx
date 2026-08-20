@@ -43,7 +43,7 @@ export default function Reproduction() {
         </figure>
         <figure>
           <PlateNumeral value={`${(R.mfuMean * 100).toFixed(1)}%`} />
-          <figcaption>mean model-FLOPs utilisation, flat across the whole run</figcaption>
+          <figcaption>mean model-FLOPs utilisation, flat after the first logged step</figcaption>
         </figure>
       </div>
 

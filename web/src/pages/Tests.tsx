@@ -17,7 +17,7 @@ export default function Tests() {
   return (
     <div className="shell page">
       <p className="kicker">The deep end · what the suite asserts</p>
-      <h1 className="page-headline">A test count is not evidence. This is what they check.</h1>
+      <h1 className="page-headline">A test count is not evidence. This is what the tests check.</h1>
       <p className="page-standfirst">
         {PROJECT.pythonTests.toLocaleString()} tests pass on every push, and that sentence is worth
         almost nothing on its own — it is a claim about effort, and no reader can check it. What is

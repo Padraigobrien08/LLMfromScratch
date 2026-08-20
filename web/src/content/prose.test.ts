@@ -25,7 +25,6 @@ const read = (p: string) => readFileSync(resolve(ROOT, p), "utf8");
 const json = (p: string) => JSON.parse(read(p));
 
 const CHAPTERS = read("web/src/content/chapterBodies.tsx");
-const CHAPTER_INDEX = read("web/src/content/chapters.ts");
 const SCALING_PAGE = read("web/src/pages/Scaling.tsx");
 const EFFICIENCY_PAGE = read("web/src/pages/Efficiency.tsx");
 
@@ -35,7 +34,6 @@ describe("the explainer's parameter arithmetic", () => {
   it("states the embedding's share as the breakdown computes it", () => {
     const share = `${Math.round((p.tokenEmbedding / p.total) * 100)}%`;
     expect(CHAPTERS).toContain(`${share} of the entire model`);
-    expect(CHAPTER_INDEX).toContain(`${share} of a 124M model`);
   });
 
   it("states the embedding's shape from the config", () => {

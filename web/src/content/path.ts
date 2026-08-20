@@ -43,7 +43,6 @@ type PlateSource = {
    * from the title, so this cannot quietly become the second copy again.
    */
   headline?: string;
-  blurb: string;
 };
 
 const PLATE_SOURCE: PlateSource[] = [
@@ -56,8 +55,6 @@ const PLATE_SOURCE: PlateSource[] = [
     // without taking the answerer's word for it — so the headline states that rather
     // than repeating the question back.
     headline: "A number someone else can check",
-    blurb:
-      "A validation-loss target fixed before the run, met a third of the way in, and corroborated on a public benchmark against the published figure. Drag the scrubber along the run.",
   },
   {
     kind: "ablations",
@@ -68,8 +65,6 @@ const PLATE_SOURCE: PlateSource[] = [
     // beside three others and would crowd them — a reader still lands on the words
     // they clicked.
     headline: "What actually matters, and what only sounds like it does",
-    blurb:
-      "Twelve arms at three seeds, paired so the seed noise cancels — including the changes that measurably did nothing.",
   },
   {
     kind: "efficiency",
@@ -79,8 +74,6 @@ const PLATE_SOURCE: PlateSource[] = [
     // argument — a cache doing strictly less arithmetic lost on the clock, and a green
     // suite said nothing, because every test asserted the answer and none the path.
     headline: "The cache was slower, and every test passed",
-    blurb:
-      "The KV cache was slower than recomputing until a mask that forfeited the fused kernel turned up. Flip the bug back on and watch the curve change sides.",
   },
   {
     kind: "scaling",
@@ -90,8 +83,6 @@ const PLATE_SOURCE: PlateSource[] = [
     // its shape: two points fitted a two-parameter model and the other two, across a
     // fourfold range, could have refuted it and did not.
     headline: "Two points fitted the curve; the other two tested it",
-    blurb:
-      "95% of linear scaling over the worst interconnect in the building, and a two-parameter model fitted to two points that then predicted the other two.",
   },
 ];
 
@@ -172,7 +163,7 @@ export function destinations(): Destination[] {
     {
       numeral: "03",
       title: "Inspect the implementation",
-      blurb: "Rotary embeddings, the architecture map, and the tests that pin them.",
+      blurb: "Rotary embeddings, the stack block by block, and the tests that pin them.",
       cta: "Open the explorers →",
       href: href({ kind: "rope" } as Route),
     },

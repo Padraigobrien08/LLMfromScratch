@@ -135,7 +135,7 @@ function Chapter2() {
         computing, or somewhere else? Set the sliders to a 124M model and look at the breakdown.
       </Predict>
 
-      <FigureLabel n={2}>parameter, memory and FLOP budget</FigureLabel>
+      <FigureLabel n={2}>parameter, memory and compute budget</FigureLabel>
       <SizeCalculator />
 
       <p className="prose">
@@ -182,7 +182,7 @@ function Chapter3() {
         and a property of the word alone is all a lookup table can give.
       </p>
       <p className="prose-secondary">
-        These links are linguistic illustrations, not model output. What this repository's model
+        These links are linguistic illustrations. What this repository's model
         actually attended to is in the attention explorer, one chapter on.
       </p>
     </>
@@ -260,7 +260,7 @@ function Chapter5() {
       <p className="prose">
         Position has to be injected deliberately. The old approach was a second lookup table, one
         learned vector per slot — 786,432 parameters that do nothing but say "you are eighth". The
-        modern one, and the one this repository implements, is <b>rotary embeddings</b>: rotate each
+        modern one, also implemented in this repository, is <b>rotary embeddings</b>: rotate each
         query and key by an angle proportional to its position, so that when a query meets a key the
         rotation leaves behind exactly one thing — the distance between them.
       </p>
@@ -422,9 +422,9 @@ function Chapter8() {
       </div>
 
       <p className="prose-secondary">
-        Five arms improved at every seed and five hurt at every seed; RMSNorm and zero weight decay
-        came out indistinguishable from the baseline at this scale, which is a finding rather than a
-        blank. The arm expected to diverge, <code>lr-3e-3</code>, turned out to be the largest
+        Five arms improved at every seed and five hurt at every seed; RMSNorm (a cheaper
+        normalisation layer) and zero weight decay came out indistinguishable from the baseline at
+        this scale, which is a finding rather than a blank. The arm expected to diverge, <code>lr-3e-3</code>, turned out to be the largest
         improvement in the study.
       </p>
       <p className="chapter-handoff">

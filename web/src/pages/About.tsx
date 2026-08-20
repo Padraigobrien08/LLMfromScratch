@@ -29,7 +29,7 @@ export default function About() {
 
       <h2 className="section-h2">What it was built from</h2>
       <p className="prose">
-        The original is a write-up and a video by their author, and both are worth reading on
+        The original is a write-up and a video, and both are worth reading on
         their own terms:{" "}
         <a
           href="https://app.readytensor.ai/publications/building-a-transformer-based-llm-from-scratch-using-pytorch-HMEzasyetWey"

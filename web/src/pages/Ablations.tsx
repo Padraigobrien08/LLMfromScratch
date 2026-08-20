@@ -82,8 +82,9 @@ export default function Ablations() {
       <p className="kicker">{plateKicker("ablations")}</p>
       <h1 className="page-headline">{plateHeadline("ablations")}</h1>
       <p className="page-standfirst">
-        {A.arms} design decisions, each varied against a shared baseline, each run at the same{" "}
-        {A.seeds} seeds. The finding is not the one the architecture literature would lead you to
+        {A.arms} arms — eleven varying a single design decision, one combining all five modern
+        components — each run against a shared baseline at the same {A.seeds} seeds. The finding
+        is not the one the architecture literature would lead you to
         expect: <b>the optimiser dominates the architecture</b>. Learning rate and schedule move
         validation loss more than every architecture change in the study combined.
       </p>
@@ -105,8 +106,8 @@ export default function Ablations() {
         <figure>
           <PlateNumeral value={A.noiseFloor.toFixed(4)} />
           <figcaption>
-            the noise floor: seed-to-seed spread on the baseline, and the bar every delta here
-            has to clear
+            the noise floor: seed-to-seed spread on the baseline — the bar an unpaired claim
+            would have to clear
           </figcaption>
         </figure>
       </div>
@@ -304,7 +305,7 @@ export default function Ablations() {
         <p className="prose">
           <b>RMSNorm versus LayerNorm is worth less than the noise floor.</b> The learning rate is
           worth two orders of magnitude more. A study that varied only architecture would have
-          concluded that nothing matters — the optimiser dominates it.
+          concluded that nothing matters.
         </p>
         <p className="prose">
           <b>The components are additive.</b> Summing the five individual modern-stack parts predicts

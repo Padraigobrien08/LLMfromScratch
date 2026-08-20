@@ -37,8 +37,6 @@ export type Chapter = {
    * for the same job would just be a box.
    */
   storySoFar?: string;
-  /** The one-line case for reading it, printed on the front page. */
-  blurb: string;
 };
 
 const ORDINALS = [
@@ -58,8 +56,6 @@ export const CHAPTERS: Chapter[] = [
     kicker: "tokenization",
     title: "A model never sees your text",
     question: "How can a language model read English if it never sees your words?",
-    blurb:
-      "Type a sentence and watch the real GPT-2 vocabulary cut it up. The ids are the only thing the model ever sees.",
   },
   {
     n: 2,
@@ -68,8 +64,6 @@ export const CHAPTERS: Chapter[] = [
     question: "Why do words have to become numbers?",
     storySoFar:
       "Text is now a list of ids — but an id is an index, and an index cannot be added, scaled or compared.",
-    blurb:
-      "Drag the layer and width sliders and watch 31% of a 124M model turn out to be a lookup table before any computation happens.",
   },
   {
     n: 3,
@@ -78,8 +72,6 @@ export const CHAPTERS: Chapter[] = [
     question: "Why can't a model understand words one at a time?",
     storySoFar:
       "Every token is now a vector the model can compute with. Each one was looked up alone, knowing nothing of the words beside it.",
-    blurb:
-      "Three sentences whose meaning lives in an earlier word. The problem attention exists to solve, stated before the solution.",
   },
   {
     n: 4,
@@ -88,8 +80,6 @@ export const CHAPTERS: Chapter[] = [
     question: "How can one word influence another?",
     storySoFar:
       "Meaning depends on words that came earlier, so the model needs a way for tokens to exchange information.",
-    blurb:
-      "Queries, keys, and a weighted average — and the catch that a weighted average cannot tell you what order anything came in.",
   },
   {
     n: 5,
@@ -98,8 +88,6 @@ export const CHAPTERS: Chapter[] = [
     question: "How does the model know which word came first?",
     storySoFar:
       "Attention lets every token look at every earlier one — but a weighted average has no inherent notion of order.",
-    blurb:
-      "Learned position tables versus rotation. The chapter that hands you off to the explorer.",
   },
   {
     n: 6,
@@ -108,8 +96,6 @@ export const CHAPTERS: Chapter[] = [
     question: "How does a model decide what to write next?",
     storySoFar:
       "The model now has representations carrying both content and position, and no way yet to turn either into a word.",
-    blurb:
-      "A real next-token distribution counted from the corpus, with temperature, top-k and top-p in the sampler's own order.",
   },
   {
     n: 7,
@@ -118,8 +104,6 @@ export const CHAPTERS: Chapter[] = [
     question: "What does it actually mean for a model to learn?",
     storySoFar:
       "The model can put a probability on every token in the vocabulary. Whether that distribution was any good is what training has to decide.",
-    blurb:
-      "A validation loss, translated into how many equally likely options the model is choosing between.",
   },
   {
     n: 8,
@@ -128,8 +112,6 @@ export const CHAPTERS: Chapter[] = [
     question: "Do the design choices actually change anything?",
     storySoFar:
       "Every chapter above settled a design decision and the papers all report improvements — none of which is evidence until it survives being measured.",
-    blurb:
-      "Whether any of it survives being measured against the noise of changing the random seed.",
   },
 ];
 

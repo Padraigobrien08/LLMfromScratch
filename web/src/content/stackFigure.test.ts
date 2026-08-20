@@ -93,4 +93,17 @@ describe("the output-head panel's arithmetic", () => {
     expect(added / perBlock).toBeLessThan(6);
     expect(head.what).toContain("five and a half");
   });
+
+  it("quotes the same cost in the figure's own tie panel", () => {
+    // The tie strand and the output head are the same fact told twice, one click
+    // apart in the same detail panel — the output-head copy above got the "two more
+    // blocks" error fixed, but the tie panel kept the wrong figure until this pinned
+    // it too.
+    const tied = parameters(SIZES.gpt2);
+    const added = parameters({ ...SIZES.gpt2, tieEmbeddings: false }).total - tied.total;
+
+    const tie = figurePanel("tie", "gpt2", "#/");
+    expect(tie.what).toContain(`${(added / 1e6).toFixed(1)}M parameters`);
+    expect(tie.what).toContain("five and a half");
+  });
 });
