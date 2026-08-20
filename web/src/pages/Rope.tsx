@@ -250,7 +250,7 @@ export default function Rope() {
           One measured caveat, since the page invites you to read small numbers: the Python builds
           its cos/sin tables in float32 while this port uses float64, so the two agree to about 1e-8
           near the start of a sequence and 3e-7 by position 200 — far below the ~1e-2 resolution of
-          the bf16 activations that consume them, and the same choice HF Llama makes.
+          the bf16 activations that consume them, and the same choice Hugging Face's Llama makes.
         </p>
       </div>
     </div>

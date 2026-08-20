@@ -32,7 +32,7 @@ export default function Architecture() {
         baseline or the modern Llama-style stack is decided entirely by YAML — which is deliberate:
         an ablation that swaps LayerNorm for RMSNorm differs from its baseline by one line, so the
         two cannot silently drift apart. Click a block for its shape, its share of the parameter
-        budget, and the test that pins it.
+        budget, and what holds it.
       </p>
 
       <div className="fig-row fig-row-wide" style={{ marginBottom: "var(--space-4)" }}>

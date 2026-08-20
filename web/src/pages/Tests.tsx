@@ -29,7 +29,7 @@ export default function Tests() {
       <div className="figure-strip">
         <figure>
           <PlateNumeral value={String(TEST_SHOWCASE.length)} />
-          <figcaption>claims shown here, chosen rather than listed</figcaption>
+          <figcaption>claims shown here, marked in the suite for this page</figcaption>
         </figure>
         <figure>
           <PlateNumeral value={String(cases)} />

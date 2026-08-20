@@ -118,7 +118,7 @@ export const BLOCKS: Block[] = [
     title: "Feed-forward",
     summary: "Widen, apply a non-linearity, project back — per position, independently",
     what:
-      "Two thirds of the compute in a transformer block and roughly two thirds of its parameters. It sees one position at a time, which is what makes it cheap to parallelise and what makes attention the only interesting part of the architecture for context length.",
+      "Two thirds of the compute in a transformer block and roughly two thirds of its parameters. It sees one position at a time, which is what makes it cheap to parallelise, and why attention rather than this is what makes long context expensive.",
     repeat: (v) => resolved(v).nLayer,
     differs: (v) =>
       v === "gpt2"
