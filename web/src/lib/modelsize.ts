@@ -9,6 +9,8 @@
  * about where the budget goes.
  */
 
+import { ARCHITECTURES } from "../content/architecture";
+
 export type SizeConfig = {
   vocabSize: number;
   nLayer: number;
@@ -25,30 +27,33 @@ export type SizeConfig = {
   mlpHiddenMultipleOf: number;
 };
 
-export const GPT2_124M: SizeConfig = {
-  vocabSize: 50304,
-  nLayer: 12,
-  nHead: 12,
-  nKvHead: 12,
-  nEmbd: 768,
-  blockSize: 1024,
-  norm: "layernorm",
-  posEmb: "learned",
-  mlp: "gelu",
-  tieEmbeddings: true,
-  bias: true,
-  mlpRatio: 4,
-  mlpHiddenMultipleOf: 256,
-};
+/**
+ * The two shipped configs, taken from the generated `architecture.ts` rather than
+ * typed. They used to be literals here — thirteen fields each, two lines away from
+ * the YAML-resolved copies the Architecture page also reads — and nothing asserted
+ * the twins agreed: a changed `n_embd` in the YAML would have printed the new shape
+ * beside the old parameter count with a green suite. Field-picking from the resolved
+ * config makes that disagreement unrepresentable, and `tsc` holds the field list.
+ */
+const fromResolved = (c: (typeof ARCHITECTURES)[keyof typeof ARCHITECTURES]["config"]): SizeConfig => ({
+  vocabSize: c.vocabSize,
+  nLayer: c.nLayer,
+  nHead: c.nHead,
+  nKvHead: c.nKvHead,
+  nEmbd: c.nEmbd,
+  blockSize: c.blockSize,
+  norm: c.norm,
+  posEmb: c.posEmb,
+  mlp: c.mlp,
+  tieEmbeddings: c.tieEmbeddings,
+  bias: c.bias,
+  mlpRatio: c.mlpRatio,
+  mlpHiddenMultipleOf: c.mlpHiddenMultipleOf,
+});
 
-export const LLAMA_124M: SizeConfig = {
-  ...GPT2_124M,
-  nKvHead: 4,
-  norm: "rmsnorm",
-  posEmb: "rope",
-  mlp: "swiglu",
-  bias: false,
-};
+export const GPT2_124M: SizeConfig = fromResolved(ARCHITECTURES.gpt2.config);
+
+export const LLAMA_124M: SizeConfig = fromResolved(ARCHITECTURES.llama.config);
 
 export const headDim = (c: SizeConfig) => Math.floor(c.nEmbd / c.nHead);
 

@@ -225,7 +225,9 @@ exists to avoid — hence a separate column with a different name, and `mfu` lef
   producing an empty dict. The run was `gpt2-124m` on torch 2.8.0+cu128, 8× RTX 5090
   `sm_120`, from `main` at the time of the run. The four `results/comm-accum*.json` files,
   measured after the fix, carry full provenance including commit `89474b8`, torch
-  2.8.0+cu128 and `gpu_count: 8`.
+  2.8.0+cu128 and `gpu_count: 8`. `llmfs-comm-report results/comm-accum*.json` renders
+  them as one table (with `--plot` for the figure); the remote pipeline runs it at the
+  end of the sweep.
 
 ## Testing the explanation, not just restating it
 

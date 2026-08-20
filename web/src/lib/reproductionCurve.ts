@@ -8,13 +8,17 @@
  * and the validation series is what it is judged on.
  */
 
-export type TrainPoint = { step: number; loss: number; mfu: number | null };
+/**
+ * The slice of the artifact this page reads. The JSON carries more — per-point `mfu`
+ * and the run's `tokens` total — which the *exporter* consumes for the plate's scalar
+ * figures; nothing browser-side reads them, so they are not declared here.
+ */
+export type TrainPoint = { step: number; loss: number };
 export type ValPoint = { step: number; loss: number; perplexity: number };
 
 export type Curve = {
   targetLoss: number;
   finalStep: number;
-  tokens: number;
   crossing: (ValPoint & { fractionOfRun: number }) | null;
   train: TrainPoint[];
   val: ValPoint[];

@@ -74,8 +74,10 @@ def main() -> None:
     crossed = payload["crossing"]
     print(f"wrote {OUT.relative_to(ROOT)}  ({len(train)} train, {len(val)} val points)")
     if crossed:
-        print(f"  target {TARGET_LOSS} first met at step {crossed['step']:,} "
-              f"({crossed['fractionOfRun']:.1%} of the run)")
+        print(
+            f"  target {TARGET_LOSS} first met at step {crossed['step']:,} "
+            f"({crossed['fractionOfRun']:.1%} of the run)"
+        )
 
 
 if __name__ == "__main__":

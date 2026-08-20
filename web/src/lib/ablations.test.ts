@@ -16,13 +16,8 @@ function run(name: string, seed: number, valLoss: number | null, extra: Partial<
     seed,
     status: valLoss === null ? "diverged" : "completed",
     val_loss: valLoss,
-    perplexity: null,
-    steps: 2000,
-    tokens: 500_000_000,
-    wall_clock_s: 3600,
     tokens_per_sec: 140_000,
     params: 42_000_000,
-    error: null,
     history: [],
     ...extra,
   };

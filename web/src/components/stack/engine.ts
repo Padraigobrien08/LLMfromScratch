@@ -7,6 +7,7 @@ import { buildSpec, type Solid, type Spec } from "../../lib/stackGeometry";
 import {
   EDGE,
   LEADER,
+  MIN_VISIBLE_HEIGHT,
   MOTION,
   PLATES,
   facetSet,
@@ -142,7 +143,7 @@ export function mountStackFigure(o: StackEngineOptions): StackEngine {
       id,
       blockId: B.blockId,
       tone: B.tone,
-      pick: B.pick && L("h") > 0.004,
+      pick: B.pick && L("h") > MIN_VISIBLE_HEIGHT,
       xc: L("xc"),
       yc: L("yc"),
       zc: L("zc"),
@@ -166,7 +167,7 @@ export function mountStackFigure(o: StackEngineOptions): StackEngine {
     let z1 = -Infinity;
     idUnion.forEach((id) => {
       const s = solidAt(id);
-      if (s.h < 0.004) return;
+      if (s.h < MIN_VISIBLE_HEIGHT) return;
       x0 = Math.min(x0, s.xc - s.w / 2);
       x1 = Math.max(x1, s.xc + s.w / 2);
       y0 = Math.min(y0, s.yc - s.h / 2);
@@ -267,7 +268,7 @@ export function mountStackFigure(o: StackEngineOptions): StackEngine {
 
   /** The learned position table is a slab; the rotary one is a ring inside attention. */
   const labelVisible = (L: FigureLabel) =>
-    L.key === "pos_emb" && curCfg().posEmb === "learned" ? solidAt("pos_emb").h > 0.004 : true;
+    L.key === "pos_emb" && curCfg().posEmb === "learned" ? solidAt("pos_emb").h > MIN_VISIBLE_HEIGHT : true;
 
   type Placed = {
     L: FigureLabel;
@@ -399,7 +400,7 @@ export function mountStackFigure(o: StackEngineOptions): StackEngine {
     const rect = { w: canvasWrap.clientWidth, h: canvasWrap.clientHeight };
     if (rect.w === 0 || rect.h === 0) return;
     const P = axo(REST.a, REST.e);
-    const solids = idUnion.map(solidAt).filter((s) => s.h > 0.004 && s.tone !== "hidden");
+    const solids = idUnion.map(solidAt).filter((s) => s.h > MIN_VISIBLE_HEIGHT && s.tone !== "hidden");
 
     const corners: Array<[number, number, number]> = [];
     solids.forEach((s) => {

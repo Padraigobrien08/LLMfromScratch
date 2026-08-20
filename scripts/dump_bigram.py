@@ -47,7 +47,8 @@ CONTEXTS = [
 TOP_N = 24
 
 
-def main() -> None:
+def build() -> str:
+    """The fixture's exact text, separated from the write so a test can diff it."""
     if not CORPUS.exists():
         raise SystemExit(f"corpus not found: {CORPUS}")
 
@@ -90,8 +91,7 @@ def main() -> None:
         )
         print(f"{context!r:<14} {total:>5} occurrences, {len(counts):>4} distinct followers")
 
-    OUT.parent.mkdir(parents=True, exist_ok=True)
-    OUT.write_text(
+    return (
         json.dumps(
             {
                 "_comment": (
@@ -108,7 +108,12 @@ def main() -> None:
         )
         + "\n"
     )
-    print(f"\nwrote {OUT} ({len(ids):,} tokens counted)")
+
+
+def main() -> None:
+    OUT.parent.mkdir(parents=True, exist_ok=True)
+    OUT.write_text(build())
+    print(f"\nwrote {OUT}")
 
 
 if __name__ == "__main__":

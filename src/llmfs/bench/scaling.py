@@ -146,6 +146,9 @@ class ScalingPoint:
     efficiency: float = 1.0
     error: str | None = None
     seconds: float = 0.0
+    tokens_per_step: int | None = None
+    """The effective batch in tokens, so the artifact states it rather than implying it
+    through grad_accum_steps times a micro-step size someone has to know."""
 
 
 @dataclass
@@ -338,6 +341,21 @@ def run_one(
     return records, None
 
 
+def tokens_per_step_for(config: str, extra_overrides: list[str]) -> int | None:
+    """The effective batch in tokens, recorded so the artifact needs no outside help.
+
+    The comm-accum artifacts record only ``grad_accum_steps``, which left the exporter
+    multiplying by a hand-typed micro-step size to state tokens/step on the site. New
+    artifacts carry the number itself.
+    """
+    try:
+        from ..config import load_config
+
+        return load_config(config, extra_overrides).train.tokens_per_step
+    except Exception:  # noqa: BLE001 - a missing config must not sink the benchmark
+        return None
+
+
 def grad_accum_for(config: str, world_size: int, extra_overrides: list[str]) -> int | None:
     """Ask the config system what accumulation this world size implies.
 
@@ -415,6 +433,7 @@ def run(
         point = ScalingPoint(
             world_size=world_size,
             grad_accum_steps=grad_accum_for(config, world_size, extra_overrides),
+            tokens_per_step=tokens_per_step_for(config, extra_overrides),
             seconds=elapsed,
             **stats,
         )
