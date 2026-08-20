@@ -75,6 +75,10 @@ const PLATE_SOURCE: PlateSource[] = [
     kind: "efficiency",
     subject: "inference",
     title: "Making it fast, and the bug that hid in the numbers",
+    // The link names the subject; the page states what it found. The bug is the page's
+    // argument — a cache doing strictly less arithmetic lost on the clock, and a green
+    // suite said nothing, because every test asserted the answer and none the path.
+    headline: "The cache was slower, and every test passed",
     blurb:
       "The KV cache was slower than recomputing until a mask that forfeited the fused kernel turned up. Flip the bug back on and watch the curve change sides.",
   },
@@ -82,6 +86,10 @@ const PLATE_SOURCE: PlateSource[] = [
     kind: "scaling",
     subject: "eight GPUs",
     title: "Eight GPUs, and why the interconnect barely matters",
+    // Not the 95%, which is the number the title already promises. The page's evidence is
+    // its shape: two points fitted a two-parameter model and the other two, across a
+    // fourfold range, could have refuted it and did not.
+    headline: "Two points fitted the curve; the other two tested it",
     blurb:
       "95% of linear scaling over the worst interconnect in the building, and a two-parameter model fitted to two points that then predicted the other two.",
   },

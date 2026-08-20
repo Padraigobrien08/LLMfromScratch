@@ -133,7 +133,8 @@ export default function Reproduction() {
       <h2 className="section-h2">Why the loss alone would not be enough</h2>
       <div className="two-col">
         <p className="prose">
-          Validation loss is measured on a split we chose, with a tokenizer we configured. A
+          Validation loss is measured on a split chosen for this project, with a tokenizer configured
+          for it. A
           mismatch in either would move the number without looking wrong — a slightly easier held-out
           split, or a tokenizer that fragments differently, and the figure improves for reasons that
           have nothing to do with the model. Self-consistency is cheap.

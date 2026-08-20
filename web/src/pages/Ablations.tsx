@@ -302,9 +302,9 @@ export default function Ablations() {
       <h2 className="section-h2">Three things worth pulling out</h2>
       <div className="two-col">
         <p className="prose">
-          <b>The optimiser dominates the architecture.</b> RMSNorm versus LayerNorm is worth less
-          than the noise floor; the learning rate is worth two orders of magnitude more. A study
-          that varied only architecture would have concluded that nothing matters.
+          <b>RMSNorm versus LayerNorm is worth less than the noise floor.</b> The learning rate is
+          worth two orders of magnitude more. A study that varied only architecture would have
+          concluded that nothing matters — the optimiser dominates it.
         </p>
         <p className="prose">
           <b>The components are additive.</b> Summing the five individual modern-stack parts predicts

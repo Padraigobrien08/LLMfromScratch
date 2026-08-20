@@ -35,8 +35,9 @@ export default function Scaling() {
       <h1 className="page-headline">{plateHeadline("scaling")}</h1>
       <p className="page-standfirst">
         {(eight.efficiency * 100).toFixed(1)}% scaling efficiency on eight cards with{" "}
-        <b>no NVLink</b> — over a dual-socket box where half the GPUs sit on the other NUMA node, so
-        the eight-way all-reduce crosses the inter-socket link. That number is easy to report and
+        <b>no NVLink</b> — the fast direct link between GPUs that this box does not have. Half of
+        them sit on the other socket, so every gradient exchange crosses the slow path between
+        them. That number is easy to report and
         hard to interpret on its own, so the second half of this page is an experiment that says
         what it is made of.
       </p>

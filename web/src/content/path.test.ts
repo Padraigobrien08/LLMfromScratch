@@ -42,13 +42,17 @@ describe("the plates", () => {
     }
   });
 
-  /** A plate that declares nothing prints the title its links use — no third string. */
+  /**
+   * A plate that declares nothing prints the title its links use — no third string.
+   *
+   * All four declare a headline now, so the `?? title` branch is no longer exercised by
+   * the data: this asserts the rule rather than an example of it, and goes on covering a
+   * plate added later that omits one. The named `efficiency` case that used to sit here
+   * was pinning the absence of a headline, which stopped being true when it got one.
+   */
   it("prints the link's own words where nothing else is declared", () => {
     for (const plate of PLATES) {
       expect(plateHeadline(plate.kind)).toBe(plate.headline ?? plate.title);
     }
-    expect(plateHeadline("efficiency")).toBe(
-      PLATES.find((p) => p.kind === "efficiency")!.title,
-    );
   });
 });

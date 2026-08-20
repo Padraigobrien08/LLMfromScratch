@@ -56,7 +56,7 @@ export default function Efficiency() {
       </div>
 
       <div className="rule-heavy" />
-      <h2 className="section-h2">A plausible story for a disappointing measurement</h2>
+      <h2 className="section-h2">The KV cache, and the story that hid a bug</h2>
       <div className="two-col">
         <p className="prose">
           An earlier version of this project reported that the KV cache gave no speedup, and
