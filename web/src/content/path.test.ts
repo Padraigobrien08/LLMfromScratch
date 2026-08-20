@@ -13,7 +13,7 @@ describe("the three destinations", () => {
   it("counts the chapters and plates rather than stating them", () => {
     const [learn, results] = destinations();
     expect(learn!.blurb).toContain(`${CHAPTERS.length} chapters`);
-    expect(results!.blurb).toContain(`${PLATES.length} measured plates`);
+    expect(results!.blurb).toContain(`${PLATES.length} results pages`);
     expect(results!.blurb).toContain(`${MEASURED.ablations.runs} ablation runs`);
   });
 

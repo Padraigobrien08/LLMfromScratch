@@ -157,14 +157,14 @@ export function destinations(): Destination[] {
     {
       numeral: "02",
       title: "See whether it actually worked",
-      blurb: `${PLATES.length} measured plates, read in order, and ${MEASURED.ablations.runs} ablation runs behind them.`,
+      blurb: `${PLATES.length} results pages, read in order, with ${MEASURED.ablations.runs} ablation runs behind them.`,
       cta: "See the results →",
       href: href({ kind: "reproduction" } as Route),
     },
     {
       numeral: "03",
       title: "Inspect the implementation",
-      blurb: "RoPE, the architecture map, and the assertions themselves.",
+      blurb: "Rotary embeddings, the architecture map, and the tests that pin them.",
       cta: "Open the explorers →",
       href: href({ kind: "rope" } as Route),
     },

@@ -23,7 +23,7 @@ export default function Footer({ route }: { route: Route }) {
       */}
       <div className="footer-row">
         <p className="colophon">
-          <a href="#/about">About this project</a>
+          <a href="#/about">Where this came from</a>
         </p>
         <p className="footer-meta">
           <a href={PROJECT.repo} target="_blank" rel="noopener">

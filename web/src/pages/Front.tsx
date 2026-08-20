@@ -34,11 +34,11 @@ export default function Front() {
       <div className="front-grid">
         <header className="front-lede">
           <h1 className="front-headline">
-            A language model built by hand, and the evidence that it works
+            A language model built by hand, and the evidence it works
           </h1>
           <p className="standfirst front-standfirst">
-            A decoder-only transformer written from nothing, reproduced at GPT-2 124M scale,
-            then tested through ablations and benchmarks.{" "}
+            A decoder-only transformer, reproduced at GPT-2 124M scale and checked against a
+            public benchmark, with every design choice tested by ablation.{" "}
             <em>Every number here is measured.</em>
           </p>
 

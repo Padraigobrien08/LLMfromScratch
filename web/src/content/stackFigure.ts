@@ -110,7 +110,8 @@ const EXTRAS: Record<string, Extra> = {
         "A decoder-only transformer: one tower, no encoder, nothing crossing in from the " +
         `side. A sentence enters at the bottom as integers, becomes ${c.nEmbd} numbers per ` +
         `token, passes ${c.nLayer} times through the same two-part block, and leaves the top ` +
-        "as a probability for every token in the vocabulary.",
+        "as a probability for every token in the vocabulary. Each slab's thickness is its " +
+        "share of the parameters; its colour is its role.",
       shape: `${c.nLayer} layers · ${c.nEmbd} wide · ${c.nHead} heads · ${int(c.blockSize)} context`,
       params: parameters(SIZES[v]).total,
       differs: null,

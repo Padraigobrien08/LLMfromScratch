@@ -145,7 +145,7 @@ export default function StackFigure({ attentionHref }: { attentionHref: string }
             aria-label={`${panel.name} — detail`}
             tabIndex={0}
           >
-            <p className="eyebrow">{selected === "whole" ? "The object" : "Selected block"}</p>
+            <p className="eyebrow">{selected === "whole" ? "The model" : "Selected block"}</p>
             <h3 className="stack-fig-panel-title">{panel.name}</h3>
 
             {/**

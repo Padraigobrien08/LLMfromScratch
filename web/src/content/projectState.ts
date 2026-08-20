@@ -40,7 +40,7 @@ export const PROJECT = {
 export const DATELINE: string[] = [
   PROJECT.author,
   `${PROJECT.pythonTests} tests green`,
-  `GPT-2 124M · val loss ${PROJECT.reproduction.loss.toFixed(2)}`,
+  `GPT-2 124M · validation loss ${PROJECT.reproduction.loss.toFixed(2)}`,
   `Ablation sweep complete · ${PROJECT.ablations.runs} runs`,
   PROJECT.licence,
 ];
