@@ -126,3 +126,22 @@ def test_committed_fixture_still_matches_gpt2() -> None:
     assert enc.n_vocab == fixture["n_vocab"]
     for case in fixture["cases"]:
         assert enc.encode(case["text"]) == case["ids"], f"drifted on {case['text']!r}"
+
+
+def test_file_tokenizer_fingerprint_is_the_files_hash(local_tokenizer) -> None:
+    """The file is the vocabulary, so its byte hash is the canonical fingerprint —
+    anything that changes what a token means changes it, and nothing else does."""
+    import hashlib
+
+    expected = hashlib.sha256(LOCAL_TOKENIZER.read_bytes()).hexdigest()
+    assert local_tokenizer.fingerprint() == expected
+
+
+def test_gpt2_fingerprint_is_content_derived_and_deterministic() -> None:
+    """ "gpt2" names a vocabulary tiktoken fetches at runtime; the fingerprint is what
+    lets a corpus's meta.json prove which vocabulary actually tokenised it."""
+    tok = gpt2_tokenizer()
+    first, second = tok.fingerprint(), tok.fingerprint()
+    assert first == second
+    assert first is not None and len(first) == 64
+    assert set(first) <= set("0123456789abcdef")

@@ -206,7 +206,9 @@ def test_shard_and_meta_writes_are_temp_then_rename(tmp_path: Path, monkeypatch)
 
     monkeypatch.setattr(prepare_mod.os, "replace", spy)
     monkeypatch.setattr(
-        prepare_mod, "load_tokenizer", lambda spec: SimpleNamespace(vocab_size=100, eot_token=0)
+        prepare_mod,
+        "load_tokenizer",
+        lambda spec: SimpleNamespace(vocab_size=100, eot_token=0, fingerprint=lambda: "stub"),
     )
 
     writer = ShardWriter(tmp_path, shard_tokens=100, val_shards=0)
@@ -288,3 +290,28 @@ def test_assert_trainable_passes_when_train_tokens_exist() -> None:
     from llmfs.data.prepare import _assert_trainable
 
     _assert_trainable({"tokens": {"train": 1, "val": 1}}, Path("/tmp/x"), shard_tokens=10)
+
+
+def test_meta_records_fingerprint_and_extra_provenance(tmp_path: Path, monkeypatch) -> None:
+    """meta.json carries the tokenizer's content hash and whatever provenance the
+    preparation resolved (the FineWeb revision), so a corpus can be compared to
+    another instead of taken on the name of its inputs."""
+    from types import SimpleNamespace
+
+    import llmfs.data.prepare as prepare_mod
+
+    monkeypatch.setattr(
+        prepare_mod,
+        "load_tokenizer",
+        lambda spec: SimpleNamespace(vocab_size=100, eot_token=0, fingerprint=lambda: "abc123"),
+    )
+    writer = ShardWriter(tmp_path, shard_tokens=10, val_shards=0)
+    writer.add(np.arange(10, dtype=np.uint16))
+    writer.close()
+    prepare_mod._write_meta(
+        tmp_path, writer, "gpt2", source="s", extra={"dataset_revision": "deadbeef"}
+    )
+
+    meta = json.loads((tmp_path / "meta.json").read_text())
+    assert meta["tokenizer_fingerprint"] == "abc123"
+    assert meta["dataset_revision"] == "deadbeef"

@@ -48,8 +48,19 @@ def measure_matmul_tflops(device: torch.device, size: int = 8192, iters: int = 2
     return iters * 2 * size**3 / elapsed / 1e12
 
 
-def capture(device: torch.device | str = "cpu", measure: bool = True) -> dict[str, Any]:
-    """Everything needed to attribute a result to a machine and a commit."""
+def capture(
+    device: torch.device | str = "cpu",
+    measure: bool = True,
+    seed: int | None = None,
+    deterministic: bool | None = None,
+) -> dict[str, Any]:
+    """Everything needed to attribute a result to a machine and a commit.
+
+    ``seed`` and ``deterministic`` are recorded when the caller has them: until they
+    were, no benchmark artifact recorded either, and the seed survived only inside
+    checkpoints and run configs — one directory-cleanup away from an unattributable
+    number.
+    """
     device = torch.device(device)
     info: dict[str, Any] = {
         "timestamp_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
@@ -64,6 +75,10 @@ def capture(device: torch.device | str = "cpu", measure: bool = True) -> dict[st
         # the fact than to imply a clean provenance that is not there.
         "git_dirty": bool(_git("status", "--porcelain")),
     }
+    if seed is not None:
+        info["seed"] = seed
+    if deterministic is not None:
+        info["deterministic"] = deterministic
 
     if device.type == "cuda" and torch.cuda.is_available():
         props = torch.cuda.get_device_properties(device)
