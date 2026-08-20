@@ -82,7 +82,7 @@ export default function Rope() {
 
   return (
     <div className="shell page">
-      <p className="kicker">The deep end · explorable explanation</p>
+      <p className="kicker">The deep end · rotary embeddings</p>
       <h1 className="page-headline">What rotary embeddings actually do</h1>
       <p className="page-standfirst">
         RoPE encodes a token's position by <i>rotating</i> its query and key vectors by an angle

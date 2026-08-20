@@ -844,10 +844,10 @@ export function mountStackFigure(o: StackEngineOptions): StackEngine {
   validate(FIGURE_LABELS, [...new Set(SPECS.gpt2.solids.map((s) => s.blockId)), "tie"]);
   renderFlat();
 
-  const FLAT_NOTE = "Click a component to inspect it · flat plate, every label and link, without the orbit.";
+  const FLAT_NOTE = "Click a component to inspect it · flat figure, every label and link, without the orbit.";
   o.onMode(
     reduced
-      ? "Click a component to inspect it · reduced motion, so the plate stays flat."
+      ? "Click a component to inspect it · reduced motion, so the figure stays flat."
       : FLAT_NOTE,
   );
 

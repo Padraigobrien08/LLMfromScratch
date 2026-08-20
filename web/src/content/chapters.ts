@@ -77,14 +77,14 @@ export const CHAPTERS: Chapter[] = [
     title: "Words only mean things in context",
     question: "Why can't a model understand words one at a time?",
     storySoFar:
-      "Every token is now a vector the model can compute with — but each was looked up on its own, knowing nothing of the ones beside it.",
+      "Every token is now a vector the model can compute with. Each one was looked up alone, knowing nothing of the words beside it.",
     blurb:
       "Three sentences whose meaning lives in an earlier word. The problem attention exists to solve, stated before the solution.",
   },
   {
     n: 4,
     kicker: "attention",
-    title: "Letting every token look back",
+    title: "Every token looks back",
     question: "How can one word influence another?",
     storySoFar:
       "Meaning depends on words that came earlier, so the model needs a way for tokens to exchange information.",
@@ -94,7 +94,7 @@ export const CHAPTERS: Chapter[] = [
   {
     n: 5,
     kicker: "position",
-    title: "Telling the model where each token sits",
+    title: "The model knows where each token sits",
     question: "How does the model know which word came first?",
     storySoFar:
       "Attention lets every token look at every earlier one — but a weighted average has no inherent notion of order.",
@@ -107,7 +107,7 @@ export const CHAPTERS: Chapter[] = [
     title: "Out comes a probability for every token",
     question: "How does a model decide what to write next?",
     storySoFar:
-      "The model now has representations carrying both content and position — and eventually one of them has to become a choice.",
+      "The model now has representations carrying both content and position, and no way yet to turn either into a word.",
     blurb:
       "A real next-token distribution counted from the corpus, with temperature, top-k and top-p in the sampler's own order.",
   },
@@ -117,15 +117,15 @@ export const CHAPTERS: Chapter[] = [
     title: "Training is making the right token less surprising",
     question: "What does it actually mean for a model to learn?",
     storySoFar:
-      "The model can put a probability on every token in the vocabulary — and something has to say whether that distribution was any good.",
+      "The model can put a probability on every token in the vocabulary. Whether that distribution was any good is what training has to decide.",
     blurb:
       "A validation loss, translated into how many equally likely options the model is choosing between.",
   },
   {
     n: 8,
     kicker: "the honest question",
-    title: "So does any of the design actually matter?",
-    question: "Do these architectural choices make a measurable difference?",
+    title: "The optimiser mattered more than the architecture",
+    question: "Do the design choices actually change anything?",
     storySoFar:
       "Every chapter above settled a design decision and the papers all report improvements — none of which is evidence until it survives being measured.",
     blurb:
