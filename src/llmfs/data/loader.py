@@ -51,11 +51,33 @@ class ShardDataLoader:
         self.world_size = world_size
         self.device = torch.device(device)
 
-        self.shard_paths = sorted(self.data_dir.glob(f"{split}_*.bin"))
+        # The manifest, not a glob. A glob trusts the directory, and the directory can
+        # hold shards a previous preparation left behind: `prepare.py` overwrites
+        # low-numbered shards in place, so a shorter re-prep (fewer docs, or a
+        # different tokenizer) leaves every higher-numbered shard from the old run on
+        # disk. A glob splices those orphans into the token stream — silently
+        # contaminating the corpus, and moving `total_tokens`, which shifts every
+        # position `set_step` derives. meta.json lists exactly the shards the last
+        # completed preparation wrote, so it is the authority; the glob survives only
+        # as a fallback for corpora prepared before the manifest existed.
+        meta_path = self.data_dir / "meta.json"
+        self._meta = json.loads(meta_path.read_text()) if meta_path.exists() else None
+        if self._meta is not None and "shards" in self._meta:
+            names = [m["path"] for m in self._meta["shards"] if m["split"] == split]
+            self.shard_paths = [self.data_dir / name for name in names]
+            missing = [p.name for p in self.shard_paths if not p.exists()]
+            if missing:
+                raise FileNotFoundError(
+                    f"meta.json in {self.data_dir} lists shard(s) {missing} that are not "
+                    f"on disk — the preparation was interrupted or the directory was "
+                    f"modified since. Re-run `llmfs-prepare-data`."
+                )
+        else:
+            print(f"[warn] no shard manifest in {self.data_dir}; trusting a filename glob")
+            self.shard_paths = sorted(self.data_dir.glob(f"{split}_*.bin"))
         if not self.shard_paths:
             raise FileNotFoundError(
-                f"no shards matching '{split}_*.bin' in {self.data_dir}. "
-                f"Run `llmfs-prepare-data` first."
+                f"no shards for split '{split}' in {self.data_dir}. Run `llmfs-prepare-data` first."
             )
 
         self.shards = [np.memmap(p, dtype=np.uint16, mode="r") for p in self.shard_paths]
@@ -63,6 +85,19 @@ class ShardDataLoader:
         # Exclusive prefix sums, for translating a global offset to (shard, offset).
         self.shard_starts = np.cumsum([0, *self.shard_lengths])
         self.total_tokens = int(self.shard_starts[-1])
+
+        # The bytes on disk must be the tokens the manifest promised. A truncated
+        # shard — a preparation killed mid-write, a partial copy — still memory-maps
+        # happily, because uint16 length is inferred from file size; only this check
+        # notices that the stream is shorter than the corpus the run was told it has.
+        if self._meta is not None and "tokens" in self._meta:
+            expected = self._meta["tokens"].get(split)
+            if expected is not None and expected != self.total_tokens:
+                raise ValueError(
+                    f"split '{split}' in {self.data_dir} holds {self.total_tokens:,} "
+                    f"tokens on disk but meta.json records {expected:,} — a shard is "
+                    f"truncated or stale. Re-run `llmfs-prepare-data`."
+                )
 
         tokens_per_micro_step = self.world_size * self.B * self.T
         if self.total_tokens < tokens_per_micro_step + 1:
