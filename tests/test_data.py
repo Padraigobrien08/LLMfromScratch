@@ -16,17 +16,31 @@ from llmfs.data.prepare import ShardWriter
 @pytest.fixture
 def corpus(tmp_path: Path) -> Path:
     """Three train shards holding the sequence 0, 1, 2, ... so any token's identity
-    reveals its position — which is what makes the ordering assertions below sharp."""
+    reveals its position — which is what makes the ordering assertions below sharp.
+
+    meta.json carries the shard manifest, the way `prepare.py` writes it, so these
+    tests run through the loader's primary discovery path; the pre-manifest fallback
+    has its own test below."""
     out = tmp_path / "corpus"
     out.mkdir()
     total = 0
+    shards = []
     for i, size in enumerate([500, 500, 300]):
         arr = np.arange(total, total + size, dtype=np.uint16)
         arr.tofile(out / f"train_{i:06d}.bin")
+        shards.append({"path": f"train_{i:06d}.bin", "split": "train", "tokens": size})
         total += size
     np.arange(50, dtype=np.uint16).tofile(out / "val_000000.bin")
+    shards.append({"path": "val_000000.bin", "split": "val", "tokens": 50})
     (out / "meta.json").write_text(
-        json.dumps({"tokenizer": "gpt2", "vocab_size": 50257, "tokens": {"train": total}})
+        json.dumps(
+            {
+                "tokenizer": "gpt2",
+                "vocab_size": 50257,
+                "shards": shards,
+                "tokens": {"train": total, "val": 50},
+            }
+        )
     )
     return out
 
@@ -131,6 +145,96 @@ def test_corpus_too_small_is_rejected(tmp_path: Path) -> None:
     np.arange(10, dtype=np.uint16).tofile(tmp_path / "train_000000.bin")
     with pytest.raises(ValueError, match="too few"):
         ShardDataLoader(tmp_path, "train", micro_batch_size=4, block_size=64)
+
+
+def test_orphan_shards_from_an_earlier_prep_are_excluded(corpus: Path) -> None:
+    """The failure this whole manifest mechanism exists for.
+
+    `prepare.py` overwrites low-numbered shards in place, so a shorter re-prep leaves
+    the old run's higher-numbered shards on disk. Discovery by filename glob spliced
+    them into the token stream — silently training on stale (possibly differently
+    tokenised) data, and shifting every resume position through `total_tokens`.
+    """
+    sentinel = np.full(500, 60000, dtype=np.uint16)
+    sentinel.tofile(corpus / "train_000003.bin")  # orphan: on disk, not in the manifest
+
+    loader = make_loader(corpus)
+    assert loader.total_tokens == 1300, "an unlisted shard entered the stream"
+    assert all(p.name != "train_000003.bin" for p in loader.shard_paths)
+
+
+def test_truncated_shard_is_rejected(corpus: Path) -> None:
+    """A shard shorter than the manifest promises memory-maps without complaint —
+    uint16 length is inferred from file size — so only the token-count check notices."""
+    np.arange(100, dtype=np.uint16).tofile(corpus / "train_000002.bin")  # was 300
+    with pytest.raises(ValueError, match="truncated or stale"):
+        make_loader(corpus)
+
+
+def test_shard_listed_in_manifest_but_missing_is_rejected(corpus: Path) -> None:
+    (corpus / "train_000001.bin").unlink()
+    with pytest.raises(FileNotFoundError, match="lists shard"):
+        make_loader(corpus)
+
+
+def test_pre_manifest_corpus_still_loads_via_glob(corpus: Path, capsys) -> None:
+    """Corpora prepared before meta.json carried a shard list keep working, loudly."""
+    meta = json.loads((corpus / "meta.json").read_text())
+    del meta["shards"]
+    del meta["tokens"]
+    (corpus / "meta.json").write_text(json.dumps(meta))
+
+    loader = make_loader(corpus)
+    assert loader.total_tokens == 1300
+    assert "no shard manifest" in capsys.readouterr().out
+
+
+def test_shard_and_meta_writes_are_temp_then_rename(tmp_path: Path, monkeypatch) -> None:
+    """Same discipline, and the same style of assertion, as the checkpoint tests: the
+    observed sequence of renames is the proof, not the files' existence afterwards."""
+    import os
+    from types import SimpleNamespace
+
+    import llmfs.data.prepare as prepare_mod
+
+    calls: list[tuple[str, str]] = []
+    real_replace = os.replace
+
+    def spy(src, dst):
+        calls.append((Path(src).name, Path(dst).name))
+        real_replace(src, dst)
+
+    monkeypatch.setattr(prepare_mod.os, "replace", spy)
+    monkeypatch.setattr(
+        prepare_mod, "load_tokenizer", lambda spec: SimpleNamespace(vocab_size=100, eot_token=0)
+    )
+
+    writer = ShardWriter(tmp_path, shard_tokens=100, val_shards=0)
+    writer.add(np.arange(100, dtype=np.uint16))
+    writer.close()
+    prepare_mod._write_meta(tmp_path, writer, "gpt2", source="test")
+
+    assert calls == [
+        ("train_000000.bin.tmp", "train_000000.bin"),
+        ("meta.json.tmp", "meta.json"),
+    ]
+    assert not list(tmp_path.glob("*.tmp"))
+
+
+def test_interrupted_shard_write_leaves_no_real_shard_name(tmp_path: Path, monkeypatch) -> None:
+    """A prep killed mid-write must leave a `.tmp`, never a truncated real shard."""
+    import llmfs.data.prepare as prepare_mod
+
+    def bomb(src, dst):
+        raise RuntimeError("killed mid-write")
+
+    monkeypatch.setattr(prepare_mod.os, "replace", bomb)
+    writer = ShardWriter(tmp_path, shard_tokens=100, val_shards=0)
+    with pytest.raises(RuntimeError, match="killed"):
+        writer.add(np.arange(100, dtype=np.uint16))
+
+    assert not (tmp_path / "train_000000.bin").exists()
+    assert (tmp_path / "train_000000.bin.tmp").exists()
 
 
 def test_read_meta(corpus: Path) -> None:

@@ -102,7 +102,13 @@ class ShardWriter:
         # Index within the split, so filenames stay contiguous per split.
         within = sum(1 for m in self.manifest if m["split"] == split)
         path = self.out_dir / f"{split}_{within:06d}.bin"
-        self.buffer[:size].tofile(path)
+        # Temp-and-rename, the same discipline checkpoints use: a preparation killed
+        # mid-write must not leave a truncated shard under a real shard name. The
+        # loader would memory-map it without complaint — uint16 length is inferred
+        # from file size — and only the meta.json token-count check would notice.
+        tmp = path.with_suffix(path.suffix + ".tmp")
+        self.buffer[:size].tofile(tmp)
+        os.replace(tmp, path)
         self.manifest.append({"path": path.name, "split": split, "tokens": int(size)})
         self.shard_index += 1
         self.fill = 0
@@ -144,7 +150,13 @@ def _write_meta(out_dir: Path, writer: ShardWriter, tokenizer_spec: str, source:
         "shards": writer.manifest,
         "tokens": totals,
     }
-    (out_dir / "meta.json").write_text(json.dumps(meta, indent=2))
+    # Written last and written atomically: meta.json existing and agreeing with the
+    # shards is the completion signal — the loader takes its shard list from it, and
+    # the remote pipelines' "corpus already present" checks are only as good as it is.
+    path = out_dir / "meta.json"
+    tmp = path.with_suffix(".json.tmp")
+    tmp.write_text(json.dumps(meta, indent=2))
+    os.replace(tmp, path)
     return meta
 
 
