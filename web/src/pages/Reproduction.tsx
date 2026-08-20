@@ -203,7 +203,7 @@ export default function Reproduction() {
 
       <div className="rule-heavy" style={{ margin: "var(--space-6) 0 var(--space-4)" }} />
       <div className="closing-cols">
-        <p style={{ font: "400 17px/1.6 var(--font-body)" }}>
+        <p className="closing-lead">
           <b>Every figure on this page is read from an artifact.</b> The scalars come from{" "}
           <code>results/reproduction.json</code> and <code>results/hellaswag.json</code>; the curve
           is the run's own <code>metrics.jsonl</code>, lifted into{" "}
@@ -211,7 +211,7 @@ export default function Reproduction() {
           still what the generator produces, and a second asserts the target appears in the config
           that pre-registered it.
         </p>
-        <p style={{ font: "400 16px/1.6 var(--font-body)", color: "var(--color-neutral-700)" }}>
+        <p className="closing-note">
           The full protocol — target provenance, hardware, the evaluation harness, and sample
           generations — is in{" "}
           <a href={`${REPO}/docs/reproduction.md`}>

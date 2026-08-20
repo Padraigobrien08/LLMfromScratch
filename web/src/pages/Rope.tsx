@@ -237,7 +237,7 @@ export default function Rope() {
 
       <div className="rule-heavy" style={{ marginBottom: "var(--space-4)" }} />
       <div className="closing-cols">
-        <p style={{ font: "400 17px/1.6 var(--font-body)" }}>
+        <p className="closing-lead">
           <b>This page runs the real thing.</b> The rotation above is a TypeScript port of{" "}
           <a href={`${REPO}/src/llmfs/model/rope.py`}>
             <code>src/llmfs/model/rope.py</code>
@@ -246,7 +246,7 @@ export default function Rope() {
           directions — the browser tests assert the port reproduces it, and the Python suite asserts
           the fixture still reproduces the model. Either side changing alone fails CI.
         </p>
-        <p style={{ font: "400 16px/1.6 var(--font-body)", color: "var(--color-neutral-700)" }}>
+        <p className="closing-note">
           One measured caveat, since the page invites you to read small numbers: the Python builds
           its cos/sin tables in float32 while this port uses float64, so the two agree to about 1e-8
           near the start of a sequence and 3e-7 by position 200 — far below the ~1e-2 resolution of

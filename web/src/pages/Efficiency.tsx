@@ -219,14 +219,14 @@ export default function Efficiency() {
 
       <div className="rule-heavy" style={{ margin: "var(--space-6) 0 var(--space-4)" }} />
       <div className="closing-cols">
-        <p style={{ font: "400 17px/1.6 var(--font-body)" }}>
+        <p className="closing-lead">
           <b>Throughput is a property of a device-algorithm pair, not of an algorithm.</b> Moving
           from MPS to CUDA flipped the sign of the prose speculative result, so the earlier claim
           that prompt-lookup "loses on prose" turned out to be a statement about MPS. Memory and
           quality are device-independent; the numbers above that are not carry their hardware with
           them.
         </p>
-        <p style={{ font: "400 16px/1.6 var(--font-body)", color: "var(--color-neutral-700)" }}>
+        <p className="closing-note">
           Full write-up, including the training-throughput sweep on both an H100 and a 4090 and what
           that contrast says about gradient checkpointing, in{" "}
           <a href={`${REPO}/docs/efficiency.md`}>

@@ -556,10 +556,14 @@ body {
    * The overlap that fix was originally guarding against is handled properly elsewhere —
    * `main` scrolls its own overflow, so nothing is painted over the footer.
    *
-   * The floor tracks the selected part, so the page's height moves by up to ~54px as the
-   * reader clicks from block to block. That only happens while the floor is engaged, which
-   * is only on a window already scrolling, where the page's bottom edge is off-screen
-   * anyway. On a window tall enough to hold the panel the height is a constant.
+   * The floor tracks the selected part, so the page's height moves as the reader clicks
+   * from block to block — measured, by up to ~250px at 1280 wide, where the panel is
+   * narrowest and its copy runs tallest, tapering as the panel widens. That only happens
+   * while the floor is engaged, which is only on a window already scrolling, where the
+   * page's bottom edge is off-screen anyway; on a window tall enough to hold the panel
+   * the height is a constant. The alternatives — reserving the tallest part's height, or
+   * capping the panel and scrolling it inside — are the two trades rejected above, so
+   * the movement is the accepted cost, and this number is what it actually measures.
    */
   .front-grid {
     flex: 1 1 auto;
@@ -704,23 +708,6 @@ body {
     flex: 0 0 auto;
     padding-right: var(--space-3);
   }
-}
-
-/**
- * The reserved slots, and the height at which they start being worth having.
- *
- * Fixing the description at eight lines and the exit at its tallest is what stops the
- * labels moving as the reader clicks from block to block. It costs height, though: about
- * 190px of the panel is then spoken for whatever the part says. On a 950px window the
- * plate's row is only ~280px, so paying that left roughly 128px of readable body — the
- * description cut off mid-sentence with the three fields somewhere below the fold. The
- * cure was worse than the disease it was mixed for.
- *
- * So the slots apply only where the panel can afford them. Below this the panel flows
- * naturally and scrolls as one, which is what a short window needs: alignment between
- * parts matters least when the reader is scrolling the pane anyway.
- */
-@media (min-width: 1280px) and (min-height: 1100px) {
 }
 
 @media (min-width: 1280px) {
@@ -868,9 +855,15 @@ body {
 }
 
 /* The floor is 36px, not 42px: on a 375px screen the headline is the whole first screen
-   at 42, and five lines of display type is a wall rather than a claim. */
+   at 42, and five lines of display type is a wall rather than a claim.
+   The ceiling is 52px, not 86px. This clamp only ever renders below 1280 — the banner
+   rules take over above — so 6vw ran the stacked headline up to 77px over three lines at
+   1279, and one pixel later the banner set the same words at 31-38px on one: a 2.5×
+   snap across the breakpoint. 86px was unreachable anyway (6vw only gets there at
+   1433px). Capped at 52 the stacked lead tops out from ~867px up and hands over to the
+   banner at a step of about a third, not a cliff. */
 .front-headline {
-  font: var(--font-heading-weight) clamp(36px, 6vw, 86px) / 1 var(--font-heading);
+  font: var(--font-heading-weight) clamp(36px, 6vw, 52px) / 1 var(--font-heading);
   letter-spacing: -0.025em;
   margin: 0 0 var(--space-4);
   max-width: 20ch;
@@ -1777,6 +1770,18 @@ button.sentence-word:focus-visible {
 .closing-cols p {
   margin: 0;
 }
+/* The closing pair's type, out of the pages' inline styles and into the sheet so the
+   reading-measure pass below can reach it. Inline `style` outranks any stylesheet, which
+   is how these two paragraphs stayed 17px and 16px at every width while the caveat above
+   them scaled to 20 — on a 2560 screen the page's closing argument printed smaller than
+   the small print. */
+.closing-lead {
+  font: 400 17px/1.6 var(--font-body);
+}
+.closing-note {
+  font: 400 16px/1.6 var(--font-body);
+  color: var(--color-neutral-700);
+}
 
 /* ── the RoPE explorer ──────────────────────────────────────────────────────── */
 
@@ -2271,9 +2276,16 @@ figcaption {
   /* Fluid, because the label max-widths below are derived from these — a narrower gutter
      wraps a label rather than spilling it. Fixed at 176px they were the reason the plate
      could not be given a column narrower than a full page: two of them took 352px before
-     the drawing got anything. */
-  --gutter-l: clamp(104px, 8vw, 176px);
-  --gutter-r: clamp(104px, 8vw, 176px);
+     the drawing got anything.
+     Fluid against the plate, not the window. At 8vw they grew with a viewport the plate
+     does not follow: on the front page the panel's reserve pins the plate near 550px from
+     1280 to ~1700 wide, so viewport-sized gutters ate a constant plate from both sides
+     and the drawing *narrowed* as the window widened — 342px at 1280 down to 308px at
+     1512. A percentage resolves against the plate itself (the area is the labels' own
+     containing block, so the derived max-widths track it too): 19% is the 104px floor at
+     the 550px plate, and the drawing now only ever grows with the room it is given. */
+  --gutter-l: clamp(104px, 19%, 176px);
+  --gutter-r: clamp(104px, 19%, 176px);
   --fig-leader-gap: 24px;
   padding-left: var(--gutter-l);
   padding-right: var(--gutter-r);
@@ -2646,6 +2658,36 @@ figcaption {
     line-height: 1.5;
     max-width: 85ch;
   }
+  /* The two-column pull-outs join the same pass. The container was sized for 19px
+     type — two ~48ch columns inside 1000px — and stayed there while the prose inside
+     scaled to 27px, which took a column to 34 characters a line at 2560: the return
+     sweep has nothing to land on. The track minimum is bound in ch so it tracks the
+     type instead of a pixel guess: the font-size here exists only to make that `ch`
+     the prose's own — `.prose` sets its own font and never inherits this. Two columns
+     while the shell can hold two at 45 characters each; one column, capped by the
+     prose's own 85ch, where it cannot. The 1000px cap goes with the pixel minimum it
+     was protecting — the shell and the measure are the bounds now. */
+  .two-col {
+    font-size: clamp(19px, 1.35vw, 27px);
+    max-width: none;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 45ch), 1fr));
+  }
+  /* The closing pair scales with the same pass and gets the same ch-bound tracks, for
+     the same reason: scaled type inside a container sized for the old sizes is how the
+     two-col fell under the readable floor. Its type is smaller, so two columns hold 45
+     characters all the way up and the pair never stacks — the bound is there for the
+     day the sizes change, not because it binds today. */
+  .closing-lead {
+    font-size: clamp(17px, 1.15vw, 22px);
+  }
+  .closing-note {
+    font-size: clamp(16px, 1.04vw, 21px);
+  }
+  .closing-cols {
+    font-size: clamp(17px, 1.15vw, 22px);
+    max-width: none;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 45ch), 1fr));
+  }
 
   /* The same treatment for the reading text the other pages carry under their own names:
      the results pages' figure titles and wide notes, the tests page's claims, the
@@ -2688,8 +2730,11 @@ figcaption {
 /* The provenance field goes only where it is paying for itself — see the note in the
    short-window block below. Its own query because it needs a width bound the rest of that
    block does not want: the spacing and type rules there are worth having on any short
-   window, and this one is not. */
-@media (min-width: 1280px) and (max-width: 1599px) and (max-height: 900px) {
+   window, and this one is not. The gate widened with the block below's, and for the same
+   measured reason: at 1280–1439 the panel column cannot afford these 144px at any height,
+   and at 1440–1599 the height that pays for them runs out at ~1150, not at 900. */
+@media (min-width: 1280px) and (max-width: 1439px),
+  (min-width: 1280px) and (max-width: 1599px) and (max-height: 1150px) {
   .front-figure .stack-fig-holds {
     display: none;
   }
@@ -2710,10 +2755,23 @@ figcaption {
  * colophon's. None of it is the model, the signposts or the panel's copy, which are the
  * three things a reader came for.
  *
- * Gated on height, not width, because that is the axis that runs out. A 1440x1100 window
- * gets none of this and does not need it.
+ * Gated on height first, because that is the axis that usually runs out — but not on
+ * height alone, which is how the boundary inverted. At 1280×900 this diet made the page
+ * fit exactly; at 1280×901 every saving was handed back at once while the window gained a
+ * pixel, and the pinned page scrolled 457px inside its own frame. Measured, the undieted
+ * page needs ~1340px of window at 1280 wide — the panel column is ~320px there and its
+ * copy runs tall — falling to ~1025px at 1440 and under 1080 from 1600 up. So the gate is
+ * three bands: below 1440 wide the full-dress page fits no window a laptop or a monitor
+ * actually has, and the diet applies at any height; from 1440 to the panel's comfortable
+ * widths it applies up to 1150px tall, which is where the undieted page starts fitting;
+ * from 1600 up the undieted page fits from ~975px of height (measured needs: 975 at
+ * 1600, 972 at 1920, 937 at 2560), so the gate there is 1000. A 1440×1200 window gets
+ * none of this and does not need it; a 1280×1200 window needs all of it, and now keeps
+ * it.
  */
-@media (min-width: 1280px) and (max-height: 900px) {
+@media (min-width: 1280px) and (max-width: 1439px),
+  (min-width: 1440px) and (max-width: 1599px) and (max-height: 1150px),
+  (min-width: 1600px) and (max-height: 1000px) {
   /**
    * The footer stops holding 90px of the window open.
    *

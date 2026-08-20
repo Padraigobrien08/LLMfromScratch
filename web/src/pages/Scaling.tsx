@@ -196,13 +196,13 @@ export default function Scaling() {
 
       <div className="rule-heavy" style={{ margin: "var(--space-6) 0 var(--space-4)" }} />
       <div className="closing-cols">
-        <p style={{ font: "400 17px/1.6 var(--font-body)" }}>
+        <p className="closing-lead">
           <b>A mechanism you can be wrong about is worth more than a number you cannot.</b> The fit
           is two parameters from two points, which is the weakest possible model — and that is what
           makes landing on the other two, across a further fourfold range, mean something. Fitting
           all four would have produced a better-looking curve and no evidence at all.
         </p>
-        <p style={{ font: "400 16px/1.6 var(--font-body)", color: "var(--color-neutral-700)" }}>
+        <p className="closing-note">
           The topology is recorded in the results file rather than described:{" "}
           <code>nvidia-smi topo -m</code> shows no NVLink and two NUMA nodes. Full report, including
           why the MFU column is deliberately empty on this hardware, in{" "}

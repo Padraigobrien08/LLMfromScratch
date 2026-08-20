@@ -79,13 +79,13 @@ export default function Tests() {
 
       <div className="rule-heavy" style={{ margin: "var(--space-6) 0 var(--space-4)" }} />
       <div className="closing-cols">
-        <p style={{ font: "400 17px/1.6 var(--font-body)" }}>
+        <p className="closing-lead">
           <b>These rows are collected, not typed.</b> Each test above carries a{" "}
           <code>@pytest.mark.showcase(pins=…, why=…)</code>, and the site's export runs pytest's own
           collection to gather them. Rename one and the committed export stops matching; delete one
           and its row disappears.
         </p>
-        <p style={{ font: "400 16px/1.6 var(--font-body)", color: "var(--color-neutral-700)" }}>
+        <p className="closing-note">
           Curation stays deliberate: only marked tests appear, so this is a chosen argument rather
           than a directory listing. The other{" "}
           {(PROJECT.pythonTests - cases).toLocaleString()} cases are config validation, end-to-end

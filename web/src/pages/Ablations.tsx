@@ -325,14 +325,14 @@ export default function Ablations() {
 
       <div className="rule-heavy" style={{ margin: "var(--space-6) 0 var(--space-4)" }} />
       <div className="closing-cols">
-        <p style={{ font: "400 17px/1.6 var(--font-body)" }}>
+        <p className="closing-lead">
           <b>An arm counts as a result only when its per-seed deltas do not straddle zero.</b> A
           deliberately blunt rule rather than a p-value: with three seeds nothing stronger would be
           honest, and it is exactly what the strip above draws. An ablation table without such a
           check is worse than no table, because it reads as authoritative while recommending changes
           that do nothing.
         </p>
-        <p style={{ font: "400 16px/1.6 var(--font-body)", color: "var(--color-neutral-700)" }}>
+        <p className="closing-note">
           The analysis here mirrors{" "}
           <a href={`${REPO}/src/llmfs/ablation/report.py`}>
             <code>src/llmfs/ablation/report.py</code>

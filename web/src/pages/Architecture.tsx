@@ -206,7 +206,7 @@ export default function Architecture() {
 
       <div className="rule-heavy" style={{ margin: "var(--space-6) 0 var(--space-4)" }} />
       <div className="closing-cols">
-        <p style={{ font: "400 17px/1.6 var(--font-body)" }}>
+        <p className="closing-lead">
           <b>Nothing on this page is arithmetic anyone did by hand.</b> Every parameter count comes
           from the same calculator the explainer uses, pinned exactly — not approximately — to the
           real <code>Transformer</code> across twelve configurations. Every config value is
@@ -218,7 +218,7 @@ export default function Architecture() {
           <code>gpt2-124m.yaml</code> never states <code>n_kv_head</code> — only the resolved config
           has the fields a reader would check.
         </p>
-        <p style={{ font: "400 16px/1.6 var(--font-body)", color: "var(--color-neutral-700)" }}>
+        <p className="closing-note">
           The "what holds it" lines name real tests, and each was written by reading that test
           rather than its name. Two blocks say they have no property test, which is the honest
           answer — a page whose argument is <i>this is pinned</i> is the worst place to be vague
