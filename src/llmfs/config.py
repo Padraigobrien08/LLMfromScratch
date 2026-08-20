@@ -109,6 +109,11 @@ class TrainConfig:
     whether the run has one GPU or eight."""
     resume: str | None = None
     """Path to a checkpoint, or ``auto`` to pick up the latest in ``out_dir``."""
+    resume_force: bool = False
+    """Resume even when the checkpoint's recorded config disagrees with the live one on
+    a field the run's identity depends on. The refusal exists because the data position
+    is derived, not stored — resuming under a changed ``tokens_per_step`` or corpus
+    silently seeks somewhere else in the stream. Forcing says that is intended."""
 
 
 @dataclass
@@ -240,13 +245,17 @@ def _deep_merge(base: dict[str, Any], override: dict[str, Any]) -> dict[str, Any
     return out
 
 
-def _load_yaml_with_bases(path: Path, _seen: set[Path] | None = None) -> dict[str, Any]:
-    """Load a YAML config, recursively merging any ``_base_`` it declares."""
+def _load_yaml_with_bases(path: Path, _seen: frozenset[Path] = frozenset()) -> dict[str, Any]:
+    """Load a YAML config, recursively merging any ``_base_`` it declares.
+
+    ``_seen`` is the current *descent path*, not every file ever visited: a shared set
+    made a diamond — two bases inheriting one grand-base — raise "circular" on the
+    second visit, though nothing was circular. A cycle is a file appearing on its own
+    ancestry, so only the ancestry is tracked, immutably per branch.
+    """
     path = path.resolve()
-    _seen = _seen or set()
     if path in _seen:
         raise ValueError(f"circular _base_ chain at {path}")
-    _seen.add(path)
 
     if not path.exists():
         raise FileNotFoundError(f"config not found: {path}")
@@ -263,7 +272,7 @@ def _load_yaml_with_bases(path: Path, _seen: set[Path] | None = None) -> dict[st
         base_path = (path.parent / base).resolve()
         if not base_path.exists():
             base_path = (CONFIG_ROOT / base).resolve()
-        merged = _deep_merge(merged, _load_yaml_with_bases(base_path, _seen))
+        merged = _deep_merge(merged, _load_yaml_with_bases(base_path, _seen | {path}))
     return _deep_merge(merged, raw)
 
 

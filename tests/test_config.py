@@ -192,3 +192,27 @@ def test_modern_stack_is_exactly_the_union_of_the_arms_it_combines() -> None:
         "comparison would be between different experiments"
     )
     assert len(union) == len(components), "each component must contribute exactly one field"
+
+
+def test_diamond_bases_are_not_circular(tmp_path) -> None:
+    """Two bases sharing a grand-base is a diamond, not a cycle. The old cycle check
+    tracked every file ever visited instead of the descent path, so the second branch's
+    visit to the shared grand-base raised "circular" on a perfectly acyclic chain."""
+    from llmfs.config import _load_yaml_with_bases
+
+    (tmp_path / "d.yaml").write_text("runtime: {seed: 7}\n")
+    (tmp_path / "b.yaml").write_text("_base_: d.yaml\ndata: {micro_batch_size: 3}\n")
+    (tmp_path / "c.yaml").write_text("_base_: d.yaml\n")
+    (tmp_path / "a.yaml").write_text("_base_: [b.yaml, c.yaml]\n")
+
+    merged = _load_yaml_with_bases(tmp_path / "a.yaml")
+    assert merged == {"runtime": {"seed": 7}, "data": {"micro_batch_size": 3}}
+
+
+def test_actual_cycles_still_raise(tmp_path) -> None:
+    from llmfs.config import _load_yaml_with_bases
+
+    (tmp_path / "x.yaml").write_text("_base_: y.yaml\n")
+    (tmp_path / "y.yaml").write_text("_base_: x.yaml\n")
+    with pytest.raises(ValueError, match="circular"):
+        _load_yaml_with_bases(tmp_path / "x.yaml")

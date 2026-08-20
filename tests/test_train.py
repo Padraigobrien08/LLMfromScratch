@@ -3,6 +3,7 @@ end-to-end run that must actually reduce the loss."""
 
 from __future__ import annotations
 
+import dataclasses
 import json
 from pathlib import Path
 
@@ -538,3 +539,60 @@ def test_compiled_training_saves_clean_checkpoints(train_config: Config, monkeyp
     assert not any(key.startswith("_orig_mod") for key in ckpt["model"]), (
         "the checkpoint carries compile-wrapper prefixes and would not reload into a bare model"
     )
+
+
+def test_resume_refuses_a_checkpoint_from_a_different_run(train_config: Config) -> None:
+    """The data position is derived from the step, so a resume under a changed
+    tokens_per_step or corpus silently seeks somewhere else in the stream — the one
+    drift the no-stored-state design left possible, moved up a level. Refused now."""
+    train_config.log.checkpoint_interval = 1  # a rolling ckpt for auto-resume to find
+    train_config.train.max_steps = 2
+    Trainer(train_config).train()
+
+    stale = dataclasses.replace(
+        train_config,
+        train=dataclasses.replace(
+            train_config.train,
+            resume="auto",
+            tokens_per_step=train_config.train.tokens_per_step * 2,
+        ),
+    )
+    with pytest.raises(ValueError, match="tokens_per_step") as excinfo:
+        Trainer(stale)
+    assert "resume_force" in str(excinfo.value), "the message must name the override"
+
+
+def test_resume_force_overrides_the_config_check(train_config: Config) -> None:
+    train_config.log.checkpoint_interval = 1  # a rolling ckpt for auto-resume to find
+    train_config.train.max_steps = 2
+    Trainer(train_config).train()
+
+    forced = dataclasses.replace(
+        train_config,
+        train=dataclasses.replace(
+            train_config.train,
+            resume="auto",
+            resume_force=True,
+            tokens_per_step=train_config.train.tokens_per_step * 2,
+            max_steps=3,
+        ),
+    )
+    trainer = Trainer(forced)
+    assert trainer.state.step == 2
+
+
+def test_resume_allows_the_documented_resharding(train_config: Config) -> None:
+    """micro_batch_size (and world size) are deliberately outside the check: the
+    position depends on their product only through tokens_per_step, and re-sharding a
+    run across different hardware is the design's stated point."""
+    train_config.log.checkpoint_interval = 1  # a rolling ckpt for auto-resume to find
+    train_config.train.max_steps = 2
+    Trainer(train_config).train()
+
+    resharded = dataclasses.replace(
+        train_config,
+        data=dataclasses.replace(train_config.data, micro_batch_size=2),
+        train=dataclasses.replace(train_config.train, resume="auto", max_steps=3),
+    )
+    trainer = Trainer(resharded)
+    assert trainer.state.step == 2

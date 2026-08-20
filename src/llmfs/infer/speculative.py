@@ -226,7 +226,7 @@ def speculative_generate(
         n_pending = pending.shape[1]
         settled = cache.pos + n_pending  # cache position covering only real tokens
 
-        logits = target(to_feed, targets=to_feed, cache=cache).logits
+        logits = target(to_feed, cache=cache, full_logits=True).logits
         stats.target_forwards += 1
         stats.iterations += 1
         stats.proposed += n_draft

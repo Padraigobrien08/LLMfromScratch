@@ -62,6 +62,15 @@ def save_checkpoint(
 
 
 def load_checkpoint(path: str | Path, map_location: str | torch.device = "cpu") -> dict:
+    """Load a checkpoint payload, including its non-tensor state.
+
+    ``weights_only=False`` is required — the payload carries the RNG tuple and the
+    config dict, which the safe loader rejects — and it means this function executes
+    whatever the file pickles. That is the correct trade for checkpoints this
+    repository trained itself, which is every caller today; a checkpoint from an
+    untrusted source should not pass through here without that trade being re-made
+    deliberately.
+    """
     return torch.load(path, map_location=map_location, weights_only=False)
 
 

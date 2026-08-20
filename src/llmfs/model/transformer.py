@@ -91,6 +91,7 @@ class Transformer(nn.Module):
         targets: torch.Tensor | None = None,
         cache: KVCache | None = None,
         need_weights: bool = False,
+        full_logits: bool = False,
     ) -> ModelOutput:
         """
         Args:
@@ -98,6 +99,10 @@ class Transformer(nn.Module):
             targets: ``(B, T)`` next-token labels; ``-1`` is ignored in the loss.
             cache: KV cache for incremental decoding. Positions continue from ``cache.pos``.
             need_weights: return per-layer attention probabilities (forces the eager path).
+            full_logits: return logits for every position without computing a loss.
+                Speculative verification needs all positions; before this flag existed
+                its only route was ``targets=idx``, which paid a full vocabulary-wide
+                cross-entropy on the hot path and threw the result away.
         """
         B, T = idx.shape
         offset = cache.pos if cache is not None else 0
@@ -129,11 +134,13 @@ class Transformer(nn.Module):
 
         x = self.final_norm(x)
 
-        if targets is not None:
+        if targets is not None or full_logits:
             logits = self.lm_head(x)
-            loss = F.cross_entropy(
-                logits.reshape(-1, logits.size(-1)), targets.reshape(-1), ignore_index=-1
-            )
+            loss = None
+            if targets is not None:
+                loss = F.cross_entropy(
+                    logits.reshape(-1, logits.size(-1)), targets.reshape(-1), ignore_index=-1
+                )
         else:
             # Inference: only the last position's logits are needed, and skipping
             # the rest avoids a (B, T, 50k) tensor during prefill.
