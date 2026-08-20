@@ -258,6 +258,7 @@ class Trainer:
             raise FileNotFoundError(f"checkpoint not found: {resume}")
 
         ckpt = load_checkpoint(path, map_location=self.device)
+        self._validate_resume_config(ckpt.get("config", {}))
         unwrap_model(self.model).load_state_dict(ckpt["model"])
         if ckpt.get("optimizer"):
             self.optimizer.load_state_dict(ckpt["optimizer"])
@@ -274,6 +275,51 @@ class Trainer:
         restored = load_rng_state(ckpt.get("rng"))
         note = "" if restored else "  (no RNG state in this checkpoint; reseeded)"
         print(f"[resume] {path} at step {self.state.step:,}{note}")
+
+    def _validate_resume_config(self, stored: dict) -> None:
+        """Refuse to resume as a different run than the checkpoint records.
+
+        The loader's position is *derived* — ``step × tokens_per_step`` into the
+        stream — which removes stored-state drift and creates exactly one new way to
+        drift: resume under a config that changes what the derivation means. A changed
+        ``tokens_per_step`` or corpus seeks somewhere else entirely; a changed model
+        field can be shape-compatible and silently different (RoPE theta, norm eps).
+
+        Deliberately *not* checked: ``micro_batch_size`` and the world size, because
+        their independence is the design — the position depends on their product
+        through ``tokens_per_step`` alone, and re-sharding a run across different
+        hardware is the documented, tested use. ``max_steps`` is also free: extending
+        a run is what the WSD schedule exists for. ``train.resume_force=true``
+        overrides, for the day a divergence is the intent rather than an accident.
+        """
+        if self.cfg.train.resume_force or not stored:
+            return
+
+        live = self.cfg.to_dict()
+        critical: list[tuple[str, list[str] | None]] = [
+            ("model", None),  # every field: shape-compatible drift is the silent kind
+            ("data", ["data_dir", "tokenizer", "block_size"]),
+            ("train", ["tokens_per_step"]),
+        ]
+        mismatches = []
+        for section, keys in critical:
+            recorded = stored.get(section, {})
+            current = live.get(section, {})
+            for key in keys if keys is not None else current:
+                if recorded.get(key) != current.get(key):
+                    mismatches.append(
+                        f"{section}.{key}: checkpoint has {recorded.get(key)!r}, "
+                        f"config has {current.get(key)!r}"
+                    )
+        if mismatches:
+            detail = "\n  ".join(mismatches)
+            raise ValueError(
+                f"refusing to resume: the checkpoint was written by a different run.\n"
+                f"  {detail}\n"
+                f"The data position is derived from the step, so resuming under these "
+                f"changes silently trains on the wrong tokens or the wrong model. "
+                f"Pass --set train.resume_force=true if the change is intended."
+            )
 
     # ---------------------------------------------------------------- training
 

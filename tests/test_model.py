@@ -283,3 +283,13 @@ def test_rope_buffers_stay_out_of_the_checkpoint() -> None:
     """Non-persistent buffers keep block_size changeable across a reload."""
     model = tiny_model(pos_emb="rope")
     assert not any("cos_cached" in k or "sin_cached" in k for k in model.state_dict())
+
+
+def test_full_logits_returns_every_position_without_a_loss() -> None:
+    """The inference shortcut returns only the last position; verification needs all of
+    them. Before this flag the only route was `targets=idx`, which computed a
+    vocabulary-wide cross-entropy on speculative decoding's hot path and discarded it."""
+    model = tiny_model()
+    out = model(torch.randint(0, 97, (2, 5)), full_logits=True)
+    assert out.logits.shape == (2, 5, 97)
+    assert out.loss is None

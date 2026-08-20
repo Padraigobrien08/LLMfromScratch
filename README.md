@@ -655,7 +655,7 @@ what is built and verified, and what is designed but not yet run.
 
 | Pillar | Status |
 | --- | --- |
-| Package, config system, data pipeline, trainer, CI | **Done** — 406 tests green, end-to-end verified |
+| Package, config system, data pipeline, trainer, CI | **Done** — 412 tests green, end-to-end verified |
 | Modern architecture (RoPE, RMSNorm, SwiGLU, GQA, KV cache) | **Done** — hand-implemented, property-tested |
 | GPT-2 124M reproduction on FineWeb-Edu | **Done** — 3.0503 val loss, [docs/reproduction.md](docs/reproduction.md) |
 | Ablation study (12 arms × 3 seeds) | **Done** — [docs/ablations.md](docs/ablations.md), 39 runs, 7.6 GPU-h |
@@ -684,7 +684,7 @@ src/llmfs/
   ablation/   sweep runner, paired-seed analysis, tables and plots
   bench/      training + inference throughput, memory, cost, provenance
 configs/      gpt2-124m, llama-124m, debug, and 11 single-axis ablation arms
-tests/        406 tests — component correctness, config validation, end-to-end training
+tests/        412 tests — component correctness, config validation, end-to-end training
 web/          the interactive site: explainer, RoPE explorer, ablations (149 tests)
 scripts/      GPU pod automation, and the exporters that pin the site to the model
 docs/         index, reproduction protocol, results write-ups, fault-tolerance design
