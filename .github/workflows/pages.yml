@@ -40,6 +40,11 @@ env:
 jobs:
   build:
     runs-on: ubuntu-latest
+    env:
+      # A bare `uv run` syncs the venv to the lockfile before executing, replacing the
+      # CPU torch wheel the Install step chose with the multi-GB default one. Measured
+      # in ci.yml's matrix job (see its Test step); same venv arrangement here.
+      UV_NO_SYNC: "1"
     steps:
       - uses: actions/checkout@v5
 
@@ -64,13 +69,18 @@ jobs:
         uses: actions/cache@v6
         with:
           path: pages-out
-          # Keyed on everything that determines the trained weights: the config, the
-          # model and training code, the corpus, and the step budget. Anything else
-          # changing cannot alter the checkpoint, so it should not force a retrain.
+          # Keyed on everything that determines the trained weights: the config file
+          # AND the loader/defaulting code that resolves it, the model, training and
+          # data code, the seeding and device/dtype resolution in utils, the pinned
+          # dependency set (a torch upgrade retrains), the corpus, and the step budget.
+          # The first version of this key omitted config.py, utils/ and uv.lock — a
+          # changed default or a changed torch would have reused weights trained by
+          # code no longer in the tree, under a header claiming the opposite.
           key: >-
-            viz-demo-v1-${{ env.DEMO_STEPS }}x${{ env.DEMO_TOKENS_PER_STEP }}-${{
-            hashFiles('configs/debug.yaml', 'src/llmfs/model/**', 'src/llmfs/train/**',
-                      'src/llmfs/data/**', 'data/wizard_of_oz.txt') }}
+            viz-demo-v2-${{ env.DEMO_STEPS }}x${{ env.DEMO_TOKENS_PER_STEP }}-${{
+            hashFiles('configs/debug.yaml', 'src/llmfs/config.py', 'src/llmfs/model/**',
+                      'src/llmfs/train/**', 'src/llmfs/data/**', 'src/llmfs/utils/**',
+                      'uv.lock', 'data/wizard_of_oz.txt') }}
 
       - name: Prepare corpus
         if: steps.ckpt.outputs.cache-hit != 'true'
@@ -120,12 +130,21 @@ jobs:
           echo "published $(ls -1 web/public/data | wc -l) results files"
 
       # The deploy gate. This workflow triggers on push to main independently of ci.yml,
-      # so without these two steps a red suite would publish anyway — and the site's whole
-      # claim is that its figures are the tested ones. Both suites are fast (seconds), and
-      # they run here rather than being inferred from a green tick on another workflow.
+      # so without these steps a red commit would publish anyway — and the site's whole
+      # claim is that its figures are the tested ones. Everything here is fast (seconds),
+      # and it runs here rather than being inferred from a green tick on another workflow.
+      # The gate mirrors ci.yml's cheap jobs, not only its test suites: a commit that
+      # fails lint or has a drifted lockfile used to deploy anyway, because only the
+      # suites were re-run.
+      - name: Lint and lockfile must pass before anything is published
+        run: |
+          uvx ruff@0.16.2 check src tests
+          uvx ruff@0.16.2 format --check src tests
+          uv lock --check
       - name: Tests must pass before anything is published
         env:
           LLMFS_REQUIRE_VOCAB: "1"
+          LLMFS_REQUIRE_WEB: "1"
         run: |
           uv run pytest tests -q
           npm test --prefix web

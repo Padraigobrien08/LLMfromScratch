@@ -14,6 +14,7 @@ page, and it fails here.
 from __future__ import annotations
 
 import json
+import os
 import re
 
 import pytest
@@ -33,6 +34,13 @@ from llmfs.export.web import (
 )
 
 PROJECT_STATE = ROOT / "web" / "src" / "content" / "projectState.ts"
+
+# The skip exists for a checkout without the site; in CI it would be a hole — a repo
+# layout change that moved web/ would turn every staleness guarantee in this file into
+# a skip that reads as a pass. LLMFS_REQUIRE_WEB=1 (set in every CI job that runs this
+# suite, like LLMFS_REQUIRE_VOCAB in conftest) converts that silence into a failure.
+if os.environ.get("LLMFS_REQUIRE_WEB") == "1" and not OUT.parent.is_dir():
+    raise AssertionError(f"LLMFS_REQUIRE_WEB=1 but {OUT.parent} is missing")
 
 pytestmark = pytest.mark.skipif(not OUT.parent.is_dir(), reason="web/ not present")
 
@@ -83,9 +91,15 @@ def test_target_loss_matches_where_it_was_pre_registered() -> None:
     it the single most valuable number to be unable to quietly edit: a target adjusted
     afterwards to match the result would leave every other check green.
     """
+    # Anchored to how a *target* is stated — "≤ 3.29", "<= 3.29" or "3.29 target" —
+    # rather than a bare substring. docs/reproduction.md also contains "$3.29/hr",
+    # the H100 hourly rate, and against a bare `in` every real statement of the
+    # target in that file could be edited away while the price kept the test green.
+    target = re.escape(str(TARGET_LOSS))
+    stated = re.compile(rf"(?:≤|<=)\s*{target}|{target} target")
     for name in ("configs/gpt2-124m.yaml", "docs/reproduction.md", "README.md"):
         text = (ROOT / name).read_text()
-        assert str(TARGET_LOSS) in text, f"{name} no longer states the pre-registered target"
+        assert stated.search(text), f"{name} no longer states the pre-registered target"
 
 
 def test_readme_status_table_states_the_live_test_count() -> None:

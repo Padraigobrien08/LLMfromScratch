@@ -60,6 +60,7 @@ jobs:
       - name: The locked environment must pass the suite
         env:
           LLMFS_REQUIRE_VOCAB: "1"
+          LLMFS_REQUIRE_WEB: "1"
         run: uv run --no-sync pytest tests -q
 
   test:
@@ -91,9 +92,20 @@ jobs:
         # failure. The runner has a network, so a skip here means the vocab-size pin,
         # the Python half of the bidirectional tokenizer pin and the attention-viz
         # tests silently did not run — which used to look identical to passing.
+        # LLMFS_REQUIRE_WEB does the same for the web-export freshness tests, whose
+        # module otherwise skips itself whenever web/src/content is not where it
+        # expects — a layout change would turn every staleness guarantee into a pass.
+        #
+        # `--no-sync`, because a bare `uv run` in a project with a lockfile syncs the
+        # environment to the lock before executing — measured in run 32422469495, where
+        # this step downloaded the 502MiB default torch wheel over the CPU one the
+        # Install step had just placed. Without the flag this job tests the locked
+        # resolution, which the `locked` job already covers, and the fresh `>=`
+        # coverage this matrix exists for does not happen.
         env:
           LLMFS_REQUIRE_VOCAB: "1"
-        run: uv run pytest tests -q --durations=10
+          LLMFS_REQUIRE_WEB: "1"
+        run: uv run --no-sync pytest tests -q --durations=10
 
   site:
     # The site ships a second implementation of the rotation math, in TypeScript,
@@ -121,8 +133,17 @@ jobs:
 
   end-to-end:
     # Proves the pipeline actually runs, not just that its parts type-check:
-    # prepare a corpus, train, resume, evaluate, generate.
+    # prepare a corpus, train, resume, evaluate, generate. The steps assert what the
+    # words claim — the resume picks up at the trained step, the loss ends finite and
+    # below an untrained model's, the generator emits text — because "exit code 0"
+    # would also be satisfied by a trainer that restarted from scratch or a generator
+    # that printed nothing.
     runs-on: ubuntu-latest
+    env:
+      # Every `uv run` below would otherwise sync the venv to the lockfile, replacing
+      # the CPU torch wheel the Install step chose with the multi-GB default one.
+      # See the matrix job's Test step for the measured instance.
+      UV_NO_SYNC: "1"
     steps:
       - uses: actions/checkout@v5
 
@@ -152,17 +173,39 @@ jobs:
             --set log.out_dir=ci-out
 
       - name: Resume from the last checkpoint
+        # The tee+grep is the point of the step: a trainer that silently started over
+        # from step 0 would also exit 0 and also write a final.pt.
         run: |
           uv run llmfs-train --config debug --resume auto \
             --set runtime.device=cpu --set train.max_steps=30 \
             --set log.eval_interval=10 --set log.tensorboard=false \
-            --set log.out_dir=ci-out
+            --set log.out_dir=ci-out | tee resume.log
+          grep -F "[resume]" resume.log
+          grep -F "at step 20" resume.log
+
+      - name: The resumed run reached step 30 and the model learned something
+        # Read from metrics.jsonl, the same artifact the ablation analysis trusts.
+        # 10.5 is below ln(50,257) ≈ 10.82, the loss of a model that has learned
+        # nothing — a weak bar on purpose: 30 CPU steps prove direction, not quality.
+        run: |
+          uv run python - <<'EOF'
+          import json, math
+          rows = [json.loads(line) for line in open("ci-out/debug/metrics.jsonl")]
+          steps = [r["step"] for r in rows]
+          assert max(steps) >= 30, f"run stopped at step {max(steps)}, expected 30"
+          vals = [r["val/loss"] for r in rows if "val/loss" in r]
+          assert vals, "no validation losses were logged"
+          assert all(math.isfinite(v) for v in vals), f"non-finite val loss: {vals}"
+          assert vals[-1] < 10.5, f"final val loss {vals[-1]:.3f} is no better than untrained"
+          EOF
 
       - name: Evaluate and generate
         run: |
           uv run llmfs-eval --checkpoint ci-out/debug/final.pt --device cpu --max-batches 4
           uv run llmfs-generate --checkpoint ci-out/debug/final.pt \
-            --prompt "Dorothy" --max-new-tokens 16 --seed 0 --device cpu
+            --prompt "Dorothy" --max-new-tokens 16 --seed 0 --device cpu | tee gen.log
+          grep -F "[1] Dorothy" gen.log
+          test "$(wc -c < gen.log)" -ge 100
 
       - name: Build the attention explorer
         run: |
