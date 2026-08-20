@@ -108,7 +108,7 @@ export default function StackFigure({ attentionHref }: { attentionHref: string }
           described what the reader is already looking at. */}
       <header className="stack-fig-head">
         <h2 id="stack-figure-title" className="stack-fig-title">
-          The architecture
+          The Architecture
         </h2>
       </header>
 
@@ -223,7 +223,21 @@ export default function StackFigure({ attentionHref }: { attentionHref: string }
             </div>
           </div>
 
-          {/* Stacked like the fields above, and for the same reason: the exit runs from a
+        {/* The way out sits below the panel rather than inside it.
+            It is the same element it always was, moved one level out: inside the panel it
+            spent ~147px of the panel's own height, and that height is the thing the
+            descriptions were short of — on a laptop the panel held 260px of a 617px
+            description because the exit had taken its share first.
+            Its own cell in the stage's second row, not inside the foot. In the foot it
+            stacked on top of the variant control and the legend and took the row from 66px
+            to 178px, and every one of those pixels came out of the plate above it: at
+            1920 the drawing fell to 418px and the engine ran out of column to separate
+            fourteen labels in, so three of them printed over each other. Beside the foot
+            instead, the row is the taller of the two rather than their sum.
+            It stays outside the panel's scrolling body either way, which was always the
+            point — a reader who has just read what a block does should never have to go
+            looking for the chapter about it. */}
+        {/* Stacked like the fields above, and for the same reason: the exit runs from a
               bare chapter button to a button plus two links, so its height varied by 100px
               and took the button — the most prominent thing in the panel — with it. A
               stated reserve fixed that at one width and failed at others; in a 328px panel
@@ -286,15 +300,6 @@ export default function StackFigure({ attentionHref }: { attentionHref: string }
               </label>
             ))}
           </div>
-          {/* What the geometry means, in one line.
-              The full legend was cut for height, and with it went the only statement that
-              the drawing is derived rather than drawn: a slab whose thickness encodes a
-              share of the parameter budget is decoration until a reader is told so. This
-              is the shortest form of that claim, and it sits beside the variant control
-              where the reader is already looking. */}
-          <p className="fig-encoding">
-            Thickness is share of parameters · colour is role
-          </p>
           {/* The interaction note is kept for assistive technology and taken off the page.
               On screen the figure announces itself — the cursor changes over a block and
               the labels are buttons — but a reader who cannot see it has nothing else that

@@ -39,7 +39,7 @@ export default function Masthead({ route }: { route: Route }) {
       <header className={`shell${route.kind === "front" ? " front-shell" : ""}`}>
         <div className="masthead-row">
           <div className="wordmark">
-            <a href="#/">LLMfromScratch</a>
+            <a href="#/">NanoGPT From Scratch</a>
             {/* The design system is called Broadsheet and the whole page is set as one —
                 plates, dateline, colophon, CMYK numerals. "A laboratory notebook" was the
                 one string pulling the other way, and it also described the wrong thing: a

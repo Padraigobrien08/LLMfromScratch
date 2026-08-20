@@ -10,6 +10,10 @@
 
   /* The measure the masthead, every page and the footer share. */
   --column: 1180px;
+
+  /* How far a figure reaches past the reading column, each side. 176px is what takes
+     the 1120px content box down to the 768px the prose measures at 22px. */
+  --breakout: 176px;
 }
 
 /* Broadsheet already sets the ground, the ink and the serif on <body>; these are the
@@ -190,39 +194,18 @@ body {
 /* Set across the page rather than stacked: the claim, the provenance and the source
    are three short things, and three stacked blocks with rules between them cost the
    front page its last screenful. */
+/* Two cells now, not three: the colophon takes the measure and the licence sits at the
+   end of the same line. The claim that used to open the row — "every number here is read
+   from a run or from arithmetic you can check" — is gone, and with it the two-row
+   arrangement the article pages needed to fit three things across 1180px. */
 @media (min-width: 1240px) {
   .footer-row {
-    grid-template-columns: auto minmax(0, 1fr) auto;
+    grid-template-columns: minmax(0, 1fr) auto;
     align-items: baseline;
   }
   .footer-meta {
     justify-self: end;
     white-space: nowrap;
-  }
-  /**
-   * On an article the three cells do not fit across the reading measure.
-   *
-   * The front page's footer has 2440px and sets all three on one line. An article's has
-   * 1180px, where the claim takes 464 of it and the provenance sentence is left 433 — so
-   * it wrapped to four lines and the footer stood 131px tall at the bottom of a page that
-   * was trying to fit a screen. Two rows gives the sentence the full measure and two
-   * lines, which is both shorter and the right shape for it.
-   */
-  .site-footer:not(.front-shell) .footer-row {
-    grid-template-columns: minmax(0, 1fr) auto;
-    grid-template-areas:
-      "claim meta"
-      "colophon colophon";
-    row-gap: var(--space-2);
-  }
-  .site-footer:not(.front-shell) .footer-claim {
-    grid-area: claim;
-  }
-  .site-footer:not(.front-shell) .footer-meta {
-    grid-area: meta;
-  }
-  .site-footer:not(.front-shell) .colophon {
-    grid-area: colophon;
   }
 }
 
@@ -361,15 +344,19 @@ body {
       "lede lede"
       "routes figure";
   }
-  /* The banner and its deck share the top rule: headline to the measure it wants, deck
-     in a narrow column at the right, the way a front page sets a lead and its summary
-     rather than stacking one under the other. */
+  /* Lead, then deck beneath it, both to the page's full measure.
+     The deck used to sit in a narrow column at the right of the headline. The headline
+     is set to whatever size fills the banner, and at that size it needs more width than
+     the page has, so it broke to two balanced lines about 1100px wide — leaving a third
+     of the banner empty between the end of the last line and the deck's column. Closing
+     that gap by moving the deck left was not available: held to the page's right edge it
+     would have had to run about 95 characters a line, and pulled in to a readable measure
+     it left a notch in the page's right margin that nothing below it agreed with.
+     So the headline gives up display size instead and takes the width in return — one
+     line across the whole measure at most desktop widths — and the deck is set under it
+     as a standfirst, which is where a summary of a lead goes when the lead is a banner. */
   .front-lede {
     grid-area: lede;
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(260px, 24%);
-    gap: 0 var(--space-8);
-    align-items: start;
     padding-bottom: var(--space-4);
   }
   .front-routes {
@@ -394,29 +381,53 @@ body {
     display: none;
   }
   /* Across the top, so it is set as a banner: no `ch` ceiling, because the constraint on
-     a banner is the page, and two lines of it is the whole point.
+     a banner is the page, and one line of it is the whole point.
      Scoped to `.front-lede` rather than written bare: the base rules below are later in
      the file at equal specificity, and a media query adds none, so a bare selector here
      loses to them. */
   .front-lede .front-headline {
-    font-size: clamp(46px, 4vw, 80px);
+    /* Sized to fit on one line rather than to be as large as possible. At 4vw the lead
+       wanted 2208px at 1920 and had 1820, so it broke to two balanced lines with a third
+       of the banner empty beside them. 3vw holds one line across the whole range this
+       query covers, with 5-9% of the measure to spare at every width — enough that a
+       different platform's rendering of the face cannot tip it over. The floor is what
+       1280 needs to stay on one line, and the ceiling stops the type outrunning the page
+       again past about 2200px. Changing the wording of the headline changes what fits:
+       it is 62 characters here, and materially more would want these numbers re-derived. */
+    font-size: clamp(38px, 3vw, 66px);
     max-width: none;
-    margin-bottom: 0;
+    margin-bottom: var(--space-3);
   }
-  /* The deck sits in the banner's right-hand column, justified, at the size a summary
-     is set — it is the only paragraph above the fold and it should read as one. */
+  /* Set left under the lead at reading size, on its own measure — it is the only
+     paragraph above the fold and it should read as one.
+
+     The 16.5px justified setting this had was a response to the old 260px column: small
+     type and hyphenation are what a column that narrow needs. With the width of the page
+     to sit in it can be set as a standfirst actually is — larger than body, ragged right,
+     and held to a measure rather than to the page, because a 1820px line would be
+     unreadable however good the face is. */
+  /**
+   * The deck runs the page's measure, under a lead that does the same.
+   *
+   * Held to 62ch it set as a three-line block about a third of the way across, under a
+   * headline spanning all of it — the two read as different pages. Across the full width
+   * it is 157 characters, which is one line from about 1370px up and two below that, and
+   * it sizes with the window so that stays true rather than being right at one width.
+   *
+   * Bigger and shorter at the same time: three lines in a 574px column cost ~76px, one
+   * line across the page costs ~31px even at 22px. The banner gives ~45px back to the
+   * figure's row on a wide screen while the type goes up four and a half points, which is
+   * the rare direction this page's height budget moves in.
+   */
   .front-lede .front-standfirst {
-    font-size: 16.5px;
-    line-height: 1.5;
-    text-align: justify;
-    hyphens: auto;
+    font-size: clamp(18px, 1.15vw, 22px);
+    line-height: 1.4;
     max-width: none;
-    margin: 6px 0 0;
+    margin: 0;
   }
-  /* The figures sit under the headline in the banner's left column, not under the deck:
-     they belong to the claim, and the deck's column is too narrow to set four of them. */
+  /* The figures read up to the deck and the claim above it. `grid-column` went with the
+     two-column banner — the lede is ordinary flow now, and the property was inert here. */
   .front-lede .front-metrics {
-    grid-column: 1;
     margin: var(--space-3) 0 0;
   }
   /* The figure sets its own top rule, so the column does not need the page's padding
@@ -524,30 +535,51 @@ body {
     display: flex;
     flex-direction: column;
   }
-  /* A `0` minimum on the columns row, so the row is free to take the height the window
-     has rather than the height its contents would like.
-     It was `minmax(min-content, 1fr)` for a while, to stop the routes column running past
-     the grid and printing over the footer. That turned out to be both the wrong fix and
-     the thing pinning the page: the row's `min-content` resolved to the figure's full
-     natural height, so the row never shrank, and the front page sat ~240px taller than the
-     window. The overlap it was guarding against is handled properly now — `main` scrolls
-     its own overflow, so anything that will not fit is reachable rather than painted over
-     the footer — and with the signposts set tighter the routes column no longer comes
-     close to the ceiling anyway. */
+  /**
+   * The columns row shrinks to the window, but not past what the panel has to say.
+   *
+   * This was `minmax(0, 1fr)`: the row took the window's height and the panel scrolled
+   * whatever would not fit. That held the page to one screen, but it meant the block
+   * descriptions were clipped on every laptop — the panel wanted 617px and a 900px window
+   * gave it 260px, so two thirds of what a reader had just clicked to read was behind an
+   * inner scrollbar they had to find.
+   *
+   * `min-content` puts the panel's own content back in the row's floor. Where the window
+   * can hold it nothing changes at all: the floor is under the available height, `1fr`
+   * wins, and the page is the single screen it was. Where it cannot, the row stops
+   * shrinking and `main` scrolls — a page scroll, which readers already expect, in place
+   * of a nested one they do not.
+   *
+   * This is the `minmax(min-content, 1fr)` that was here once and was removed for pinning
+   * the page ~240px past the window. What makes it affordable now is the width beside it:
+   * the panel is ~80px wider, so the copy that sets the floor is proportionally shorter.
+   * The overlap that fix was originally guarding against is handled properly elsewhere —
+   * `main` scrolls its own overflow, so nothing is painted over the footer.
+   *
+   * The floor tracks the selected part, so the page's height moves by up to ~54px as the
+   * reader clicks from block to block. That only happens while the floor is engaged, which
+   * is only on a window already scrolling, where the page's bottom edge is off-screen
+   * anyway. On a window tall enough to hold the panel the height is a constant.
+   */
   .front-grid {
     flex: 1 1 auto;
     min-height: 0;
-    grid-template-rows: auto minmax(0, 1fr);
+    grid-template-rows: auto minmax(min-content, 1fr);
   }
+  /* `min-content` rather than `0` at each step down to the stage, so the floor set on the
+     row above actually reaches the panel. A flex item with a `0` minimum is free to be
+     shorter than its contents, and any one of these three left at `0` would have gone on
+     compressing the panel and clipping it — the row's floor would have been a floor under
+     nothing. */
   .front-figure {
     align-self: stretch;
-    min-height: 0;
+    min-height: min-content;
     display: flex;
     flex-direction: column;
   }
   .front-figure .stack-figure {
     flex: 1 1 auto;
-    min-height: 0;
+    min-height: min-content;
     display: flex;
     flex-direction: column;
   }
@@ -563,12 +595,23 @@ body {
      allowed to scroll, which is the honest outcome on a window too short to hold it. */
   .front-figure .stack-fig-stage {
     flex: 1 1 auto;
-    min-height: 0;
+    min-height: min-content;
     /* The panel takes a share of the width, but never so much that the model is left
-       without a drawing area worth having. The reserve is 520px — two fluid gutters at
-       their 104px floor plus ~300px of stack — rather than the 800px it was when the
-       gutters were fixed at 176px and the layout only ran on a workstation. */
-    grid-template-columns: minmax(0, 1fr) min(clamp(300px, 26vw, 700px), calc(100% - 520px));
+       without a drawing area worth having.
+       26vw to 33vw: width is the cheapest height there is here. The same descriptions
+       across a wider panel are shorter, which comes off the stacked prose slot — and that
+       slot is sized by the longest of the fourteen, so every part gets the space back,
+       not just the long ones.
+       The reserve is what stops that going too far, and it is 580px rather than the 520px
+       it was. 520 was under the number that actually matters: `LIST_BELOW_PLATE` in
+       stack/engine.ts is 540, and a plate narrower than that stops being ruled out into
+       margins and becomes a list under the drawing. 520 minus the ~30px column gap left
+       the plate 490 — already below the engine's threshold before this widening, and the
+       first thing the extra panel width bought was the figure silently degrading. 580 is
+       the engine's 540 plus that gap plus a little air, so the drawing keeps the layout it
+       was designed for. Widening the panel past this means lowering the engine's constant
+       first; the two numbers are one decision written in two files. */
+    grid-template-columns: minmax(0, 1fr) min(clamp(300px, 33vw, 700px), calc(100% - 580px));
     grid-template-rows: minmax(250px, 1fr) auto;
     align-items: stretch;
   }
@@ -595,8 +638,17 @@ body {
    * the same place for all fourteen parts. Anything longer than its slot scrolls inside
    * that slot, so nothing is lost and nothing below it moves.
    */
+  /* `0 1 auto`, not `1 1 auto`: the body takes the height its copy needs and no more, so
+     the way out sits directly under the last line rather than being pushed to the foot of
+     a full-height column. Stretched, a short part left the button stranded 300px below its
+     own description with nothing in between — the panel read as two fragments rather than
+     one block of copy with its exit. The slack now collects under the exit instead, where
+     it is margin rather than a gap in the middle of the thing being read.
+     The trade is that the button no longer lands in the same place from part to part. That
+     was worth defending when it was the only fixed thing in a scrolling box; it is not
+     worth 300px of hole now that the copy fits. */
   .front-figure .stack-fig-panel-body {
-    flex: 1 1 auto;
+    flex: 0 1 auto;
     min-height: 0;
     display: flex;
     flex-direction: column;
@@ -608,6 +660,37 @@ body {
   }
   .front-figure .stack-fig-prose {
     flex: none;
+  }
+  /**
+   * The panel's copy, one step up in size, because the column it sits in is no longer the
+   * 260px gutter these sizes were chosen for.
+   *
+   * 14px over a 260px measure and 14px over a 394px one are not the same reading: the
+   * second is where the panel is now, and at that width the type looked set for a caption
+   * rather than for the paragraph a reader has just clicked to get. Every value goes up
+   * two steps — the description to 17, the variant note and the assertion to 15, the
+   * shape line to 14.5. 17px is the size body copy is set at on the reading pages of this
+   * site, which is the point: this is a paragraph a reader clicked for, not a caption.
+   *
+   * It costs roughly 60px of panel height. That is affordable now and was not before: the
+   * exit came out of the body's budget, the description slot stopped reserving the longest
+   * of the fourteen, and the panel got the second row back. Front page only — the same
+   * panel in a column of prose elsewhere is already at the right size for its measure.
+   */
+  /* Fluid for the reason the reading pages are: stated flat above the breakpoint, a
+     laptop got the size chosen for a monitor, and this panel is the part of the front page
+     with the least room to absorb it — at 1440 the copy it could not fit was pushing the
+     page half a screen longer. The floors are the sizes this was set at before. */
+  .front-figure .stack-fig-what {
+    font-size: clamp(14px, 0.885vw, 18px);
+    line-height: 1.5;
+  }
+  .front-figure .stack-fig-differs,
+  .front-figure .stack-fig-pin {
+    font-size: clamp(13px, 0.78vw, 16px);
+  }
+  .front-figure .stack-fig-shape {
+    font-size: clamp(12.5px, 0.755vw, 15px);
   }
   /* Every field is its natural height, including the last one. Giving the assertion the
      leftover space and its own scrollbar turned the longest of them into a three-line
@@ -647,6 +730,46 @@ body {
   .front-figure .stack-fig-panel .eyebrow {
     margin-top: var(--space-2);
   }
+  /**
+   * The description slot takes the height of the part that is showing, not of the longest.
+   *
+   * Stacked with `visibility: hidden`, all fourteen occupy the cell and the cell is as tall
+   * as the tallest — so the slot was 281px while the descriptions run 87px to 256px, and a
+   * median part printed 110px of blank between its last line and "Its shape". That reserve
+   * is what held the three field labels in one place from part to part, and it was worth
+   * paying while the panel had height to spare. It does not any more: the same 110px is the
+   * difference between the panel fitting the window and the page having to scroll, and a
+   * reader notices a scrollbar over their description long before they notice a label
+   * sitting 40px higher than it did on the previous block.
+   *
+   * `display: none` rather than a shorter reserve, because a reserve is a guess about the
+   * longest part that goes stale the next time someone writes a longer one. Only the shown
+   * part is laid out, so the slot cannot be wrong. Tab order is unaffected — `display: none`
+   * takes the hidden copies out of it exactly as `visibility: hidden` did.
+   *
+   * Scoped to the front page's figure: elsewhere the panel is not fighting a window for
+   * height, and the steadier labels are the better trade.
+   */
+  .front-figure .stack-fig-prose > [data-on="0"] {
+    display: none;
+  }
+  /* The exit as one strip rather than three stacked rows. Under the panel it had a narrow
+     column and had to stack; in the foot it has the drawing's full width, and stacked there
+     it spent ~147px of a row the plate was already at its floor in — the drawing paying for
+     the panel's prose twice over. Laid across, the same three things cost about a line.
+     `wrap`, so a part with two links still fits when the column is narrow rather than
+     pushing the strip off the side. */
+  .front-figure .stack-fig-panel-exit > * {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: var(--space-2) var(--space-4);
+  }
+  /* The eyebrow is a row label in this layout, not a heading over one, so it loses the
+     leading the panel's own eyebrows carry. */
+  .front-figure .stack-fig-panel-exit .eyebrow {
+    margin: 0;
+  }
   /* The panel takes the column's full height, and the foot goes back under the model.
      The foot spanning both tracks bought the legend a wider measure, but it cost the panel
      everything below the plate — the panel was capped at the model's row while its own
@@ -660,6 +783,11 @@ body {
     grid-column: 1;
     grid-row: 2;
   }
+  /* The panel spans both rows and carries the exit inside it again, so the second row is
+     the foot's own height and nothing else. The exit costs the panel nothing it did not
+     already have: what made it expensive before was the reserved description slot beneath
+     it, and that slot now sizes to the part on show. The plate keeps the ~110px it was
+     losing when the exit stacked on top of the foot. */
   .front-figure .stack-fig-panel {
     grid-column: 2;
     grid-row: 1 / 3;
@@ -709,20 +837,26 @@ body {
     font-size: 12px;
     margin-bottom: 4px;
   }
+  /* The signposts come off the diet the rest of this query put them on. They were set
+     tight when the page was fighting for every pixel of the figure's row; the figure has
+     the height it needs now, and this column runs ~100px shorter than the one beside it,
+     so the space this spends was not going to the drawing either way. The blurb is the
+     one that mattered — 13.5px is a caption, and these are the three sentences the page
+     asks a reader to choose between. */
   .front-routes .destination-title {
-    font-size: clamp(17px, 1.1vw, 22px);
+    font-size: clamp(18px, 1.2vw, 24px);
     margin-bottom: 4px;
     max-width: 24ch;
   }
   .front-routes .destination-blurb {
-    font-size: 13.5px;
-    line-height: 1.4;
+    font-size: clamp(13.5px, 0.78vw, 16px);
+    line-height: 1.45;
     margin-bottom: var(--space-2);
     max-width: 40ch;
   }
   .front-routes .destination-cta {
-    padding: 7px var(--space-3);
-    font-size: 13px;
+    padding: 8px var(--space-3);
+    font-size: clamp(13px, 0.73vw, 15px);
   }
   /* The plate's own furniture, on the same diet. */
   .front-figure .stack-fig-title {
@@ -1037,6 +1171,13 @@ body {
   max-width: 66ch;
   margin: 0 0 var(--space-4);
 }
+/* The shell stays at 1180. Widening it to 1420 was tried and measured: it takes 120px of
+   dead paper off each side of a 1920 screen, but the figures are not measure-bound and
+   follow the shell, so the gap between the end of a paragraph and the end of the page went
+   from 487px to 622px. The page's own complaint — prose pinned to the left of something
+   much wider — is the interior gap, not the outer margin, and only one of the two can be
+   spent at a time. The type carries the measure instead: at 22px the text reaches 768px
+   inside the same shell, which is the narrowest that gap has been. */
 .prose-secondary {
   font: 400 16px/1.6 var(--font-body);
   color: var(--color-neutral-800);
@@ -2312,13 +2453,6 @@ figcaption {
   visibility: hidden;
 }
 
-/* The encoding line: a caption, set beside the variant control rather than under it. */
-.fig-encoding {
-  font: 400 12.5px/1.4 var(--font-body);
-  color: var(--color-neutral-700);
-  margin: 0;
-}
-
 .stack-fig-foot {
   grid-column: 1;
   display: flex;
@@ -2425,5 +2559,355 @@ figcaption {
 @media (max-width: 700px) {
   .stack-fig-head {
     gap: var(--space-3);
+  }
+}
+
+/* ── the reading measure on wide screens ─────────────────────────────────────── */
+/* Last in the file on purpose. These override sizes and measures declared above at the
+   same specificity — `.prose-secondary`, `.prose-caveat` and `.page-standfirst` are all
+   defined after `.prose` — and a media query adds none, so placed next to `.prose` the
+   rules below lost to the very declarations they were written to replace. */
+/**
+ * The reading pages take the room a wide screen has, in both directions at once.
+ *
+ * The measure is bound in `ch`, so the column is only ever as wide as the type is big:
+ * at 19px, 66 characters came to 663px sitting inside an 1180px shell, and the figures
+ * — which are not measure-bound and take the whole shell — ran 500px past the end of
+ * every paragraph. The text read as a column pinned to the left of a much wider page.
+ *
+ * Raising the type to 22px carries the measure to ~768px without changing the line
+ * length a reader tracks, which closes ~105px of that gap inside the existing shell. It
+ * does not close all of it — 66 characters cannot fill 1180px at any size a person wants
+ * to read — but the gap goes from 487px to 382px, from wider than half the text to half.
+ *
+ * Both are gated on width. The measure is already right on a phone, where the shell is
+ * the viewport and 19px is the size this is comfortable at; only a screen with paper to
+ * spare has anything to give.
+ */
+@media (min-width: 1280px) {
+  /**
+   * The text fills the paper, and the type is raised until it can.
+   *
+   * The measure is bound in characters rather than pixels because the cost of a long line
+   * is the return sweep — at the end of one line the eye jumps back to find the start of
+   * the next, and past roughly 75-80 characters it starts landing on the wrong one. That
+   * is why widening the column alone is not free: 22px across this page's 1120px is about
+   * 102 characters a line.
+   *
+   * Raising the type is what buys the width back, because the same pixels hold fewer
+   * characters as the characters get bigger. At 26px the full 1120px comes to ~81
+   * characters — a long line, past the 66 this was set at, but inside the range where the
+   * sweep still lands. The extra leading is part of the same purchase: the longer the
+   * line, the more a reader depends on the vertical gap to find the next one.
+   *
+   * The sizes are fluid, and that is the whole of the second version of this rule. Stated
+   * as fixed pixels above a `min-width` they did not scale — they switched on. A 1280
+   * laptop was handed the same 26px as a 2560 monitor, which is a body size chosen for a
+   * screen at arm's length being read at a laptop's distance, and it looked it.
+   *
+   * The measure is capped in `ch` rather than left at `none` for the same reason from the
+   * other side. The shell is 1180 at every width from 1280 up, so the column is 1120 on a
+   * laptop as well as on a monitor: with the type scaled down and nothing capping it, the
+   * line would have run past 110 characters on the screen least able to carry it. At 85ch
+   * the cap does not bind on a wide screen — the text still fills the paper — and pulls
+   * the column in where the type is small. The page gives back width exactly when it can
+   * no longer afford the line.
+   */
+  .prose {
+    font-size: clamp(19px, 1.35vw, 27px);
+    line-height: 1.65;
+    max-width: 85ch;
+  }
+  .prose-secondary {
+    font-size: clamp(16px, 1.04vw, 21px);
+    line-height: 1.6;
+    max-width: 85ch;
+  }
+  .prose-caveat {
+    font-size: clamp(15px, 0.94vw, 19px);
+    line-height: 1.6;
+    max-width: 85ch;
+  }
+  /* The asides go with them. Each of these carries its own measure, chosen against a
+     663px column; left alone while the prose around them ran the full paper they read as
+     orphaned columns rather than as quieter voices in the same one. They keep their
+     relative sizes — the recap is still the quietest thing on the page, the prediction
+     still an aside — they just stop being narrower than the text they interrupt. */
+  .chapter-recap {
+    font-size: clamp(15px, 0.94vw, 19px);
+    max-width: 85ch;
+  }
+  .chapter-predict {
+    font-size: clamp(17px, 1.04vw, 21px);
+    max-width: 85ch;
+  }
+  .page-standfirst {
+    font-size: clamp(20px, 1.25vw, 25px);
+    line-height: 1.5;
+    max-width: 85ch;
+  }
+
+  /* The same treatment for the reading text the other pages carry under their own names:
+     the results pages' figure titles and wide notes, the tests page's claims, the
+     architecture explorer's block copy. Same shape as the rules above — the old size is
+     the floor, so nothing shrinks on a laptop, and the ceiling is ~1.37x it, which is the
+     ratio the body copy moves by between 1280 and 1920.
+
+     What is deliberately left alone: tables, the demos' own controls and token chips, and
+     the display numerals in the figure panels. Those sit in geometry measured against
+     their own boxes rather than against the page, they are read at a glance rather than
+     along, and scaling them is how a panel that fits at one width stops fitting at
+     another. Their measures are already bound in `ch`, so the character counts here hold
+     as the sizes move. */
+  .figure-title {
+    font-size: clamp(22px, 1.56vw, 30px);
+  }
+  .note-wide {
+    font-size: clamp(17px, 1.2vw, 23px);
+  }
+  .caveat-wide {
+    font-size: clamp(15px, 1.04vw, 20px);
+  }
+  .claim-pins {
+    font-size: clamp(22px, 1.56vw, 30px);
+  }
+  .claim-why {
+    font-size: clamp(16px, 1.15vw, 22px);
+  }
+  .stack-block-title {
+    font-size: clamp(17px, 1.2vw, 23px);
+  }
+  .stack-detail-what {
+    font-size: clamp(15px, 1.04vw, 20px);
+  }
+  .stack-detail-pin {
+    font-size: clamp(14px, 0.99vw, 19px);
+  }
+}
+
+/* The provenance field goes only where it is paying for itself — see the note in the
+   short-window block below. Its own query because it needs a width bound the rest of that
+   block does not want: the spacing and type rules there are worth having on any short
+   window, and this one is not. */
+@media (min-width: 1280px) and (max-width: 1599px) and (max-height: 900px) {
+  .front-figure .stack-fig-holds {
+    display: none;
+  }
+}
+
+/* ── the front page on a short window ────────────────────────────────────────── */
+/**
+ * A laptop window is not a laptop screen.
+ *
+ * Everything above was checked at 1440x900 and 1920x1080, which are screen sizes. The
+ * window inside them is 100-150px shorter once the browser has taken its chrome, and at
+ * 1440x765 — an ordinary maximised window on a 1440 display — the front page wanted
+ * 1024px and had 765. What that cut was not the bottom of something long but the third
+ * signpost, mid-word, with the model sheared off above it.
+ *
+ * The height here is spent on furniture rather than on content: the banner's display
+ * sizes and its spacing, the figure's own title, the page's top padding and the
+ * colophon's. None of it is the model, the signposts or the panel's copy, which are the
+ * three things a reader came for.
+ *
+ * Gated on height, not width, because that is the axis that runs out. A 1440x1100 window
+ * gets none of this and does not need it.
+ */
+@media (min-width: 1280px) and (max-height: 900px) {
+  /**
+   * The footer stops holding 90px of the window open.
+   *
+   * On a tall screen the front page is pinned to `100dvh` with `main` scrolling inside it,
+   * which keeps the colophon on the bottom edge where a paper's colophon belongs. On a
+   * short one that pin is the whole problem: the footer's 90px is subtracted from the
+   * viewport before the columns get any, so the figure was squeezed and then cut anyway,
+   * with the footer sitting under the cut like a lid.
+   *
+   * `min-height` instead of `height`, with the overflow handed back to the document. The
+   * page still fills the window — the footer sits on the bottom edge when the content is
+   * shorter, which is what the pin was for — but it is no longer a ceiling. The columns
+   * row sizes to its contents rather than to what is left after the furniture, and at
+   * 1512x800 that is the difference between the figure being cut and the whole page,
+   * colophon included, fitting with nothing to scroll.
+   *
+   * Nothing is removed to get there, which is why this rather than dropping the band: the
+   * licence, the source link and the sentence about what this project was built from are
+   * the last things a front page should lose to make room.
+   */
+  html:has(.front-shell),
+  body:has(.front-shell) {
+    overflow: visible;
+  }
+  #root:has(> main > .front-shell) {
+    height: auto;
+    min-height: 100dvh;
+  }
+  #root > main:has(> .front-shell) {
+    overflow-y: visible;
+  }
+  /* The colophon on the same diet as everything else here. It is 90px on a window that
+     cannot spare it, and most of that is furniture rather than words: 15px of padding at
+     each end, a 15px gap under the rule, and 1.6 leading on type that is already small.
+     The three cells keep every word — this only stops them being set as though the page
+     had room. */
+  .site-footer {
+    padding-top: 8px;
+    padding-bottom: 8px;
+  }
+  .site-footer .rule-heavy {
+    margin-bottom: 8px;
+  }
+  .footer-row {
+    font-size: 12.5px;
+    line-height: 1.45;
+    gap: 2px var(--space-5);
+  }
+  .front-shell.page {
+    padding-top: 4px;
+  }
+  .front-lede {
+    padding-bottom: 4px;
+  }
+  /* The lead gives up the most because it is the largest thing that is not the argument:
+     at 1440 this takes it from 43px to 35px, and it still sets on one line. */
+  .front-lede .front-headline {
+    font-size: clamp(30px, 2.4vw, 46px);
+    margin-bottom: var(--space-2);
+  }
+  .front-lede .front-standfirst {
+    font-size: clamp(16px, 1.05vw, 20px);
+    line-height: 1.35;
+  }
+  .front-lede .front-metrics {
+    margin-top: 4px;
+  }
+  /* The figure names itself directly above a drawing that is unmistakably the figure. */
+  .front-figure .stack-fig-head {
+    margin-bottom: 0;
+  }
+  .front-figure .stack-fig-title {
+    font-size: clamp(18px, 1.1vw, 22px);
+  }
+  /* Five eyebrows down the panel, and on a short window the leading above each is the
+     cheapest height on the page: the labels still separate their fields at 4px. */
+  .front-figure .stack-fig-panel .eyebrow {
+    margin-top: 4px;
+  }
+  /**
+   * The panel drops its provenance field on a short window.
+   *
+   * Spacing had nothing left to give: by this point the banner, the figure's title and
+   * the page's padding are already tightened, and the page still wanted 158px it did not
+   * have. The panel is what sets the figure's row — 426px of copy plus its exit — and
+   * "What holds it" is 144px of that, so this is the only cut that closes the gap without
+   * shrinking the drawing to a speck or putting a scrollbar back inside the panel.
+   *
+   * It is the right one to lose here. The other three fields answer what the block *is*;
+   * this one answers who checked, which is a claim about the repository rather than about
+   * the model. The claim is not lost with it: the same assertion is printed on the
+   * architecture explorer and on the results plates, both of which are ordinary scrolling
+   * pages with room for it, and the front page's own footer still says every number is
+   * read from a run or from arithmetic you can check.
+   *
+   * Only where it is actually costing something, which is not every short window. The
+   * panel's copy gets shorter as the panel gets wider, and past about 1600px the plate's
+   * own floor is what sets the figure's height — the panel has slack beneath it and the
+   * field rides along for nothing. Measured at 885px tall: 117px at 1440, 24px at 1520,
+   * and 0 from 1600 up.
+   *
+   * So the cut is short *and* narrow, and a maximised window on a 1080 display keeps the
+   * full panel. Every taller window keeps it at any width, and this is the front page
+   * only — the one page written to fit a screen.
+   */
+  /* The last of it out of the panel's spacing rather than any more of its copy: the gaps
+     inside the exit strip, the leading of the description, and the air above the way out.
+     Roughly 45px, which is what stands between this window and one screen. */
+  .front-figure .stack-fig-panel-exit {
+    margin-top: 4px;
+  }
+  .front-figure .stack-fig-panel-exit > * {
+    gap: 4px var(--space-3);
+  }
+  .front-figure .stack-fig-read {
+    margin-top: 4px;
+    padding: 5px var(--space-3);
+  }
+  .front-figure .stack-fig-what {
+    line-height: 1.4;
+  }
+  .front-figure .stack-fig-field {
+    margin-top: 0;
+  }
+  /* And then the signposts, because they turned out to be the ones setting the row.
+     Tightening the panel stopped changing the page's height partway through this: the two
+     columns stretch to a shared row, and once the figure came down under 473px the routes
+     column's 511px was the number the page was actually paying. Three signposts, each with
+     ~25px of vertical padding, a title margin, a blurb margin and a button — none of it
+     copy, all of it air. */
+  .front-routes .section-label {
+    margin-bottom: 4px;
+  }
+  .front-routes .destination {
+    padding: 6px 0 10px;
+  }
+  .front-routes .destination-title {
+    margin-bottom: 2px;
+  }
+  .front-routes .destination-blurb {
+    margin-bottom: 6px;
+  }
+  .front-routes .destination-cta {
+    padding: 6px var(--space-3);
+  }
+  /**
+   * The plate keeps a 340px floor even here, and the rest of the page pays for it.
+   *
+   * Fitting the window exactly had taken the drawing to 309px, and at that height the
+   * engine cannot rule fourteen labels down two margins: "Logits → sampling" printed over
+   * "Output head" on every part of the stack. Measured, the boundary is between 309 and
+   * 340 — at 340 all fourteen separate on all fourteen selections.
+   *
+   * A drawing whose labels collide is not a smaller drawing, it is a broken one, so this
+   * floor comes first and the rest of the page gives what it can.
+   *
+   * 440, not the 340 that pairwise separation alone suggested. Separation is the weaker
+   * test: at 340 no two labels overlap each other, but the lower ones are ranged 81px past
+   * the bottom of the plate and print over the variant control and the legend beneath it.
+   * Containment is the real constraint. Measured across all fourteen selections at both
+   * ends of this query's range, it sits between 400 and 430, so 440 carries a margin
+   * without spending height the labels do not need.
+   *
+   * The 460 this was first set to was measured at 1440 alone and then applied everywhere,
+   * which cost the wider windows 17px they had no reason to pay: at 1920 the plate settles
+   * at 443 of its own accord and the floor was overriding it upward. A 1920x885 window —
+   * a maximised window on a 1080 display — fits exactly at 440 and did not at 460.
+   *
+   * Where it still does not fit, that is the right outcome: 440px of drawing plus the
+   * banner, the signposts and the panel is more than a 765px window holds, so the page
+   * scrolls ~99px there instead — down from 259px before any of this, with the figure
+   * never broken to get there. */
+  .front-figure .stack-fig-stage {
+    grid-template-rows: minmax(440px, 1fr) auto;
+  }
+  .front-figure .stack-fig-foot {
+    gap: 2px;
+  }
+  .front-figure .stack-fig-foot .rule-hair {
+    margin-top: 2px;
+  }
+  .front-figure .stack-fig-what {
+    line-height: 1.35;
+  }
+}
+
+/* The plate's floor is width-aware, because the height its labels need is.
+   The floor exists to keep fourteen labels inside the drawing, and the room they have to
+   be ranged in grows with the plate: measured at 1440 the boundary sits between 400 and
+   430, and by 1512 it is under 360. One number tuned at the narrow end therefore
+   overcharges every width above it — at 1512x800 a 440 floor costs 63px of page where 370
+   costs none, with containment still measuring clean at 360. Above 1500 the floor comes down; below it the narrow measurement stands. */
+@media (min-width: 1500px) and (max-height: 900px) {
+  .front-figure .stack-fig-stage {
+    grid-template-rows: minmax(370px, 1fr) auto;
   }
 }
