@@ -142,8 +142,8 @@ function Chapter2() {
         That lookup table is 50,304 × 768 numbers — about <b>31% of the entire model</b>, spent
         before a single layer of actual computation. Drag the context slider and watch the last two
         figures move while everything else stays flat: attention's cost grows with sequence length,
-        which is why long context is hard, and why the KV cache — the thing grouped-query attention
-        shrinks — is what decides how many users fit on one GPU.
+        which is why long context is hard, and why the memory it needs for tokens already seen
+        decides how many users fit on one GPU.
       </p>
       <Provenance>
         Every count here is computed from the same shapes{" "}
@@ -178,8 +178,8 @@ function Chapter3() {
 
       <p className="prose">
         The word did not change — the sentence around it did, and that was enough to move what it
-        points at. So whatever the model holds for <i>it</i> cannot be a property of the word alone,
-        and a lookup table can only ever give it that.
+        points at. So whatever the model holds for <i>it</i> cannot be a property of the word alone —
+        and a property of the word alone is all a lookup table can give.
       </p>
       <p className="prose-secondary">
         These links are linguistic illustrations, not model output. What this repository's model
@@ -193,7 +193,7 @@ function Chapter4() {
   return (
     <>
       <p className="prose">
-        And which earlier tokens matter depends entirely on the sentence, so it cannot be wired in
+        Which earlier tokens matter depends entirely on the sentence, so it cannot be wired in
         advance.
       </p>
 
@@ -265,8 +265,8 @@ function Chapter5() {
         rotation leaves behind exactly one thing — the distance between them.
       </p>
       <p className="prose">
-        It sounds like it shouldn't work. There is a whole page here where you can move two tokens
-        around and watch it hold to fifteen decimal places.
+        It sounds like it shouldn't work. A whole page here lets you move two tokens around and
+        watch it hold to fifteen decimal places.
       </p>
       <p className="chapter-handoff">
         <a href={href({ kind: "rope" })}>→ Open the RoPE explorer</a>
@@ -316,7 +316,7 @@ function Chapter6() {
         and understanding a sentence, is the entire reason for chapters three to five.
       </p>
       <Provenance>
-        This one is origin rather than proof: the distribution is the actual count of what followed
+        This figure is history, not evidence: the distribution is the actual count of what followed
         each token in{" "}
         <a href={`${REPO}/data/wizard_of_oz.txt`}>
           <code>data/wizard_of_oz.txt</code>
@@ -361,10 +361,9 @@ function Chapter7() {
           +0.0025 and dropped biases at +0.0038 — which is a better argument than the one
           the wrong number was making, so both figures now come from the export. */}
       <p className="prose-secondary">
-        It is also why the ablation study pairs its seeds. Seed-to-seed spread on the baseline is{" "}
-        {MEASURED.ablations.noiseFloor.toFixed(4)}, and {spell(SUB_FLOOR_ARMS.length)} of the effects
-        it resolves are smaller than that — an unpaired comparison could not have told them from
-        noise, and pairing every arm against the run that saw its data in the same order can.
+        It is also why the ablation study pairs its seeds: the seed-to-seed spread on the baseline
+        is {MEASURED.ablations.noiseFloor.toFixed(4)}, and {spell(SUB_FLOOR_ARMS.length)} of the
+        effects it resolves are smaller than that.
       </p>
     </>
   );
