@@ -34,8 +34,20 @@
  *    inverts, and nothing at all under `prefers-reduced-motion`.
  */
 
-/** The facet order is the contract: index 0 top, 1 front, 2 side. */
-export const FACET = ["top", "front", "side"] as const;
+/**
+ * The facet order — index 0 top, 1 front, 2 side — is stated in rule 1 above and
+ * encoded positionally where the engine builds its face geometry. It used to also be
+ * an exported `FACET` array here that nothing imported: a constant declaring a
+ * contract the code enforced by index was the header's own promise broken in place.
+ *
+ * Below what height a solid stops being drawn, picked, or labelled. One decision —
+ * "this slab is too thin to exist on screen" — that the engine used to state as a
+ * bare 0.004 at four separate sites, against this header's rule that nothing here is
+ * repeated as a literal there. A morph collapses absent parts toward zero height, so
+ * the threshold is what keeps their faces, hit-targets and labels from lingering as
+ * one-pixel slivers.
+ */
+export const MIN_VISIBLE_HEIGHT = 0.004;
 
 export type PlateName = "neutral" | "cyan" | "magenta" | "yellow" | "ink";
 export type Tier = "region" | "part" | "flow";

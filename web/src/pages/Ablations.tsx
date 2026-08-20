@@ -24,7 +24,8 @@ const REPO = "https://github.com/Padraigobrien08/LLMfromScratch/blob/main";
 const A = MEASURED.ablations;
 
 /** The single-axis arms, in the order a reader would want to think about them. */
-const TOGGLES: Array<{ name: string; label: string }> = [
+/** Exported for the registry test: the toggles must be exactly the single-axis arms. */
+export const TOGGLES: Array<{ name: string; label: string }> = [
   { name: "norm-rmsnorm", label: "RMSNorm" },
   { name: "pos-rope", label: "RoPE" },
   { name: "pos-none", label: "No positions" },

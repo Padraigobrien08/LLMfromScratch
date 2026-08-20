@@ -73,7 +73,8 @@ FIELDS = [
 ]
 
 
-def main() -> None:
+def build() -> str:
+    """The fixture's exact text, separated from the write so a test can diff it."""
     cases = []
     for name, overrides in CASES.items():
         cfg = ModelConfig(**overrides)
@@ -92,8 +93,7 @@ def main() -> None:
         )
         print(f"{name:<14} {total:>12,} params")
 
-    OUT.parent.mkdir(parents=True, exist_ok=True)
-    OUT.write_text(
+    return (
         json.dumps(
             {
                 "_comment": (
@@ -106,6 +106,11 @@ def main() -> None:
         )
         + "\n"
     )
+
+
+def main() -> None:
+    OUT.parent.mkdir(parents=True, exist_ok=True)
+    OUT.write_text(build())
     print(f"\nwrote {OUT}")
 
 

@@ -47,6 +47,15 @@ CONTENT = ROOT / "web" / "src" / "content"
 OUT = CONTENT / "measured.ts"
 SHOWCASE_OUT = CONTENT / "testShowcase.ts"
 ARCHITECTURE_OUT = CONTENT / "architecture.ts"
+AXES_OUT = CONTENT / "ablationAxes.ts"
+
+# The tokens one micro-step moved in the communication sweep: gpt2-124m's
+# micro_batch_size × block_size *at measurement time*. The comm-accum artifacts record
+# only `grad_accum_steps` and the config's name, so this cannot be derived from them —
+# it is typed here, named, and pinned to the config by
+# `test_accumulation_micro_step_constant_matches_the_config`, so the day the config's
+# batching changes, the drift is a red test rather than a wrong tokens-per-step column.
+COMM_SWEEP_TOKENS_PER_MICRO_STEP = 16 * 1024
 
 # Pre-registered in the header comment of `configs/gpt2-124m.yaml` and in
 # `docs/reproduction.md`, before the run. It is a *commitment*, not a measurement, so it
@@ -294,7 +303,8 @@ def _accumulation() -> dict[str, Any]:
         "points": [
             {
                 "accum": accum,
-                "tokensPerStep": point(reports[accum], 1)["grad_accum_steps"] * 16 * 1024,
+                "tokensPerStep": point(reports[accum], 1)["grad_accum_steps"]
+                * COMM_SWEEP_TOKENS_PER_MICRO_STEP,
                 "tokensPerSec": point(reports[accum], 8)["tokens_per_sec"],
                 "efficiency": point(reports[accum], 8)["efficiency"],
                 "predicted": accum not in fitted_from,
@@ -514,6 +524,61 @@ def _camel(field: str) -> str:
     return head + "".join(word.title() for word in rest)
 
 
+# --------------------------------------------------------------------------- axes
+
+
+def build_axes() -> str:
+    """The ablation registry — axis labels and the modern stack's composition.
+
+    ``report.AXIS`` and the site's copy in ``lib/ablations.ts`` were byte-identical
+    dicts in two languages, "kept identical" by a comment. Same for ``MODERN_STACK``,
+    which restated which five arms ``modern-stack.yaml`` combines. Both cross the
+    boundary as generated code now, like every other fact the site states twice.
+
+    The composition is *computed*: an arm belongs to the modern stack exactly when its
+    own overrides are a subset of ``modern-stack.yaml``'s. Reading the YAMLs raw (with
+    ``_base_`` popped) rather than through the loader is deliberate — the question is
+    which fields each arm *states*, and a resolved config answers a different one.
+    """
+    import yaml
+
+    from llmfs.ablation.report import AXIS
+
+    arms_dir = ROOT / "configs" / "ablations"
+
+    def overrides(path: Path) -> set[tuple[str, str, Any]]:
+        raw = yaml.safe_load(path.read_text()) or {}
+        raw.pop("_base_", None)
+        # `log` is bookkeeping, not an axis: every arm names its own run_name there,
+        # which would make no arm's overrides a subset of any other's.
+        raw.pop("log", None)
+        return {
+            (section, key, repr(value))
+            for section, fields in raw.items()
+            for key, value in (fields or {}).items()
+        }
+
+    modern = overrides(arms_dir / "modern-stack.yaml")
+    stack = sorted(
+        path.stem
+        for path in arms_dir.glob("*.yaml")
+        if path.stem not in ("_base", "modern-stack") and overrides(path) <= modern
+    )
+
+    return render(
+        {"axis": AXIS, "modernStack": stack},
+        name="ABLATION_AXES",
+        note=(
+            "The ablation arms' axis labels, from `llmfs.ablation.report.AXIS`, and the\n"
+            "modern stack's composition, computed from `configs/ablations/*.yaml`.\n"
+            "\n"
+            "The site used to hold byte-identical copies of both, kept identical by a\n"
+            "comment. A label edited in the report, or a sixth arm added to the stack,\n"
+            "now reaches the page by regeneration instead of by someone remembering."
+        ),
+    )
+
+
 # ----------------------------------------------------------------------- showcase
 
 
@@ -581,6 +646,7 @@ def build_all() -> dict[Path, str]:
         OUT: build(python_tests=python_tests, browser_tests=resolve_browser_tests()),
         SHOWCASE_OUT: build_showcase(showcase_rows),
         ARCHITECTURE_OUT: build_architecture(),
+        AXES_OUT: build_axes(),
     }
 
 

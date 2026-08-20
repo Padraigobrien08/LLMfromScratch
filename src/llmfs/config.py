@@ -36,7 +36,6 @@ class DataConfig:
     """Sequences per forward pass. Chosen to fit memory; the *effective* batch size
     is set by ``TrainConfig.tokens_per_step`` and reached via gradient accumulation."""
     block_size: int = 1024
-    num_workers: int = 2
 
 
 @dataclass

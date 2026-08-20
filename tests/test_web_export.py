@@ -258,3 +258,28 @@ def _collected_node_ids() -> list[str]:
         check=True,
     )
     return [line.strip() for line in proc.stdout.splitlines() if "::" in line]
+
+
+def test_committed_axes_module_is_fresh() -> None:
+    """Same guarantee as the other three modules, for the ablation registry."""
+    from llmfs.export.web import AXES_OUT, build_axes
+
+    assert AXES_OUT.read_text() == build_axes(), (
+        "web/src/content/ablationAxes.ts is stale — run `llmfs-export-web` and commit it."
+    )
+
+
+def test_accumulation_micro_step_constant_matches_the_config() -> None:
+    """The one hand-typed factor in a site figure, pinned to what it encodes.
+
+    The comm-accum artifacts record only `grad_accum_steps`, so the exporter multiplies
+    by the micro-step's token count — gpt2-124m's micro_batch × block at measurement
+    time. If the config's batching ever changes this becomes a wrong tokens-per-step
+    column on the scaling plate, and this test is what makes that loud. (New scaling
+    artifacts record `tokens_per_step` directly; the committed ones predate the field.)
+    """
+    from llmfs.config import load_config
+    from llmfs.export.web import COMM_SWEEP_TOKENS_PER_MICRO_STEP
+
+    cfg = load_config("gpt2-124m")
+    assert cfg.data.micro_batch_size * cfg.data.block_size == COMM_SWEEP_TOKENS_PER_MICRO_STEP

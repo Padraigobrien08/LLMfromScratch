@@ -137,6 +137,14 @@ for tps in "${batches[@]}"; do
   fi
 done
 
+if compgen -G "$RESULTS/comm-accum*.json" > /dev/null; then
+  say "rendering the communication table"
+  # The one consumer of these artifacts with a console entry point; it was installed
+  # and documented nowhere, so the table only ever existed for people who knew.
+  llmfs-comm-report "$RESULTS"/comm-accum*.json --plot "$RESULTS/comm-sweep.png" \
+    || say "comm-report failed; the artifacts above are still good"
+fi
+
 say "communication sweep complete"
 echo "--- artifacts ---"
 ls -la "$RESULTS" 2>/dev/null || true

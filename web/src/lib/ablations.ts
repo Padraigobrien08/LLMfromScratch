@@ -1,3 +1,5 @@
+import { ABLATION_AXES } from "../content/ablationAxes";
+
 /**
  * The analysis half of `src/llmfs/ablation/report.py`, ported so the page can
  * recompute a comparison as toggles change instead of shipping a frozen table.
@@ -11,18 +13,18 @@
  * repository's own report refuses to.
  */
 
+/**
+ * The slice of an `ablations.json` arm this page actually reads. The artifact carries
+ * more (`perplexity`, `steps`, `tokens`, `wall_clock_s`, `error`) — declared fields
+ * nothing here consumed were the same species as dead prose, so they are not declared.
+ */
 export type ArmRun = {
   name: string;
   seed: number;
   status: "completed" | "diverged" | "failed";
   val_loss: number | null;
-  perplexity: number | null;
-  steps: number;
-  tokens: number;
-  wall_clock_s: number;
   tokens_per_sec: number;
   params: number;
-  error: string | null;
   history: Array<{ step: number; val_loss: number }>;
 };
 
@@ -44,25 +46,16 @@ export type Comparison = {
   halfRange: number;
 };
 
-/** Kept identical to `report.AXIS` so the two never describe an arm differently. */
-export const AXIS: Record<string, string> = {
-  baseline: "—",
-  "norm-rmsnorm": "LayerNorm → RMSNorm",
-  "pos-rope": "learned positions → RoPE",
-  "pos-none": "learned positions → none",
-  "mlp-swiglu": "GELU → SwiGLU (param-matched)",
-  "untied-embeddings": "tied → untied embeddings",
-  "no-bias": "bias → no bias",
-  "gqa-2": "8 KV heads → 2 (GQA)",
-  "sched-wsd": "cosine → WSD schedule",
-  "wd-zero": "weight decay 0.1 → 0",
-  "lr-3e-4": "lr 1e-3 → 3e-4",
-  "lr-3e-3": "lr 1e-3 → 3e-3",
-  "modern-stack": "all modern components",
-};
+/**
+ * Both of these used to be literals here, "kept identical" to their Python owners by a
+ * comment — the arrangement this repository keeps discovering does not keep anything.
+ * They now arrive generated: `AXIS` from `report.AXIS`, and the modern stack's
+ * composition computed from the arm YAMLs themselves, so a sixth component added to
+ * `modern-stack.yaml` reaches this page by regeneration.
+ */
+export const AXIS: Record<string, string> = ABLATION_AXES.axis;
 
-/** Exactly the arms `configs/ablations/modern-stack.yaml` combines. */
-export const MODERN_STACK = ["norm-rmsnorm", "pos-rope", "mlp-swiglu", "gqa-2", "no-bias"] as const;
+export const MODERN_STACK: readonly string[] = ABLATION_AXES.modernStack;
 
 const mean = (xs: number[]) => xs.reduce((a, b) => a + b, 0) / xs.length;
 
