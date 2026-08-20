@@ -18,6 +18,7 @@ from tqdm import tqdm
 from ..data.loader import ShardDataLoader
 from ..train.checkpoint import model_from_checkpoint
 from ..utils.device import autocast_context, get_device, resolve_dtype
+from ..utils.provenance import capture
 
 
 @torch.no_grad()
@@ -62,6 +63,11 @@ def evaluate_checkpoint(
         "perplexity": math.exp(min(mean_loss, 20)),
         "batches": total_batches,
         "tokens_evaluated": total_batches * tokens_per_batch,
+        # The number this produces is the repository's headline figure, and it was the
+        # one artifact with no provenance at all: no commit, no GPU, no torch version —
+        # a checkpoint path on a pod that no longer exists. hellaswag.py had this from
+        # the start; the plate exporter had to borrow its GPU name from there.
+        "provenance": capture(dev, measure=False, seed=ckpt["config"]["runtime"]["seed"]),
     }
 
 

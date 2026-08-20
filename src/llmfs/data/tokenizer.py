@@ -13,6 +13,7 @@ Two backends behind one interface:
 
 from __future__ import annotations
 
+import hashlib
 from dataclasses import dataclass
 from functools import lru_cache
 from pathlib import Path
@@ -37,6 +38,17 @@ class Tokenizer:
 
     def decode(self, ids: list[int]) -> str:
         return self.backend.decode(list(ids))
+
+    def fingerprint(self) -> str | None:
+        """A content hash of the vocabulary itself, or ``None`` where one cannot be taken.
+
+        The name "gpt2" pins nothing: tiktoken fetches the BPE ranks at runtime, so a
+        corpus's meta.json recording only the name asserts which tokenizer was *asked
+        for*, not which one *ran*. The fingerprint is what makes "the split is pinned"
+        checkable — two preparations with the same fingerprint tokenised identically.
+        """
+        fp = getattr(self.backend, "fingerprint", None)
+        return fp() if callable(fp) else None
 
 
 class _TiktokenBackend:
@@ -66,6 +78,20 @@ class _TiktokenBackend:
     def eot_token(self) -> int:
         return self._enc.eot_token
 
+    def fingerprint(self) -> str | None:
+        # `_mergeable_ranks` is private tiktoken API, so its absence degrades to "no
+        # fingerprint" rather than an error. Serialised in rank order — a canonical
+        # form both sides of any future comparison can reproduce.
+        ranks = getattr(self._enc, "_mergeable_ranks", None)
+        if ranks is None:
+            return None
+        digest = hashlib.sha256()
+        for token, rank in sorted(ranks.items(), key=lambda kv: kv[1]):
+            digest.update(rank.to_bytes(4, "little"))
+            digest.update(len(token).to_bytes(2, "little"))
+            digest.update(token)
+        return digest.hexdigest()
+
 
 class _HFTokenizersBackend:
     def __init__(self, path: str | Path) -> None:
@@ -75,6 +101,11 @@ class _HFTokenizersBackend:
         if not path.exists():
             raise FileNotFoundError(f"tokenizer file not found: {path}")
         self._tok = HFTokenizer.from_file(str(path))
+        self._path = path
+
+    def fingerprint(self) -> str:
+        # The file is the vocabulary; its bytes are the canonical form.
+        return hashlib.sha256(self._path.read_bytes()).hexdigest()
 
     def encode(self, text: str) -> list[int]:
         return self._tok.encode(text).ids

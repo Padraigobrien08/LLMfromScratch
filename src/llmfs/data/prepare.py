@@ -136,7 +136,13 @@ class ShardWriter:
         self._flush(self.fill)
 
 
-def _write_meta(out_dir: Path, writer: ShardWriter, tokenizer_spec: str, source: str) -> dict:
+def _write_meta(
+    out_dir: Path,
+    writer: ShardWriter,
+    tokenizer_spec: str,
+    source: str,
+    extra: dict | None = None,
+) -> dict:
     tok = load_tokenizer(tokenizer_spec)
     totals = {"train": 0, "val": 0}
     for entry in writer.manifest:
@@ -144,12 +150,18 @@ def _write_meta(out_dir: Path, writer: ShardWriter, tokenizer_spec: str, source:
     meta = {
         "source": source,
         "tokenizer": tokenizer_spec,
+        # The name alone pins nothing — "gpt2" is fetched by tiktoken at runtime. The
+        # fingerprint is a content hash of the vocabulary that actually tokenised this
+        # corpus, so two preparations can be compared instead of trusted.
+        "tokenizer_fingerprint": tok.fingerprint(),
         "vocab_size": tok.vocab_size,
         "eot_token": tok.eot_token,
         "dtype": "uint16",
         "shards": writer.manifest,
         "tokens": totals,
     }
+    if extra:
+        meta.update(extra)
     # Written last and written atomically: meta.json existing and agreeing with the
     # shards is the completion signal — the loader takes its shard list from it, and
     # the remote pipelines' "corpus already present" checks are only as good as it is.
@@ -230,7 +242,25 @@ def prepare_fineweb_edu(
         ) from exc
 
     out_dir = Path(out_dir)
-    dataset = load_dataset("HuggingFaceFW/fineweb-edu", name=subset, split="train", streaming=True)
+
+    # Resolve the dataset's current revision and stream *that*, so what meta.json
+    # records is guaranteed to be what was tokenised. Without this the load floats on
+    # the hub's default branch, and "the split is pinned" means only that its *name*
+    # is — a dataset revision bump changes the corpus with nothing in this repository
+    # able to say so. Resolution failure degrades to the unpinned behaviour, recorded
+    # as such, rather than blocking a prep the way a hard error would.
+    dataset_name = "HuggingFaceFW/fineweb-edu"
+    try:
+        from huggingface_hub import HfApi
+
+        revision: str | None = HfApi().dataset_info(dataset_name).sha
+    except Exception as exc:  # noqa: BLE001 - recorded, not hidden
+        revision = None
+        print(f"[warn] could not resolve the {dataset_name} revision, streaming unpinned: {exc}")
+
+    dataset = load_dataset(
+        dataset_name, name=subset, split="train", streaming=True, revision=revision
+    )
     if limit_docs is not None:
         dataset = dataset.take(limit_docs)
 
@@ -264,7 +294,13 @@ def prepare_fineweb_edu(
         progress.close()
     writer.close()
 
-    meta = _write_meta(out_dir, writer, tokenizer_spec, source=f"fineweb-edu/{subset}")
+    meta = _write_meta(
+        out_dir,
+        writer,
+        tokenizer_spec,
+        source=f"fineweb-edu/{subset}",
+        extra={"dataset": dataset_name, "subset": subset, "dataset_revision": revision},
+    )
     print(f"wrote {meta['tokens']['train']:,} train / {meta['tokens']['val']:,} val tokens")
     _assert_trainable(meta, out_dir, shard_tokens)
     return meta

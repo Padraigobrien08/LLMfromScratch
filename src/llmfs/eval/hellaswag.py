@@ -23,6 +23,8 @@ something is broken, not that the model is merely small.
 from __future__ import annotations
 
 import argparse
+import hashlib
+import http.client
 import json
 import urllib.request
 from pathlib import Path
@@ -38,9 +40,18 @@ from ..train.checkpoint import model_from_checkpoint
 from ..utils.device import autocast_context, get_device, resolve_dtype
 from ..utils.provenance import capture
 
+# Pinned to a commit, not `master`: the eval set is an input to a published number, and
+# an unpinned branch reference means the number's meaning can change without anything
+# in this repository changing. The checksum makes the pin verifiable — it also guards
+# the *cached* copy, which used to be trusted forever once any file existed at the
+# path, including a hand-curl'd truncated one (which the download error message itself
+# used to recommend creating).
+HELLASWAG_COMMIT = "6774d74db0a963013d28bd9323c32de8dd506038"
 HELLASWAG_VAL_URL = (
-    "https://raw.githubusercontent.com/rowanz/hellaswag/master/data/hellaswag_val.jsonl"
+    f"https://raw.githubusercontent.com/rowanz/hellaswag/{HELLASWAG_COMMIT}"
+    "/data/hellaswag_val.jsonl"
 )
+HELLASWAG_VAL_SHA256 = "0aa3b88843990f3f10a97b9575c94d7b71fb2205240ba04ae4884d9e9c992588"
 # A third-party figure, not a measurement of ours: GPT-2 124M's zero-shot HellaSwag
 # `acc_norm`, as reported by nanoGPT and widely restated. It is copied into every result
 # file this module writes, which means the tests comparing the two are comparing this
@@ -53,8 +64,23 @@ GPT2_124M_ACC_NORM = 0.2955
 CHANCE = 0.25
 
 
+def _verify(path: Path) -> None:
+    digest = hashlib.sha256(path.read_bytes()).hexdigest()
+    if digest != HELLASWAG_VAL_SHA256:
+        raise RuntimeError(
+            f"{path} does not match the pinned HellaSwag validation set "
+            f"(sha256 {digest[:12]}…, expected {HELLASWAG_VAL_SHA256[:12]}…). "
+            f"It is truncated or a different version; delete it and re-run."
+        )
+
+
 def download(cache_dir: str | Path = "data/hellaswag") -> Path:
-    """Fetch the validation split, cached. ~10k examples, a few MB."""
+    """Fetch the validation split, cached and checksum-verified. ~10k examples, a few MB.
+
+    The cached copy is re-verified on every use, not only at download time: the scoring
+    below silently skips malformed work only where it says so, and a truncated cache
+    would otherwise change the number without changing anything this repo records.
+    """
     cache_dir = Path(cache_dir)
     cache_dir.mkdir(parents=True, exist_ok=True)
     path = cache_dir / "hellaswag_val.jsonl"
@@ -66,14 +92,18 @@ def download(cache_dir: str | Path = "data/hellaswag") -> Path:
                 # a truncated cache that every later run silently trusts.
                 tmp = path.with_suffix(".tmp")
                 tmp.write_bytes(response.read())
+                _verify(tmp)
                 tmp.replace(path)
-        except urllib.error.URLError as exc:
+        except (urllib.error.URLError, http.client.HTTPException) as exc:
+            # HTTPException covers IncompleteRead, which is not a URLError and used
+            # to escape this handler as a bare traceback with the guidance lost.
             raise RuntimeError(
                 f"could not download HellaSwag: {exc}\n"
                 f"  On a python.org macOS build this is usually missing CA certificates.\n"
-                f"  Fetch it manually instead:\n"
+                f"  Fetch it manually instead (the checksum is verified either way):\n"
                 f"    curl -sSL {HELLASWAG_VAL_URL} -o {path}"
             ) from exc
+    _verify(path)
     return path
 
 

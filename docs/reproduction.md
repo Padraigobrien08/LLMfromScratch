@@ -96,8 +96,13 @@ Two caveats that matter for honesty:
 
 1. **The number is corpus-specific.** Validation loss is per-token and depends on the
    tokenizer and the evaluation set. 3.29 on FineWeb-Edu is not comparable to a loss
-   on OpenWebText, WikiText or anything else. Both the tokenizer and the split are
-   pinned here for exactly that reason.
+   on OpenWebText, WikiText or anything else. The tokenizer and the split are *named*
+   here for exactly that reason — and naming is what the original run pinned, no more:
+   "gpt2" is fetched by tiktoken at runtime and the FineWeb-Edu load followed the hub's
+   default branch, so neither input's exact version was recorded when the corpus was
+   built. Preparations made since record the resolved dataset revision and a content
+   hash of the tokenizer's vocabulary in `meta.json`, which is what makes the word
+   "pinned" checkable rather than aspirational.
 2. **This target should be re-confirmed against the source before the run is
    reported**, rather than taken from this document. It is recorded here as the
    pre-registered target; its provenance is a secondary source, not a measurement of
@@ -228,7 +233,10 @@ figures above, which is a larger effect than most of the training-efficiency wor
 
 ## What gets published
 
-- `results/reproduction.json` — final loss, perplexity, step, tokens evaluated
+- `results/reproduction.json` — final loss, perplexity, step, tokens evaluated. The
+  committed artifact predates `llmfs-eval` recording provenance, so it carries no
+  commit, GPU or seed of its own; the GPU is attested by `results/hellaswag.json`,
+  written on the same pod. Re-running the eval today records the full provenance block.
 - `out/gpt2-124m-repro/metrics.jsonl` — the full training trace
 - Loss curve, and the target drawn on the same axes
 - Hardware, wall-clock, measured MFU, and total cost

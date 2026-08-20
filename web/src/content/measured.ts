@@ -11,7 +11,7 @@
  */
 export const MEASURED = {
   "tests": {
-    "python": 387,
+    "python": 394,
     "browser": 151
   },
   "reproduction": {
