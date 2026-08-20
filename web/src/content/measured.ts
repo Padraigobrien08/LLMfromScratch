@@ -12,7 +12,7 @@
 export const MEASURED = {
   "tests": {
     "python": 381,
-    "browser": 150
+    "browser": 151
   },
   "reproduction": {
     "split": "val",
