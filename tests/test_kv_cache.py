@@ -182,3 +182,56 @@ def test_multi_token_verify_step_still_masks() -> None:
     # three would attend to their own future and diverge. Only the last would agree —
     # which is exactly why checking just the final position is not enough.
     torch.testing.assert_close(chunked, full[:, 5:], atol=1e-4, rtol=1e-5)
+
+
+def test_decode_feeds_only_the_new_token_through_attention(monkeypatch) -> None:
+    """Cached decoding must cost one token of attention per step.
+
+    `test_cache_position_advances_once_per_forward` checks the cache's own counter; it
+    would not notice a regression that re-fed the whole prefix through every layer,
+    which is numerically correct and exactly as slow as having no cache at all. The
+    query width SDPA receives is the cost, so that is what is asserted.
+    """
+    import torch.nn.functional as F
+
+    from llmfs.model import attention as attention_module
+
+    widths: list[int] = []
+    real_sdpa = F.scaled_dot_product_attention
+
+    def recording_sdpa(q, k, v, attn_mask=None, **kwargs):  # type: ignore[no-untyped-def]
+        widths.append(q.shape[2])
+        return real_sdpa(q, k, v, attn_mask=attn_mask, **kwargs)
+
+    monkeypatch.setattr(attention_module.F, "scaled_dot_product_attention", recording_sdpa)
+
+    model = tiny_model()
+    n_layer = model.cfg.n_layer
+    cache = model.make_cache(batch_size=1, max_seq_len=16)
+    model(torch.randint(0, 97, (1, 4)), cache=cache)  # prefill
+    for _ in range(3):
+        model(torch.randint(0, 97, (1, 1)), cache=cache)
+
+    assert widths.count(4) == n_layer, "prefill should see the prompt once per layer"
+    assert widths.count(1) == 3 * n_layer, "each decode step should feed exactly one token"
+    assert len(widths) == 4 * n_layer
+
+
+def test_rewind_discards_the_rejected_suffix_and_nothing_else() -> None:
+    """`rewind_to` is what speculative decoding leans on after every rejection, and it
+    had no direct test: a rewind that kept stale entries would corrupt outputs, while
+    one that discarded too much would be lossless and quietly slow. Replaying the
+    rewound block must reproduce a fresh cache's answer exactly."""
+    model = tiny_model()
+    tokens = torch.randint(0, 97, (1, 10))
+
+    cache = model.make_cache(batch_size=1, max_seq_len=16)
+    model(tokens[:, :6], cache=cache)  # settled prefix
+    model(tokens[:, 6:10], cache=cache)  # speculative block, about to be rejected
+    assert cache.pos == 10
+    cache.rewind_to(6)
+    assert cache.pos == 6
+
+    replayed = model(tokens[:, 6:10], cache=cache).logits
+    fresh = model(tokens, cache=model.make_cache(batch_size=1, max_seq_len=16)).logits
+    torch.testing.assert_close(replayed[:, -1], fresh[:, -1])

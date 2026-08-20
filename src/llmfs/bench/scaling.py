@@ -314,11 +314,27 @@ def run_one(
     completed = subprocess.run(cmd, capture_output=True, text=True)
 
     records = read_metrics(run_dir / "metrics.jsonl")
-    if completed.returncode != 0 and not records:
+    # A non-zero exit is a failure even when rank 0 got some metrics down first. The
+    # earlier form required *both* a bad exit and an empty log, so a torchrun that
+    # aborted at step 12 of 30 — one rank OOMing, a NCCL timeout — published a median
+    # over whatever rank 0 managed to log, indistinguishable in the artifact from a
+    # clean run except by a `samples` field nobody asserted. Only rank 0 writes
+    # metrics.jsonl at all, so partial records say nothing about the other ranks.
+    if completed.returncode != 0:
         tail = (completed.stderr or completed.stdout or "").strip().splitlines()[-6:]
-        return [], "torchrun failed: " + " | ".join(tail)
+        return [], (
+            f"torchrun exited {completed.returncode} "
+            f"({len(records)} step records logged): " + " | ".join(tail)
+        )
     if not records:
         return [], "run produced no metrics"
+    # And a clean exit must still account for every step: base_overrides pins
+    # log_interval=1, so the last record's step number is the number of steps that ran.
+    if records[-1].get("step") != steps:
+        return [], (
+            f"run logged through step {records[-1].get('step')} of {steps} — incomplete, "
+            f"so its median would describe a shorter run than the artifact claims"
+        )
     return records, None
 
 

@@ -14,6 +14,7 @@ from pathlib import Path
 
 import pytest
 
+import llmfs.bench.scaling as scaling
 from llmfs.bench.scaling import (
     ScalingPoint,
     ScalingReport,
@@ -322,3 +323,54 @@ def test_comm_table_skips_failed_pivot_points() -> None:
     table = comm_table([broken, _comm_report(4, 100_000.0, 700_000.0)])
     assert "| 2 |" not in table, "a failed pivot point must not appear as a data row"
     assert "| 4 |" in table, "the surviving point must still be reported"
+
+
+# --------------------------------------------------------------- run acceptance
+
+
+def _fake_torchrun(run_dir: Path, returncode: int, steps_logged: int):
+    """A subprocess.run stand-in that writes rank 0's metrics the way a real run would —
+    after run_one has cleared the stale directory, which is why it cannot be pre-written."""
+    from types import SimpleNamespace
+
+    def fake(cmd, capture_output, text):  # noqa: ARG001 - signature mirrors subprocess.run
+        run_dir.mkdir(parents=True, exist_ok=True)
+        lines = [
+            json.dumps(
+                {
+                    "step": s,
+                    "perf/tokens_per_sec": 100.0,
+                    "perf/step_time_ms": 10.0,
+                    "train/loss": 5.0,
+                }
+            )
+            for s in range(1, steps_logged + 1)
+        ]
+        (run_dir / "metrics.jsonl").write_text("\n".join(lines) + "\n")
+        return SimpleNamespace(returncode=returncode, stderr="rank died", stdout="")
+
+    return fake
+
+
+def test_nonzero_exit_is_a_failure_even_with_partial_metrics(tmp_path, monkeypatch) -> None:
+    """The harness's own version of the repo's oldest bug shape: only rank 0 writes
+    metrics.jsonl, so partial records say nothing about the ranks that died — a point
+    published from them is a measurement of a run that did not happen."""
+    monkeypatch.setattr(scaling.subprocess, "run", _fake_torchrun(tmp_path / "scaling-ws2", 1, 12))
+    records, error = scaling.run_one(2, "debug", steps=30, out_dir=tmp_path, extra_overrides=[])
+    assert records == []
+    assert error is not None and "exited 1" in error and "12 step records" in error
+
+
+def test_clean_exit_short_of_the_step_budget_is_a_failure(tmp_path, monkeypatch) -> None:
+    monkeypatch.setattr(scaling.subprocess, "run", _fake_torchrun(tmp_path / "scaling-ws2", 0, 20))
+    records, error = scaling.run_one(2, "debug", steps=30, out_dir=tmp_path, extra_overrides=[])
+    assert records == []
+    assert error is not None and "step 20 of 30" in error
+
+
+def test_complete_run_is_accepted(tmp_path, monkeypatch) -> None:
+    monkeypatch.setattr(scaling.subprocess, "run", _fake_torchrun(tmp_path / "scaling-ws2", 0, 30))
+    records, error = scaling.run_one(2, "debug", steps=30, out_dir=tmp_path, extra_overrides=[])
+    assert error is None
+    assert len(records) == 30

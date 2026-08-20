@@ -291,3 +291,25 @@ def test_the_196_becomes_217_figure_is_derived_not_remembered() -> None:
     for path in ("docs/efficiency.md", "web/src/content/testShowcase.ts"):
         text = (root / path).read_text()
         assert re.search(rf"\b{round(skipped)}\b.{{0,80}}\b{round(total)}\b", text, re.S), path
+
+
+def test_forward_consumes_the_codes_not_a_retained_original() -> None:
+    """The memory tests read the repo's own byte accountant, so none of them would
+    notice a QuantLinear that kept the fp32 weight in a plain attribute and used it in
+    forward. Two mechanisms pin it: the output must carry quantization error (a forward
+    using the original would match `F.linear` exactly), and zeroing the codes must
+    change the output (a forward ignoring them would not care)."""
+    torch.manual_seed(0)
+    linear = nn.Linear(64, 32, bias=False)
+    x = torch.randn(2, 64)
+    quant = QuantLinear(linear, QuantConfig(bits=8, group_size=32))
+
+    quantized_out = quant(x).clone()
+    assert not torch.equal(quantized_out, linear(x)), (
+        "a quantized forward with zero quantization error is reading the original weight"
+    )
+
+    quant.codes.zero_()
+    assert not torch.allclose(quant(x), quantized_out), (
+        "mutating the codes did not change the output — forward is not consuming them"
+    )
