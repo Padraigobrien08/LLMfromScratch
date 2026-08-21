@@ -40,11 +40,6 @@ export default function Masthead({ route }: { route: Route }) {
         <div className="masthead-row">
           <div className="wordmark">
             <a href="#/">NanoGPT From Scratch</a>
-            {/* The design system is called Broadsheet and the whole page is set as one —
-                plates, dateline, colophon, CMYK numerals. "A laboratory notebook" was the
-                one string pulling the other way, and it also described the wrong thing: a
-                notebook is private and chronological, where this is curated and published. */}
-            <span className="wordmark-sub">Laboratory notes, printed</span>
           </div>
           <nav className="masthead-nav" aria-label="Sections">
             {NAV.map((item) => (

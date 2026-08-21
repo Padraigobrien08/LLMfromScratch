@@ -282,15 +282,18 @@ def test_masthead_matches_the_site_it_belongs_to() -> None:
 
     Pinning it here is cheaper than noticing. The template is deliberately not shared,
     so this asserts the two agree rather than trying to make them one thing.
+
+    The strapline is currently removed on both sides, so agreement means absence: a
+    wordmark-sub reappearing in only one file is the same drift this test exists for.
     """
     sub = re.compile(r'class(?:Name)?="wordmark-sub">([^<]+)<')
 
     template = sub.search(TEMPLATE.read_text(encoding="utf-8"))
     site = sub.search((ROOT / "web/src/components/Masthead.tsx").read_text(encoding="utf-8"))
-    assert template is not None, "the attention template has no wordmark-sub"
-    assert site is not None, "the site's Masthead component has no wordmark-sub"
 
-    assert template.group(1) == site.group(1), (
-        f"the attention page says {template.group(1)!r} where the site says "
-        f"{site.group(1)!r} — edit src/llmfs/viz/template.html to match"
+    t_text = template.group(1) if template else None
+    s_text = site.group(1) if site else None
+    assert t_text == s_text, (
+        f"the attention page says {t_text!r} where the site says "
+        f"{s_text!r} — edit src/llmfs/viz/template.html to match"
     )

@@ -68,10 +68,6 @@
   }
   .wordmark { display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; }
   .wordmark a { font: 600 25px/1 var(--serif); letter-spacing: -.015em; color: var(--text); text-decoration: none; }
-  .wordmark-sub {
-    font: 400 12px/1 var(--serif); letter-spacing: .1em;
-    text-transform: uppercase; color: var(--muted);
-  }
   .masthead-nav { display: flex; align-items: baseline; flex-wrap: wrap; column-gap: 20px; row-gap: 8px; }
   .masthead-nav a {
     font: 400 14px/1 var(--serif); color: var(--text); text-decoration: none;
@@ -195,12 +191,6 @@
     <div class="masthead-row">
       <div class="wordmark">
         <a href="../">LLMfromScratch</a>
-        <!-- Kept in step with web/src/components/Masthead.tsx by hand. This page cannot
-             import from the site, so the masthead is restated rather than shared — and
-             the two drifted the moment the site's strapline changed: "A laboratory
-             notebook" survived here for one deploy after the site had stopped saying it.
-             Anything edited in that component has to be edited here too. -->
-        <span class="wordmark-sub">Laboratory notes, printed</span>
       </div>
       <nav class="masthead-nav" aria-label="Sections">
         <a href="../">Front page</a>

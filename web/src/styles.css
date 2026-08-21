@@ -172,13 +172,6 @@ body {
 .wordmark a:hover {
   text-decoration: none;
 }
-.wordmark-sub {
-  font: 400 12px/1 var(--font-body);
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: var(--color-neutral-700);
-}
-
 .masthead-nav {
   display: flex;
   align-items: baseline;
@@ -990,13 +983,13 @@ body {
 .front-metrics a:focus-visible {
   border-bottom-color: currentColor;
 }
-/* Body weight-600, not a step of its own. At 18px flat these four numbers were the exact
-   size and weight of a route title two inches below them, at every width from 1280 up: the
-   reader met "124.5M" and "See whether it actually worked" as the same rank. Weight and the
-   mono face are what mark them now. */
+/* Body weight, not a step of its own. These four ran weight-600, which made the row a
+   second headline four numbers long directly under the real one. The mono face alone is
+   what marks them as measured — that is the site's own law — and at body weight the row
+   reads as the headline's evidence rather than its rival. */
 .front-metric-value {
   font-size: var(--type-body);
-  font-weight: 600;
+  font-weight: 400;
   letter-spacing: -0.02em;
 }
 .front-metric-label {
