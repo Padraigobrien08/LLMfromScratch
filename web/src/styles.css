@@ -5,6 +5,61 @@
    the alias block that keeps the not-yet-redesigned ablation playground rendering. */
 
 :root {
+  /**
+   * The type scale, which this file's header has claimed to hold since it was written and
+   * did not.
+   *
+   * What was here instead: nineteen font sizes on the front page, each tuned where it sat.
+   * Eight of them were fluid, on eight different curves — 3, 1.3, 1.2, 1.15, 0.885, 0.78,
+   * 0.755 and 0.73vw, several within 5% of each other — and eleven were fixed pixels that
+   * did not scale at all. Two systems in one page, and the fluid one slides through the
+   * fixed one as the window changes, so the levels reorder:
+   *
+   *   at 1920   the figure's title is 25px over the panel's 21px, which is the intended
+   *             order, and a route title is 23px against a metric's 18px
+   *   at 1352   the same figure title has shrunk to 18px and sits *under* the panel it
+   *             contains, and the route title has landed exactly on the metric, same size
+   *             and same weight
+   *
+   * Neither of those is a wrong number. They are what nineteen independent numbers do.
+   * Both faults disappear once every level is on the same curve family, because then the
+   * ratios between levels are fixed and a level cannot overtake the one above it at any
+   * width. That is the whole reason these are tokens rather than better-chosen literals.
+   *
+   * Five steps, each ~1.25 over the one below at the middle of the range. The floors are
+   * readability limits rather than design intent, so the two smallest steps converge on a
+   * narrow window; there they are told apart by case and colour instead, which is what the
+   * uppercase tracking on `label` is for. The caps stop the scale running away past about
+   * 2000px, where the page has more width than the measures want.
+   *
+   * The three lower curves are set so their floors hold to ~1475px rather than ~1400, and
+   * that is a height decision rather than a typographic one. The front page's panel is a
+   * ~394px column of running copy from 1440 up, so a tenth of a pixel per line there is
+   * worth several pixels of page: at 0.95/0.85/0.7vw the first version of this scale put
+   * `body` at 14.4px and `label` at 10.8px at 1440, and those two fractions alone pushed
+   * four of the fourteen block selections 23px past a 777px window. Below the caps these
+   * steps are flat on purpose; the scale's job here is the ratios between levels, and the
+   * levels are legible without the bottom three growing on a laptop.
+   *
+   * `label` is for uppercase tracked furniture only: eyebrows, the signpost kicker, the
+   * figure's own labels, ordinals. `small` is roman UI text. `body` is anything a reader
+   * reads in sentences. `title` names a thing. `lead` names a column. The headline keeps
+   * its own display curve, one step further out, because a banner is not a scale step.
+   *
+   * `lead` is what the figure's title is set at, and it is the step the whole scale exists
+   * to protect: nothing inside the figure may reach it. Promoting that title costs ~5px of
+   * page at 1440, and the page can afford it only because the flat lower curves above give
+   * back more than that from the panel. It was briefly gated out of 1440-1599 on the
+   * evidence of the first version of this scale, which was wrong about where the height had
+   * gone: with the curves as they are, all fourteen selections fit a 1440x777 window with
+   * the title promoted.
+   */
+  --type-label: clamp(10.5px, 0.7vw, 13px);
+  --type-small: clamp(12.5px, 0.85vw, 16px);
+  --type-body: clamp(14px, 0.95vw, 19px);
+  --type-title: clamp(17px, 1.4vw, 24px);
+  --type-lead: clamp(20px, 1.75vw, 30px);
+
   /* Monospace is used for all numerals, ids, config keys and code. */
   --mono: ui-monospace, Menlo, monospace;
 
@@ -419,8 +474,12 @@ body {
    * figure's row on a wide screen while the type goes up four and a half points, which is
    * the rare direction this page's height budget moves in.
    */
+  /* Body, not a step above it. A deck earns its prominence from running the banner's full
+     measure under a 32px headline, which is a position rather than a size; giving it its own
+     step as well was what pushed it to 22px on a wide screen and 16 on a narrow one, and the
+     narrow end is where it then fought the metrics beside it. */
   .front-lede .front-standfirst {
-    font-size: clamp(18px, 1.15vw, 22px);
+    font-size: var(--type-body);
     line-height: 1.4;
     max-width: none;
     margin: 0;
@@ -686,15 +745,15 @@ body {
      with the least room to absorb it — at 1440 the copy it could not fit was pushing the
      page half a screen longer. The floors are the sizes this was set at before. */
   .front-figure .stack-fig-what {
-    font-size: clamp(14px, 0.885vw, 18px);
+    font-size: var(--type-body);
     line-height: 1.5;
   }
   .front-figure .stack-fig-differs,
   .front-figure .stack-fig-pin {
-    font-size: clamp(13px, 0.78vw, 16px);
+    font-size: var(--type-small);
   }
   .front-figure .stack-fig-shape {
-    font-size: clamp(12.5px, 0.755vw, 15px);
+    font-size: var(--type-small);
   }
   /* Every field is its natural height, including the last one. Giving the assertion the
      leftover space and its own scrollbar turned the longest of them into a three-line
@@ -715,6 +774,7 @@ body {
      four of the fourteen parts back inside the box entirely rather than scrolling by
      single digits, which is the worst version of a scroll: invisible and pointless. */
   .front-figure .stack-fig-panel .eyebrow {
+    font-size: var(--type-label);
     margin-top: var(--space-2);
   }
   /**
@@ -789,7 +849,7 @@ body {
     margin-bottom: 0;
   }
   .front-figure .stack-fig-title {
-    font-size: 27px;
+    font-size: var(--type-lead);
   }
   .front-figure .stack-fig-stage {
     margin-top: 0;
@@ -811,7 +871,12 @@ body {
    * area is untouched: it is the one thing on the page that should get the space, and
    * everything below is what was taken to give it to it.
    */
+  /* The signpost kicker on the same step as every other eyebrow on the page. It was 15px
+     against the panel's 10.5px — one role at two sizes, a 1.43x split — and at 1352 the
+     larger of the two broke "Where do you want to go?" across two lines in front of a
+     two-letter word. */
   .front-routes .section-label {
+    font-size: var(--type-label);
     margin: 0 0 var(--space-2);
   }
   .front-routes .destinations {
@@ -820,8 +885,15 @@ body {
   .front-routes .destination {
     padding: var(--space-3) 0;
   }
+  /* Furniture, at the furniture size, and in the furniture's colour. These ordinals were
+     `--color-accent-700`, which is this page's link colour to the pixel, on elements that are
+     not links and contain no link: `closest("a,button")` returns null for all three. A reader
+     who has learnt that teal means "clickable" here learnt it from the nav, the plate
+     references and the colophon, and these three numbers broke it. */
   .front-routes .destination-num {
-    font-size: 12px;
+    font-size: var(--type-label);
+    letter-spacing: 0.06em;
+    color: var(--color-neutral-700);
     margin-bottom: 4px;
   }
   /* The signposts come off the diet the rest of this query put them on. They were set
@@ -831,23 +903,28 @@ body {
      one that mattered — 13.5px is a caption, and these are the three sentences the page
      asks a reader to choose between. */
   .front-routes .destination-title {
-    font-size: clamp(18px, 1.2vw, 24px);
+    font-size: var(--type-title);
     margin-bottom: 4px;
     max-width: 24ch;
   }
   .front-routes .destination-blurb {
-    font-size: clamp(13.5px, 0.78vw, 16px);
+    font-size: var(--type-small);
     line-height: 1.45;
     margin-bottom: var(--space-2);
     max-width: 40ch;
   }
   .front-routes .destination-cta {
     padding: 8px var(--space-3);
-    font-size: clamp(13px, 0.73vw, 15px);
+    font-size: var(--type-small);
   }
   /* The plate's own furniture, on the same diet. */
+  /* `lead`, which is the step nothing inside the figure is allowed to reach. This is the
+     rule the whole scale was worth defining for: on its own curve this title was 25px at
+     1920 and 18px at 1352, while the panel's title sat flat at 21px, so somewhere around
+     1500 the label for the figure passed underneath a heading inside it and stayed there for
+     every narrower window. */
   .front-figure .stack-fig-title {
-    font-size: clamp(20px, 1.3vw, 27px);
+    font-size: var(--type-lead);
   }
   .front-figure .stack-fig-foot {
     gap: 6px;
@@ -913,13 +990,17 @@ body {
 .front-metrics a:focus-visible {
   border-bottom-color: currentColor;
 }
+/* Body weight-600, not a step of its own. At 18px flat these four numbers were the exact
+   size and weight of a route title two inches below them, at every width from 1280 up: the
+   reader met "124.5M" and "See whether it actually worked" as the same rank. Weight and the
+   mono face are what mark them now. */
 .front-metric-value {
-  font-size: 18px;
+  font-size: var(--type-body);
   font-weight: 600;
   letter-spacing: -0.02em;
 }
 .front-metric-label {
-  font: 400 14px/1.4 var(--font-body);
+  font: 400 var(--type-small)/1.4 var(--font-body);
   color: var(--color-neutral-700);
 }
 
@@ -2347,7 +2428,7 @@ figcaption {
   padding: 0 1px 1px;
   margin: 0;
   cursor: pointer;
-  font: 400 12.5px/1.16 var(--font-body);
+  font: 400 var(--type-label)/1.16 var(--font-body);
   color: var(--color-text);
   text-align: left;
   max-width: calc(var(--gutter-r) - var(--fig-leader-gap) - 4px);
@@ -2355,7 +2436,7 @@ figcaption {
 .stack-figure .lab-region {
   font-variant-caps: all-small-caps;
   letter-spacing: 0.075em;
-  font-size: 13.5px;
+  font-size: var(--type-label);
 }
 .stack-figure .lab-flow {
   font-style: italic;
@@ -2378,8 +2459,11 @@ figcaption {
   outline-offset: 2px;
 }
 
+/* `title`, the same step as a route title, and one below the figure's own. Flat at 21px it
+   was the only heading on the page that did not move with the window, which is how it ended
+   up outranking the title of the figure it sits inside on every screen under ~1500px. */
 .stack-fig-panel-title {
-  font: var(--font-heading-weight) 21px/1.2 var(--font-heading);
+  font: var(--font-heading-weight) var(--type-title)/1.2 var(--font-heading);
   margin: 0 0 var(--space-2);
 }
 .stack-fig-what {
@@ -2417,7 +2501,7 @@ figcaption {
   padding: var(--space-2) var(--space-3);
   background: var(--color-text);
   color: var(--color-bg);
-  font: var(--font-heading-weight) 13.5px/1.35 var(--font-body);
+  font: var(--font-heading-weight) var(--type-small)/1.35 var(--font-body);
   text-decoration: none;
   text-wrap: pretty;
   border-radius: var(--radius-sm);
@@ -2803,6 +2887,26 @@ figcaption {
   #root > main:has(> .front-shell) {
     overflow-y: visible;
   }
+  /**
+   * The gutter this hands back is left alone, and that is a reversal worth recording.
+   *
+   * On a platform with classic scrollbars the document scroll above arrives with a 15px
+   * gutter, and the pinned page has none, so crossing into this band narrows the page. That
+   * looked worth fixing and was: at 173 characters the deck needed ~1335px against the 1325
+   * the gutter left it, so those 15px alone broke the banner to two lines and cost 21px of
+   * height. Suppressing the gutter on this page bought the whole of it back.
+   *
+   * Then the deck was trimmed to 149 characters, which needs 1154, and the ground moved.
+   * Measured at 1440, the page needs 775px of height with the gutter suppressed and 775
+   * without it: the deck has 171px of slack either way and the plate's own floor is what
+   * sets the columns row, so the gutter no longer costs a single pixel of height. What is
+   * left is that where the page fits there is no bar to draw and the gutter is not taken
+   * anyway, and where it does not fit, suppressing the bar only hides a scroll the reader
+   * has no other way of knowing about.
+   *
+   * So the rule went. It was worth 21px when the deck was too long for the page, and the
+   * honest fix for that was the deck.
+   */
   /* The colophon on the same diet as everything else here. It is 90px on a window that
      cannot spare it, and most of that is furniture rather than words: 15px of padding at
      each end, a 15px gap under the rule, and 1.6 leading on type that is already small.
@@ -2833,7 +2937,6 @@ figcaption {
     margin-bottom: var(--space-2);
   }
   .front-lede .front-standfirst {
-    font-size: clamp(16px, 1.05vw, 20px);
     line-height: 1.35;
   }
   .front-lede .front-metrics {
@@ -2843,9 +2946,11 @@ figcaption {
   .front-figure .stack-fig-head {
     margin-bottom: 0;
   }
-  .front-figure .stack-fig-title {
-    font-size: clamp(18px, 1.1vw, 22px);
-  }
+  /* The figure's title is not on this diet, and that is deliberate. It used to be: this
+     block dropped it to its own smaller curve to save ~6px on a short window, which is
+     exactly how it ended up under the panel's flat 21px. `lead` is the one step on the page
+     that has to stay above everything inside the figure, so the height comes from the
+     block's other furniture instead. */
   /* Five eyebrows down the panel, and on a short window the leading above each is the
      cheapest height on the page: the labels still separate their fields at 4px. */
   .front-figure .stack-fig-panel .eyebrow {
@@ -2956,6 +3061,31 @@ figcaption {
   .front-figure .stack-fig-what {
     line-height: 1.35;
   }
+  /**
+   * The 40px under the variant strip, which is the last of this band's furniture.
+   *
+   * `.stack-figure` carries `margin: var(--space-8) 0` for the figures set into a column
+   * of prose, where the air above and below is what separates a plate from the paragraphs
+   * either side of it. The front page already takes the top half back — the figure rules
+   * its own head against the headline — and the bottom half was left in place, where there
+   * is no paragraph under it to be separated from: the next thing down is the colophon,
+   * which prints its own heavy rule and 8px of padding.
+   *
+   * It is not free space either. The columns row is `minmax(min-content, 1fr)`, so those
+   * 40px sit inside the figure column's floor and the row is 40px taller than the drawing,
+   * the strip and the panel need. With the gutter reclaimed by the query below, this is the
+   * whole of what was left: measured at 1440x777 the page was 23px past the window, and on
+   * the four parts whose panel copy runs longest — the two norms, the position embedding
+   * and the output head — 46px past it. Both fit now, colophon included, with the drawing
+   * never asked to come down off its floor.
+   *
+   * 15px rather than 0. The strip is type, the colophon's rule is a rule, and butting one
+   * against the other reads as a mistake; 15px is the same gap the plate already keeps
+   * above the strip, and it is inside what the band had to spare.
+   */
+  .front-figure .stack-figure {
+    margin-bottom: var(--space-3);
+  }
 }
 
 /* The plate's floor is width-aware, because the height its labels need is.
@@ -2967,5 +3097,125 @@ figcaption {
 @media (min-width: 1500px) and (max-height: 900px) {
   .front-figure .stack-fig-stage {
     grid-template-rows: minmax(370px, 1fr) auto;
+  }
+}
+
+/**
+ * ── the front page on a laptop that is narrow *and* short ─────────────────────
+ *
+ * 1280-1439 is the band this page has never actually fitted, and the reason is width
+ * rather than furniture. Measured at 1352x722 — a real window on a real laptop — the page
+ * spends 480px on margins, gaps and the signpost column, and a 1502px window spends 486px
+ * on the same things. There is no waste to reclaim: the narrow window is simply 150px
+ * short, and every pixel of that comes off the row the drawing and the panel share.
+ *
+ * What that does is not subtle. At 1352 the panel is 306px wide, and the block
+ * descriptions are set to a measure that turns "Output head" into 329px of copy — so the
+ * page ran 72px past the window at rest and 189px past it on that block. The reader's own
+ * workaround was to zoom the browser to 90%, which is not a zoom at all in layout terms:
+ * it reports a 1502px window, crosses the 1440 boundary, and gets the designed page.
+ *
+ * So this band renders the designed page at the scale the window can hold, which is what
+ * the 90% zoom was doing by hand. Three moves, in the order they were measured:
+ *
+ * 1. Margins and gaps give up 72px. The page's own inset, its padding, the column gap, the
+ *    figure's rule padding and the stage's gap each come down one step on the scale. None
+ *    of them is content and none of them is load-bearing at this width; together they are
+ *    half of what the band is missing.
+ *
+ * 2. The panel's reserve drops 580 -> 520, which puts the panel at 446px and the drawing at
+ *    497. That is the trade this band turns on, and it only goes this far: at a 480px
+ *    reserve the panel reached 406px and the drawing collapsed to 242px — a sliver with
+ *    fourteen leaders converging on it, which is the failure `LIST_BELOW_PLATE` exists to
+ *    prevent and a worse page than the one being fixed. 497 keeps the drawing at 289px
+ *    between two 104px gutters, against 307px in the 90% view the reader asked for.
+ *
+ * 3. The figure's labels come down a tenth, 12.5 -> 11.25px and the small caps 13.5 ->
+ *    12.15px. This is what buys the height: fourteen labels ranged down two margins need
+ *    vertical room in proportion to their own size, so the plate's floor can come 440 ->
+ *    385 without them colliding or leaving the drawing. Verified across all fourteen
+ *    selections at 1352x722: no pair overlaps, no label crosses into the panel, none
+ *    reaches the variant strip, and the layout stays in margins mode throughout — which is
+ *    a cleaner result than 1440 gets today, where three labels print 4px into the strip.
+ *
+ * The last 14px came from the figure's own title padding and the colophon's, because
+ * "Output head" is the longest of the fourteen and was still one line over. Without it a
+ * scrollbar appeared and vanished as the reader clicked from block to block, reflowing the
+ * page by 15px each time; that is a worse thing than a tighter title.
+ *
+ * The gate is four bounds, and each one is a measured failure rather than a preference.
+ *
+ * 1340 at the bottom, because that is where the panel stops being bound by the window and
+ * starts being bound by the drawing's reserve. Above it the panel is 33vw — 446px at 1352,
+ * 439px at 1340. Below it the reserve takes over and it falls away fast: 379px at 1280,
+ * where eight of the fourteen selections overflow by up to 74px and labels print 34px into
+ * the variant strip. 1280-1339 therefore keeps today's layout, which scrolls, with a
+ * scrollbar to say so.
+ *
+ * 800 at the top, because above it nothing in this band overflows: undieted the page needs
+ * ~794px of height at 1340 and less at every wider window, so a taller window needs none of
+ * this and keeps its full-size type.
+ *
+ * 715 at the bottom of the height range, and this is the bound I am least happy about. The
+ * plate's height tracks the window's, and at 715 it lands at ~400px. Below that the floor
+ * starts to bind and the labels begin to reach the strip — measured at 1340x660 they went
+ * 21px into it with this floor, and 1px with the floor 20px higher. Two measurement methods
+ * disagreed about exactly where that boundary is (pinning the row clean at every height,
+ * driving it through the floor showing intrusion), so rather than tune a floor against a
+ * harness I do not trust, the band gives up below the height it was measured at. A shorter
+ * window gets today's layout: too tall for its window, but with the drawing intact.
+ *
+ * That narrowness is the honest cost of this block. It fixes the window class it was
+ * measured on — 1340-1439 by 715-800, which is a maximised window on most 1440-class
+ * laptops — and declines the ones it was not.
+ *
+ * The deck is not on this list, and it was: at 173 characters it wanted ~1335px of measure
+ * against this band's 1290, so it needed its own 14.5px override to hold one line. It is
+ * 149 characters now and wants 1154, which every width from 1280 up can give it at full
+ * size. Trimming the words was the better fix than shrinking the type, and it is the reason
+ * nothing here touches the banner.
+ */
+@media (min-width: 1340px) and (max-width: 1439px) and (min-height: 715px) and (max-height: 800px) {
+  /* Applies to the colophon as well as the page: both carry `.front-shell`, which is what
+     keeps the footer's rule aligned with the columns above it. */
+  .front-shell {
+    max-width: calc(100% - var(--space-2));
+  }
+  .front-shell.page {
+    padding-left: var(--space-4);
+    padding-right: var(--space-4);
+  }
+  .front-grid {
+    column-gap: var(--space-6);
+  }
+  /* Out of the signpost column's own padding rather than its width: the column stays 280px
+     so the three buttons keep their size, and the 14px goes to the measure, which is what
+     puts "8 chapters, no prior knowledge assumed." back on one line. It needs 262px and
+     had 250. */
+  .front-routes {
+    padding-right: 16px;
+  }
+  .front-figure {
+    padding-left: var(--space-4);
+  }
+  .front-figure .stack-fig-stage {
+    grid-template-columns: minmax(0, 1fr) min(clamp(300px, 33vw, 700px), calc(100% - 520px));
+    grid-template-rows: minmax(385px, 1fr) auto;
+    column-gap: var(--space-4);
+  }
+  /* Scoped to `.front-figure` rather than to `.stack-figure`, which is where the label
+     sizes themselves live. The figure has one call site today, so the two selectors pick
+     out the same elements; the narrow one is what keeps this a statement about the front
+     page's crowded middle column rather than about the drawing everywhere it is used. */
+  /* Nothing here: `--type-label` already puts the labels at 10.5px across this band, which
+     is below the 11.25px this block used to state and measured cleaner for containment. The
+     two overrides that were here are what the scale absorbed. */
+  .front-figure .stack-fig-head {
+    padding-top: 4px;
+  }
+  /* `.front-shell` on the colophon, so the other pages at these sizes keep theirs. */
+  .site-footer.front-shell {
+    padding-top: 5px;
+    padding-bottom: 5px;
   }
 }

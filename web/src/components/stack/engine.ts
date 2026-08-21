@@ -62,10 +62,22 @@ const VARIANTS: Variant[] = ["gpt2", "llama"];
  * that was an oscillation, and the browser quietly stopped delivering the resize
  * notifications rather than run it forever.
  *
- * The plate's own width is the same in both modes, so the decision is stable. 540px is
- * two gutters at their 104px floor plus a drawing wide enough to read as a solid.
+ * The plate's own width is the same in both modes, so the decision is stable.
+ *
+ * 470, and the number is one decision written in two files — see the 1280-1439 block in
+ * styles.css. It was 540: two gutters at their 104px floor plus a drawing wide enough to
+ * read as a solid, which is where the front page's panel reserve was derived from. That
+ * band now gives the panel 60px the drawing used to hold, which puts the plate at ~497
+ * across 1280-1439, so a 540 threshold would have dropped the labels into a list on every
+ * laptop in that range. 470 is under the narrowest plate that band produces with room to
+ * spare, and it is still 208px of gutters plus a 262px drawing at the limit.
+ *
+ * Nothing else is affected, because nothing else mounts this figure: `StackFigure` has one
+ * call site, `pages/Front.tsx`. This threshold only ever decides the front page's middle
+ * column, and if the figure is ever set into a column of prose the number wants revisiting
+ * against that column's width.
  */
-const LIST_BELOW_PLATE = 540;
+const LIST_BELOW_PLATE = 470;
 
 export function mountStackFigure(o: StackEngineOptions): StackEngine {
   const { canvasWrap, flat, leaders, labelLayer } = o;
