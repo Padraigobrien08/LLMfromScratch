@@ -37,8 +37,8 @@ export default function Front() {
             A language model built by hand, and the evidence it works
           </h1>
           <p className="standfirst front-standfirst">
-            A decoder-only transformer, reproduced at GPT-2 124M scale and checked against a
-            public benchmark, with the design choices tested by ablation.{" "}
+            A decoder-only transformer, reproduced at GPT-2 124M scale, checked against a
+            public benchmark and tested by ablation.{" "}
             <em>Every number here is measured.</em>
           </p>
 
