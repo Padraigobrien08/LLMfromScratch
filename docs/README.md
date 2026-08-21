@@ -23,7 +23,8 @@ from `results/`.** `tests/test_documented_results.py` enforces the headline figu
 those artifacts, this index included; a figure edited in prose without a re-run behind it
 fails CI rather than quietly becoming false.
 
-**Current state.** All seven measurement pillars are done and written up, and all four are now
+**Current state.** The measuring is done and written up, and the four results, the
+reproduction, the ablation sweep, the efficiency benchmarks and the scaling study, are now
 plates on the site, each built around one interactive figure that carries its argument, because
 a claim you can move is harder to arrange after the fact than a claim you can only read. Drag the
 scrubber along the reproduction and watch the target line get crossed a third of the way in;
@@ -46,7 +47,7 @@ each page compresses. [The repository README](../README.md) carries the honest s
 | --- | --- |
 | [reproduction.md](reproduction.md) | Did it actually reproduce GPT-2 124M? Protocol, target provenance, hardware, samples. Val loss **3.0503** against a pre-registered ≤ 3.29; HellaSwag **0.3043** against the published 0.2955. |
 | [ablations.md](ablations.md) | Which design decisions matter? Twelve arms × three seeds, paired. **The optimiser dominates the architecture**: learning rate is worth −0.1251, RMSNorm +0.0007. |
-| [efficiency.md](efficiency.md) | How fast can it run, and what did the benchmark catch? The KV cache was **34% slower than recomputation** until a mask that forfeited the fused kernel was found. Plus quantization and speculative decoding. |
+| [efficiency.md](efficiency.md) | How fast can it run, and what did the benchmark catch? The KV cache **lost to recomputation at every measured length** until a mask that forfeited the fused kernel was found. Plus quantization and speculative decoding. |
 | [scaling.md](scaling.md) | Does it scale, and what does the interconnect cost? **95.1% on 8 GPUs with no NVLink**, and a two-point fit that predicted the rest of the accumulation sweep before it was measured. |
 | [fault-tolerance.md](fault-tolerance.md) | What happens when the hardware fails? Design doc: failure taxonomy, checkpointing, resumption, silent corruption, and what breaks at 1,000+ GPUs. |
 | [gpu-runbook.md](gpu-runbook.md) | How do you actually run this on rented hardware without wasting money? Which GPU, what it costs, and the `scripts/gpu.sh` workflow. |

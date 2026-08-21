@@ -650,7 +650,8 @@ the top five items total under a hundred lines.
 
 ## Status
 
-This repository is under active development. The table is the honest state of it:
+The measurement program is complete through the scaling report; what was deliberately
+not built is scoped and costed in the roadmap. The table is the honest state:
 what is built and verified, and what is designed but not yet run.
 
 | Pillar | Status |
@@ -658,7 +659,7 @@ what is built and verified, and what is designed but not yet run.
 | Package, config system, data pipeline, trainer, CI | **Done**: 412 tests green, end-to-end verified |
 | Modern architecture (RoPE, RMSNorm, SwiGLU, GQA, KV cache) | **Done**: hand-implemented, property-tested |
 | GPT-2 124M reproduction on FineWeb-Edu | **Done**: 3.0503 val loss, [docs/reproduction.md](docs/reproduction.md) |
-| Ablation study (12 arms × 3 seeds) | **Done**: [docs/ablations.md](docs/ablations.md), 39 runs, 7.6 GPU-h |
+| Ablation study (12 arms + baseline, × 3 seeds) | **Done**: [docs/ablations.md](docs/ablations.md), 39 runs, 7.6 GPU-h |
 | Efficiency benchmarks (throughput, memory, KV cache) | **Done**: H100 training, 4090 inference; the cache sweep found a 30% bug, below |
 | Quantization + speculative decoding | **Done**: [docs/efficiency.md](docs/efficiency.md), measured on CUDA |
 | Fault-tolerance design doc | **Done**: [docs/fault-tolerance.md](docs/fault-tolerance.md) |
