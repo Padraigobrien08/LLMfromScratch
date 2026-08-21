@@ -54,7 +54,7 @@ export default function Reproduction() {
         <a href={`${REPO}/configs/gpt2-124m.yaml`}>
           <code>configs/gpt2-124m.yaml</code>
         </a>{" "}
-        before any of this was run — the tolerance was not chosen after seeing the result. The pale
+        before any of this was run; the tolerance was not chosen after seeing the result. The pale
         line is training loss every ten steps; the heavy one is validation, which is what the claim
         rests on.
       </p>
@@ -113,8 +113,8 @@ export default function Reproduction() {
                 {curve.crossing ? (
                   <>
                     The run first met {curve.targetLoss} at step{" "}
-                    <b>{curve.crossing.step.toLocaleString()}</b> —{" "}
-                    <b>{(curve.crossing.fractionOfRun * 100).toFixed(0)}%</b> of the way in — and
+                    <b>{curve.crossing.step.toLocaleString()}</b>{" "}
+                    (<b>{(curve.crossing.fractionOfRun * 100).toFixed(0)}%</b> of the way in) and
                     then kept improving for the remaining{" "}
                     {(100 - curve.crossing.fractionOfRun * 100).toFixed(0)}%, finishing{" "}
                     <b>{(curve.targetLoss - R.loss).toFixed(4)}</b> below it. A target hit on the
@@ -135,7 +135,7 @@ export default function Reproduction() {
         <p className="prose">
           Validation loss is measured on a split chosen for this project, with a tokenizer configured
           for it. A
-          mismatch in either would move the number without looking wrong — a slightly easier held-out
+          mismatch in either would move the number without looking wrong: a slightly easier held-out
           split, or a tokenizer that fragments differently, and the figure improves for reasons that
           have nothing to do with the model. Self-consistency is cheap.
         </p>
@@ -193,9 +193,9 @@ export default function Reproduction() {
       <h2 className="section-h2">What it cost, and on what</h2>
       <p className="note-wide">
         {(R.tokensTrained / 1e9).toFixed(1)}B tokens of FineWeb-Edu on one {R.gpu}, at a mean{" "}
-        {(R.mfuMean * 100).toFixed(1)}% of the card's usable FLOPs. After the first logged step —
-        which came in at {(R.mfuWarmup * 100).toFixed(0)}%, paying for compilation and allocator
-        warmup once — it never left {(R.mfuMin * 100).toFixed(1)}–{(R.mfuMax * 100).toFixed(1)}%.
+        {(R.mfuMean * 100).toFixed(1)}% of the card's usable FLOPs. After the first logged step
+        (which came in at {(R.mfuWarmup * 100).toFixed(0)}%, paying for compilation and allocator
+        warmup once) it never left {(R.mfuMin * 100).toFixed(1)}–{(R.mfuMax * 100).toFixed(1)}%.
         Flat utilisation for seven hours is the part worth noticing: a run that starts fast and
         degrades is the usual signature of a data loader falling behind or memory fragmenting, and
         neither happened here.
@@ -212,8 +212,8 @@ export default function Reproduction() {
           that pre-registered it.
         </p>
         <p className="closing-note">
-          The full protocol — target provenance, hardware, the evaluation harness, and sample
-          generations — is in{" "}
+          The full protocol (target provenance, hardware, the evaluation harness, and sample
+          generations) is in{" "}
           <a href={`${REPO}/docs/reproduction.md`}>
             <code>docs/reproduction.md</code>
           </a>

@@ -16,7 +16,7 @@ const RUN = MEASURED.reproduction;
  * `measured.ts` rather than being retyped, so a rerun moves the mark with it.
  */
 const MARKS: Array<{ loss: number; label: string; note: string }> = [
-  { loss: CHANCE, label: "Guessing", note: "ln(50,257) — a model that has learned nothing" },
+  { loss: CHANCE, label: "Guessing", note: "ln(50,257): a model that has learned nothing" },
   { loss: 6.0, label: "Early training", note: "word frequencies learned, not much else" },
   {
     loss: RUN.targetLoss,
@@ -42,7 +42,7 @@ export default function PerplexityDemo() {
       </label>
 
       <p className="fig-note" style={{ margin: "0 0 var(--space-4)" }}>
-        Drag the loss and watch the number below it — that is how many equally likely options the
+        Drag the loss and watch the number below it: that is how many equally likely options the
         model is effectively choosing between. The marks are the anchors worth knowing.
       </p>
 
@@ -53,7 +53,7 @@ export default function PerplexityDemo() {
       <p className="ppl-sentence">
         The model is as uncertain about the next token as if it were choosing uniformly between{" "}
         <b>{ppl < 10000 ? Math.round(ppl).toLocaleString() : ppl.toExponential(1)}</b> equally
-        likely options — out of a vocabulary of {VOCAB.toLocaleString()}.
+        likely options, out of a vocabulary of {VOCAB.toLocaleString()}.
       </p>
 
       {/* `aria-pressed` because the tint was the only thing saying which anchor the slider

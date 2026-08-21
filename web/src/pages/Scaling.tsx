@@ -35,7 +35,7 @@ export default function Scaling() {
       <h1 className="page-headline">{plateHeadline("scaling")}</h1>
       <p className="page-standfirst">
         {(eight.efficiency * 100).toFixed(1)}% scaling efficiency on eight cards with{" "}
-        <b>no NVLink</b> — the fast direct link between GPUs that this box does not have. Half of
+        <b>no NVLink</b>, the fast direct link between GPUs that this box does not have. Half of
         them sit on the other socket, so every gradient exchange crosses the slow path between
         them. That number is easy to report and
         hard to interpret on its own, so the second half of this page is an experiment that says
@@ -91,7 +91,7 @@ export default function Scaling() {
         the accumulation is derived from it, so the world size changes how the batch is gathered and
         nothing about what is optimised. The loss at step one is identical to sixteen significant
         figures at 1, 2 and 4 GPUs, and the largest divergence over fifty steps does not grow with
-        the world size — that is floating-point reduction order, not drift. Measured with the real
+        the world size: that is floating-point reduction order, not drift. Measured with the real
         trainer under <code>torchrun</code>, not a synthetic loop, because a hand-written loop would
         omit the two things most likely to spoil scaling: the gradient all-reduce and the optimiser
         step.
@@ -129,7 +129,7 @@ export default function Scaling() {
             {revealed ? "Hide the two it did not see" : "Reveal the two it did not see"}
           </button>
           <span className="fig-note" style={{ margin: 0 }}>
-            Fitted to accum {ACC.fit.fittedFrom.join(" and ")} only —{" "}
+            Fitted to accum {ACC.fit.fittedFrom.join(" and ")} only:{" "}
             <code className="mono">
               loss = {a.toFixed(3)} + {b.toFixed(3)}/accum
             </code>{" "}
@@ -143,7 +143,7 @@ export default function Scaling() {
             <div className="readout-xl">{predicted.toFixed(2)}%</div>
             <p className="tracker-sentence">
               The curve answers for any accumulation. The repository only ran four, which is the
-              difference between a model and a table — and the reason the two hidden points are
+              difference between a model and a table, and the reason the two hidden points are
               worth anything.
             </p>
           </div>
@@ -164,7 +164,7 @@ export default function Scaling() {
                   ) : (
                     <>
                       <b>One of the two points the fit was given.</b> It passes through this exactly,
-                      which is arithmetic rather than evidence — the evidence is what happens at the
+                      which is arithmetic rather than evidence; the evidence is what happens at the
                       other two.
                     </>
                   )}{" "}
@@ -185,7 +185,7 @@ export default function Scaling() {
       <Caveat columns>
         With one all-reduce per micro-batch, efficiency falls to{" "}
         {(ACC.points.find((p) => p.accum === 1)!.efficiency * 100).toFixed(1)}%. So communication is
-        exactly what the accumulation was hiding — and the split says how much of it there is: about{" "}
+        exactly what the accumulation was hiding, and the split says how much of it there is: about{" "}
         <b>{a.toFixed(1)} points</b> that do not amortise at all, and{" "}
         <b>{b.toFixed(1)} points</b> divided by however much compute each all-reduce is spread
         across. At the reproduction's configuration a perfect interconnect could therefore recover
@@ -198,7 +198,7 @@ export default function Scaling() {
       <div className="closing-cols">
         <p className="closing-lead">
           <b>A mechanism you can be wrong about is worth more than a number you cannot.</b> The fit
-          is two parameters from two points, which is the weakest possible model — and that is what
+          is two parameters from two points, which is the weakest possible model, and that is what
           makes landing on the other two, across a further fourfold range, mean something. Fitting
           all four would have produced a better-looking curve and no evidence at all.
         </p>

@@ -98,7 +98,7 @@ export const PLATES: Plate[] = PLATE_SOURCE.map((plate, i) => ({
 /** The kicker a plate page prints above its headline, numeral included. */
 export function plateKicker(kind: PlateKind): string {
   const p = plate(kind);
-  return `Plate ${p.numeral} — Measured results · ${p.subject}`;
+  return `Plate ${p.numeral} · Measured results · ${p.subject}`;
 }
 
 /**

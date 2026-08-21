@@ -6,7 +6,7 @@ const EXAMPLES: Array<[string, string]> = [
   ["A sentence", "Dorothy lived in the midst of the great Kansas prairies."],
   ["Two characters", "The Scarecrow wanted a brain, the Tin Woodman a heart."],
   ["A long word", "unbelievable antidisestablishmentarianism"],
-  ["Numbers", "3.14159 costs $1,234,567.89 — 100% guaranteed!"],
+  ["Numbers", "3.14159 costs $1,234,567.89 (100% guaranteed!)"],
   ["Code", "def train(model, batch): return model(batch).loss"],
 ];
 
@@ -81,7 +81,7 @@ export default function TokenizerDemo() {
             ? "The vocabulary failed to load, so this figure is unavailable."
             : !tokenizer
               ? "Loading the 50,257-token vocabulary…"
-              : "No tokens — the input is empty."}
+              : "No tokens: the input is empty."}
         </p>
       )}
 

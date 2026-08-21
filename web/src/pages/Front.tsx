@@ -43,7 +43,7 @@ export default function Front() {
           </p>
 
           {/* The evidence, at reading size, under the claim it supports. Each figure links
-              to the page that proves it — that pairing is the whole point of printing them
+              to the page that proves it; that pairing is the whole point of printing them
               here rather than leaving them to the dateline rail, where they are furniture. */}
           <ul className="front-metrics">
             {figures.map((figure) => (

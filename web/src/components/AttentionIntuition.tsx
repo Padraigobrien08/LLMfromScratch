@@ -42,7 +42,7 @@ const SENTENCES: Sentence[] = [
       at: 11,
       options: ["big", "small"],
       links: {
-        big: { 8: { on: [1], why: "“it” is the trophy — the trophy is the thing that is too big." } },
+        big: { 8: { on: [1], why: "“it” is the trophy: the trophy is the thing that is too big." } },
         small: {
           8: {
             on: [6],
@@ -53,7 +53,7 @@ const SENTENCES: Sentence[] = [
     },
     links: {
       11: { on: [1, 6], why: "the adjective only means anything as a comparison between the two objects." },
-      3: { on: [1, 6], why: "what fits in what — the verb needs both nouns." },
+      3: { on: [1, 6], why: "what fits in what: the verb needs both nouns." },
     },
     initial: 8,
   },
@@ -62,7 +62,7 @@ const SENTENCES: Sentence[] = [
     words: ["Dorothy", "lived", "in", "Kansas", ",", "and", "she", "missed", "her", "home"],
     links: {
       6: { on: [0], why: "“she” refers back to Dorothy, four tokens earlier." },
-      8: { on: [0], why: "“her” too — pronouns are the clearest case for looking back." },
+      8: { on: [0], why: "“her” too: pronouns are the clearest case for looking back." },
       9: { on: [3], why: "“home” means Kansas here, and only because Kansas was mentioned." },
     },
     initial: 6,
@@ -71,7 +71,7 @@ const SENTENCES: Sentence[] = [
     label: "Agreement",
     words: ["The", "key", "to", "the", "cabinets", "was", "rusty", "and", "would", "not", "turn"],
     links: {
-      5: { on: [1], why: "“was”, not “were” — the verb agrees with “key”, not with “cabinets”." },
+      5: { on: [1], why: "“was”, not “were”: the verb agrees with “key”, not with “cabinets”." },
       10: { on: [1], why: "the thing that turns is the key, despite “cabinets” sitting closer." },
     },
     initial: 5,

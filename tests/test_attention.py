@@ -39,8 +39,8 @@ def test_causality(overrides: dict) -> None:
     pins="that with n_kv_head == n_head, grouped-query attention is numerically "
     "identical to plain multi-head attention",
     why="Same weights, same inputs, so the grouping code is the only difference. It "
-    "turns the repeat/interleave logic — the easiest thing in GQA to get subtly "
-    "wrong — into a difference that has to be exactly zero.",
+    "turns the repeat/interleave logic (the easiest thing in GQA to get subtly "
+    "wrong) into a difference that has to be exactly zero.",
 )
 def test_gqa_reduces_to_mha() -> None:
     """With n_kv_head == n_head, GQA must be numerically identical to plain MHA.
@@ -73,7 +73,7 @@ def test_gqa_shrinks_kv_cache() -> None:
 @pytest.mark.showcase(
     pins="that the weight-exporting eager path computes what the fused kernel computes",
     why="The attention visualizer reads its maps from the eager path. If the two ever "
-    "disagreed it would be drawing weights the model never used — and a picture that "
+    "disagreed it would be drawing weights the model never used, and a picture that "
     "has quietly drifted from the code is worse than no picture, because nothing "
     "about it looks wrong.",
 )
@@ -122,7 +122,7 @@ def test_attention_weights_are_causal_and_normalised() -> None:
 @pytest.mark.showcase(
     pins="that the causal mask is bottom-right aligned, not top-left",
     why="torch's is_causal=True is top-left aligned, which is silently wrong whenever "
-    "the query block is shorter than the key sequence — that is, on every single "
+    "the query block is shorter than the key sequence, that is, on every single "
     "decode step. It would let the newest token see only the oldest keys.",
 )
 def test_build_causal_mask_is_bottom_right_aligned() -> None:
