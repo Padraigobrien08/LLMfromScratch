@@ -1,4 +1,4 @@
-import { DATELINE, PROJECT } from "../content/projectState";
+import { DATELINE, DATELINE_FRONT, PROJECT } from "../content/projectState";
 import { type Route, href } from "../router";
 
 /**
@@ -40,11 +40,6 @@ export default function Masthead({ route }: { route: Route }) {
         <div className="masthead-row">
           <div className="wordmark">
             <a href="#/">NanoGPT From Scratch</a>
-            {/* The design system is called Broadsheet and the whole page is set as one —
-                plates, dateline, colophon, CMYK numerals. "A laboratory notebook" was the
-                one string pulling the other way, and it also described the wrong thing: a
-                notebook is private and chronological, where this is curated and published. */}
-            <span className="wordmark-sub">Laboratory notes, printed</span>
           </div>
           <nav className="masthead-nav" aria-label="Sections">
             {NAV.map((item) => (
@@ -63,8 +58,12 @@ export default function Masthead({ route }: { route: Route }) {
         </div>
 
         <div className="rule-heavy" />
+        {/* The front page prints the three measured figures itself, at reading size and
+            linked to their proof pages, forty pixels below this rail — so there the rail
+            keeps only the two facts the page does not repeat: whose work this is and
+            under what licence. Everywhere else it carries all five. */}
         <div className="dateline">
-          {DATELINE.map((item) => (
+          {(route.kind === "front" ? DATELINE_FRONT : DATELINE).map((item) => (
             <span key={item}>{item}</span>
           ))}
         </div>

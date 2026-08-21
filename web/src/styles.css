@@ -54,7 +54,7 @@
    * gone: with the curves as they are, all fourteen selections fit a 1440x777 window with
    * the title promoted.
    */
-  --type-label: clamp(10.5px, 0.7vw, 13px);
+  --type-label: clamp(11.5px, 0.75vw, 13px);
   --type-small: clamp(12.5px, 0.85vw, 16px);
   --type-body: clamp(14px, 0.95vw, 19px);
   --type-title: clamp(17px, 1.4vw, 24px);
@@ -172,13 +172,6 @@ body {
 .wordmark a:hover {
   text-decoration: none;
 }
-.wordmark-sub {
-  font: 400 12px/1 var(--font-body);
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: var(--color-neutral-700);
-}
-
 .masthead-nav {
   display: flex;
   align-items: baseline;
@@ -990,13 +983,13 @@ body {
 .front-metrics a:focus-visible {
   border-bottom-color: currentColor;
 }
-/* Body weight-600, not a step of its own. At 18px flat these four numbers were the exact
-   size and weight of a route title two inches below them, at every width from 1280 up: the
-   reader met "124.5M" and "See whether it actually worked" as the same rank. Weight and the
-   mono face are what mark them now. */
+/* Body weight, not a step of its own. These four ran weight-600, which made the row a
+   second headline four numbers long directly under the real one. The mono face alone is
+   what marks them as measured — that is the site's own law — and at body weight the row
+   reads as the headline's evidence rather than its rival. */
 .front-metric-value {
   font-size: var(--type-body);
-  font-weight: 600;
+  font-weight: 400;
   letter-spacing: -0.02em;
 }
 .front-metric-label {
@@ -1402,7 +1395,7 @@ body {
 }
 
 .eyebrow {
-  font: var(--font-heading-weight) 10.5px/1 var(--font-body);
+  font: var(--font-heading-weight) var(--type-label)/1 var(--font-body);
   letter-spacing: 0.13em;
   text-transform: uppercase;
   color: var(--color-neutral-700);
@@ -2410,6 +2403,18 @@ figcaption {
   pointer-events: none;
 }
 
+/* The one line shown when the engine could not mount at all: centred in the plate area
+   the drawing would have filled, so the cell explains itself instead of sitting blank. */
+.stack-fig-failed {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-content: center;
+  text-align: center;
+  padding: var(--space-4);
+  margin: 0;
+}
+
 /* LABEL TIERS — three, and only three (rule 5). The tier comes from the label's own
    entry in `content/stackFigure.ts`; a label with no tier is a bug, and `validate`
    says so in the console rather than falling back to a default.
@@ -2513,7 +2518,7 @@ figcaption {
 /* "Read" is the verb, tracked and small, so the chapter's own title carries the line. */
 .stack-fig-read-label {
   display: block;
-  font-size: 10.5px;
+  font-size: var(--type-label);
   letter-spacing: 0.14em;
   text-transform: uppercase;
   opacity: 0.72;

@@ -886,26 +886,39 @@ export function mountStackFigure(o: StackEngineOptions): StackEngine {
   const boxObserver = new ResizeObserver(() => paint());
   boxObserver.observe(labelLayer.parentElement ?? canvasWrap);
 
+  /* One exit for every way the upgrade can fail — the module not loading, the context
+     being refused despite the probe, the renderer throwing mid-init. The flat figure is
+     the fallback in all of them, and it is already on screen; this only has to make sure
+     it stays there and any half-built GL debris is gone. */
+  const fallbackToFlat = () => {
+    if (disposed) return;
+    mode = "svg";
+    flat.style.display = "";
+    canvasWrap.querySelector(".stack-gl")?.remove();
+    o.onMode(FLAT_NOTE);
+    renderFlat();
+  };
+
   if (canGL()) {
     // Dynamic, so three.js lands in its own chunk and never blocks the headline.
     import("three")
       .then((T) => {
         if (disposed) return;
-        initGL(T);
-        mode = "gl";
-        flat.style.display = "none";
-        o.onMode("Drag to orbit · click a component to inspect it");
-        updateGL();
-        loop();
+        /* `canGL` probes a throwaway canvas, but the real context can still be refused
+           (GPU denylists, exhausted contexts) or the init can throw partway — after which
+           the figure must fall back rather than sit blank behind a hidden SVG. */
+        try {
+          initGL(T);
+          mode = "gl";
+          flat.style.display = "none";
+          o.onMode("Drag to orbit · click a component to inspect it");
+          updateGL();
+          loop();
+        } catch {
+          fallbackToFlat();
+        }
       })
-      .catch(() => {
-        if (disposed) return;
-        mode = "svg";
-        flat.style.display = "";
-        canvasWrap.querySelector(".stack-gl")?.remove();
-        o.onMode(FLAT_NOTE);
-        renderFlat();
-      });
+      .catch(fallbackToFlat);
   }
 
   return {

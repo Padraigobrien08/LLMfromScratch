@@ -37,6 +37,7 @@ export default function StackFigure({ attentionHref }: { attentionHref: string }
   const [variant, setVariant] = useState<Variant>("gpt2");
   const [selected, setSelected] = useState<string>("whole");
   const [note, setNote] = useState("");
+  const [failed, setFailed] = useState(false);
 
   const wrapRef = useRef<HTMLDivElement>(null);
   const flatRef = useRef<SVGSVGElement>(null);
@@ -46,17 +47,28 @@ export default function StackFigure({ attentionHref }: { attentionHref: string }
   const [announcement, setAnnouncement] = useState("");
 
   useEffect(() => {
-    const engine = mountStackFigure({
-      canvasWrap: wrapRef.current!,
-      flat: flatRef.current!,
-      leaders: leadersRef.current!,
-      labelLayer: labelsRef.current!,
-      variant,
-      selected,
-      onSelect: setSelected,
-      onAnnounce: setAnnouncement,
-      onMode: setNote,
-    });
+    /* The engine draws; the panel below is plain React and owes it nothing. So if the
+       mount throws — an exotic browser, a broken projection — the failure is contained
+       here: the drawing is replaced by one line saying so, and the panel keeps
+       describing the model. The landing page's centrepiece must never be a blank cell. */
+    let engine: StackEngine;
+    try {
+      engine = mountStackFigure({
+        canvasWrap: wrapRef.current!,
+        flat: flatRef.current!,
+        leaders: leadersRef.current!,
+        labelLayer: labelsRef.current!,
+        variant,
+        selected,
+        onSelect: setSelected,
+        onAnnounce: setAnnouncement,
+        onMode: setNote,
+      });
+    } catch {
+      setFailed(true);
+      setNote("The figure could not be drawn in this browser.");
+      return;
+    }
     engineRef.current = engine;
     return () => {
       engine.destroy();
@@ -121,6 +133,12 @@ export default function StackFigure({ attentionHref }: { attentionHref: string }
           {/* The engine creates the label buttons in here: they are positioned against a
               projection that moves with the orbit, so React does not own their layout. */}
           <div className="stack-fig-labels" ref={labelsRef} />
+          {failed && (
+            <p className="fig-note stack-fig-failed">
+              The figure could not be drawn in this browser. The panel beside it still
+              describes every part of the model.
+            </p>
+          )}
         </div>
 
         {/* Two parts, and the split is load-bearing where the panel is given a fixed
@@ -166,9 +184,19 @@ export default function StackFigure({ attentionHref }: { attentionHref: string }
              * also takes them out of the accessibility tree, and `aria-hidden` says so
              * explicitly.
              */}
+            {/* Hidden copies carry `inert` as well as `aria-hidden`: `visibility: hidden`
+                should already take them out of the accessibility tree, but a live capture
+                showed at least one tree-walker still reading all fourteen — ~50
+                context-free strings before the reader gets anywhere. `inert` is the
+                belt-and-braces guarantee, and it removes the tab stops with it. */}
             <div className="stack-fig-prose">
               {parts.map(({ id, p }) => (
-                <div key={id} data-on={id === selected ? "1" : "0"} aria-hidden={id !== selected}>
+                <div
+                  key={id}
+                  data-on={id === selected ? "1" : "0"}
+                  aria-hidden={id !== selected}
+                  inert={id !== selected}
+                >
                   <p className="stack-fig-what">{p.what}</p>
                   {p.differs && (
                     <p className="stack-fig-differs">
@@ -188,7 +216,8 @@ export default function StackFigure({ attentionHref }: { attentionHref: string }
               <div className="stack-fig-stack">
                 {parts.map(({ id, p }) => (
                   <p key={id} className="stack-fig-shape mono"
-                     data-on={id === selected ? "1" : "0"} aria-hidden={id !== selected}>
+                     data-on={id === selected ? "1" : "0"} aria-hidden={id !== selected}
+                     inert={id !== selected}>
                     {p.shape}
                   </p>
                 ))}
@@ -200,7 +229,8 @@ export default function StackFigure({ attentionHref }: { attentionHref: string }
               <div className="stack-fig-stack">
                 {parts.map(({ id, p }) => (
                   <p key={id} className="stack-fig-shape mono"
-                     data-on={id === selected ? "1" : "0"} aria-hidden={id !== selected}>
+                     data-on={id === selected ? "1" : "0"} aria-hidden={id !== selected}
+                     inert={id !== selected}>
                     {shareOf(p, id)}
                   </p>
                 ))}
@@ -250,7 +280,7 @@ export default function StackFigure({ attentionHref }: { attentionHref: string }
               const others = p.links.filter((l) => l !== ch);
               const shown = id === selected;
               return (
-                <div key={id} data-on={shown ? "1" : "0"} aria-hidden={!shown}>
+                <div key={id} data-on={shown ? "1" : "0"} aria-hidden={!shown} inert={!shown}>
                   {/* The figure's whole claim to being navigation rather than decoration:
                       a reader who has just clicked a block and read what it does is one
                       button from the chapter that explains it. */}

@@ -88,11 +88,14 @@ export default function Reproduction() {
 
           <div className="readouts" style={{ marginTop: "var(--space-3)" }}>
             <div>
-              <p className="eyebrow">At step {at.toLocaleString()}</p>
+              {/* Named in full: this number tracks the cursor, and the headline figure at
+                  the top of the page is the end of the run — two validation losses on one
+                  page, so each has to say which it is or they read as a disagreement. */}
+              <p className="eyebrow">Val loss at step {at.toLocaleString()}</p>
               <div className="readout-xl">{here ? here.loss.toFixed(4) : "—"}</div>
               <div className="readout-pair">
                 <div>
-                  <p className="eyebrow">Through the run</p>
+                  <p className="eyebrow">Of the run complete</p>
                   <div className="readout-md">{((at / curve.finalStep) * 100).toFixed(0)}%</div>
                 </div>
                 <div>
