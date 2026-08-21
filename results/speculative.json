@@ -6,7 +6,7 @@
     "device": "mps",
     "provenance": {
       "timestamp_utc": "2026-08-10T20:08:50Z",
-      "hostname": "Padraigs-MacBook-Pro.local",
+      "hostname": "personal-workstation.local",
       "platform": "macOS-15.5-arm64-arm-64bit",
       "python": "3.11.0",
       "torch": "2.13.0",

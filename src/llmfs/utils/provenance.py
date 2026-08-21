@@ -25,6 +25,18 @@ def _git(*args: str) -> str | None:
         return None
 
 
+def _public_hostname() -> str:
+    """A hostname that attests without identifying.
+
+    A rented pod's hostname is an anonymous container id, and recording it is the
+    point of this block. A personal machine's default hostname is its owner's name
+    with dots in it: macOS stamps `<Owner>s-MacBook-Pro.local`. Artifacts are
+    published, so `.local` names are recorded by shape rather than by value.
+    """
+    name = platform.node()
+    return "personal-workstation.local" if name.endswith(".local") else name
+
+
 def measure_matmul_tflops(device: torch.device, size: int = 8192, iters: int = 20) -> float | None:
     """Achieved bf16 matmul throughput.
 
@@ -64,7 +76,7 @@ def capture(
     device = torch.device(device)
     info: dict[str, Any] = {
         "timestamp_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
-        "hostname": platform.node(),
+        "hostname": _public_hostname(),
         "platform": platform.platform(),
         "python": platform.python_version(),
         "torch": torch.__version__,
