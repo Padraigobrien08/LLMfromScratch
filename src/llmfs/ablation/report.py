@@ -221,7 +221,7 @@ def seed_caveat(rows: list[Comparison]) -> str:
     if not arms or counts <= {0, 1}:
         return (
             "- Each non-baseline arm is a single seed. Its delta is judged against the "
-            "baseline's spread, which assumes the arms have comparable seed sensitivity — "
+            "baseline's spread, which assumes the arms have comparable seed sensitivity, "
             "reasonable for architecture changes, less so for learning-rate arms near the "
             "stability boundary."
         )
@@ -249,7 +249,7 @@ def render_markdown(rows: list[Comparison], stats: dict[str, Any]) -> str:
     lines = ["# Ablation results", ""]
 
     if n == 0:
-        lines += ["No completed baseline runs — nothing to compare against.", ""]
+        lines += ["No completed baseline runs; nothing to compare against.", ""]
         return "\n".join(lines)
 
     lines += [
@@ -261,14 +261,14 @@ def render_markdown(rows: list[Comparison], stats: dict[str, Any]) -> str:
     if n > 1:
         lines += [
             "",
-            f"**Seed noise floor: {spread:.4f}** — the full range across {n} baseline "
+            f"**Seed noise floor: {spread:.4f}**, the full range across {n} baseline "
             f"runs differing only in seed. It is the scale against which any *unpaired* "
             f"comparison would have to be judged.",
         ]
     else:
         lines += [
             "",
-            "**No noise floor was measured** — the baseline ran with a single seed, so "
+            "**No noise floor was measured**: the baseline ran with a single seed, so "
             "no delta below can be distinguished from run-to-run variation. Re-run with "
             "`--seeds 3` before drawing conclusions.",
         ]
@@ -283,7 +283,7 @@ def render_markdown(rows: list[Comparison], stats: dict[str, Any]) -> str:
             "resolved. The ± is the half-range of the per-seed differences.",
             "",
             "An arm counts as a result only when **the range of its per-seed deltas "
-            "does not straddle zero** — every seed agreed on the direction. This is a "
+            "does not straddle zero**, meaning every seed agreed on the direction. This is a "
             "deliberately blunt rule, not a p-value; with three seeds nothing stronger "
             "would be honest.",
         ]
