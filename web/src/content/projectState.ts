@@ -36,6 +36,16 @@ export const PROJECT = {
   ablations: MEASURED.ablations,
 } as const;
 
+/**
+ * The dateline the front page gets: the two facts it does not print itself.
+ *
+ * The three measured figures are the front page's own evidence row, set at reading size
+ * and each linked to its proof — so on that page the rail carrying them too was the same
+ * numbers twice within forty pixels. The byline and the licence appear nowhere else on
+ * the page, so they stay.
+ */
+export const DATELINE_FRONT: string[] = [PROJECT.author, PROJECT.licence];
+
 /** The five items of the dateline rail, left to right. */
 export const DATELINE: string[] = [
   PROJECT.author,
