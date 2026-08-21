@@ -10,7 +10,7 @@
  * looked complete would 404 on `/attention/` until someone clicked it.
  *
  * The difference from the deploy is the base path. The published site lives under
- * `/LLMfromScratch/`; this builds at the filesystem root so the snapshot can be served
+ * `/nanogpt-from-scratch/`; this builds at the filesystem root so the snapshot can be served
  * from any static server, which is the only way to look at it without a dev server.
  */
 import { execFileSync } from "node:child_process";

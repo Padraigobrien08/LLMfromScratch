@@ -32,7 +32,7 @@ data/**/*.npy
 site/
 
 # A reviewable snapshot of the deployed site, built to be served from the filesystem
-# root rather than /LLMfromScratch/. Build output like any other: kept, not committed.
+# root rather than /nanogpt-from-scratch/. Build output like any other: kept, not committed.
 local-site/
 
 # Interactive site: dependencies, build output, and results copied in at deploy time.

@@ -7,7 +7,7 @@
   "redirects": [
     {
       "source": "/attention/:path*",
-      "destination": "https://padraigobrien08.github.io/LLMfromScratch/attention/",
+      "destination": "https://padraigobrien08.github.io/nanogpt-from-scratch/attention/",
       "permanent": false
     }
   ]

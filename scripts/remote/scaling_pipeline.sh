@@ -14,7 +14,7 @@
 set -uo pipefail
 
 WORKDIR="${GPU_WORKDIR:-/root/llmfs}"
-REPO="$WORKDIR/LLMfromScratch"
+REPO="$WORKDIR/nanogpt-from-scratch"
 RESULTS="${RESULTS_DIR:-$WORKDIR/results}"
 MARKERS="$WORKDIR/.scaling-stages"
 DATA_DIR="${SCALING_DATA_DIR:-$WORKDIR/data/fineweb-edu-scaling}"

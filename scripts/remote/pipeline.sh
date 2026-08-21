@@ -16,7 +16,7 @@
 set -uo pipefail
 
 WORKDIR="${GPU_WORKDIR:-/workspace}"
-REPO="$WORKDIR/LLMfromScratch"
+REPO="$WORKDIR/nanogpt-from-scratch"
 DATA_DIR="$WORKDIR/data/fineweb-edu-10B"
 OUT_DIR="$WORKDIR/out"
 MARKERS="$WORKDIR/.stages"

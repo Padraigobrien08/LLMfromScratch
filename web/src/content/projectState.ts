@@ -18,7 +18,7 @@ import { MEASURED } from "./measured";
 export const PROJECT = {
   author: "Padraig O'Brien",
   licence: "MIT",
-  repo: "https://github.com/Padraigobrien08/LLMfromScratch",
+  repo: "https://github.com/Padraigobrien08/nanogpt-from-scratch",
 
   /**
    * `tests/conftest.py::ARCH_VARIANTS` — every property test runs against all ten.

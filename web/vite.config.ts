@@ -5,10 +5,10 @@ import { fileURLToPath } from "node:url";
 import react from "@vitejs/plugin-react";
 import { type Plugin, defineConfig } from "vite";
 
-// Deployed to https://<user>.github.io/LLMfromScratch/, so every asset URL needs the
+// Deployed to https://<user>.github.io/nanogpt-from-scratch/, so every asset URL needs the
 // repository name as a prefix. Overridable because a local `vite preview` and any
 // fork with a different repo name both need a different base.
-const base = process.env.SITE_BASE ?? "/LLMfromScratch/";
+const base = process.env.SITE_BASE ?? "/nanogpt-from-scratch/";
 
 const RESULTS = fileURLToPath(new URL("../results/", import.meta.url));
 

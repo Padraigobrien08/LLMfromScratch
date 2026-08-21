@@ -1,35 +1,35 @@
-# LLMfromScratch
+# NanoGPT From Scratch
 
 A from-scratch decoder-only language model that **reproduces GPT-2 124M**
 (validation loss **3.0503** against a 3.29 target, HellaSwag **0.3043** against the
 reference 0.2955), extended with modern architecture components, a paired-seed
 ablation study, and efficiency benchmarks. Reproducible from one command.
 
-[![CI](https://github.com/Padraigobrien08/LLMfromScratch/actions/workflows/ci.yml/badge.svg)](https://github.com/Padraigobrien08/LLMfromScratch/actions/workflows/ci.yml)
-[![Site](https://github.com/Padraigobrien08/LLMfromScratch/actions/workflows/pages.yml/badge.svg)](https://padraigobrien08.github.io/LLMfromScratch/)
+[![CI](https://github.com/Padraigobrien08/nanogpt-from-scratch/actions/workflows/ci.yml/badge.svg)](https://github.com/Padraigobrien08/nanogpt-from-scratch/actions/workflows/ci.yml)
+[![Site](https://github.com/Padraigobrien08/nanogpt-from-scratch/actions/workflows/pages.yml/badge.svg)](https://padraigobrien08.github.io/nanogpt-from-scratch/)
 
-**→ [Open the interactive site](https://padraigobrien08.github.io/LLMfromScratch/)**: the
+**→ [Open the interactive site](https://padraigobrien08.github.io/nanogpt-from-scratch/)**: the
 results, as figures you can move rather than tables you have to trust. Drag a scrubber along
-[the reproduction](https://padraigobrien08.github.io/LLMfromScratch/#/reproduction) and watch it
+[the reproduction](https://padraigobrien08.github.io/nanogpt-from-scratch/#/reproduction) and watch it
 cross a target fixed before the run; put the mask bug back and watch
-[the KV cache](https://padraigobrien08.github.io/LLMfromScratch/#/efficiency) go from losing to
+[the KV cache](https://padraigobrien08.github.io/nanogpt-from-scratch/#/efficiency) go from losing to
 winning; slide gradient accumulation and watch
-[a two-parameter model](https://padraigobrien08.github.io/LLMfromScratch/#/scaling) land on points
+[a two-parameter model](https://padraigobrien08.github.io/nanogpt-from-scratch/#/scaling) land on points
 it was never shown; toggle a design decision in
-[the ablation playground](https://padraigobrien08.github.io/LLMfromScratch/#/ablations) and get a
+[the ablation playground](https://padraigobrien08.github.io/nanogpt-from-scratch/#/ablations) and get a
 paired delta, its per-seed values, and "not a result" when the seeds disagree.
 
-It opens with an [explainer that assumes no prior knowledge](https://padraigobrien08.github.io/LLMfromScratch/#/chapter/1)
+It opens with an [explainer that assumes no prior knowledge](https://padraigobrien08.github.io/nanogpt-from-scratch/#/chapter/1)
 (a real tokenizer, a parameter budget you can drag, a sampler you can turn up) and ends with
-[RoPE's defining property holding as you move two tokens](https://padraigobrien08.github.io/LLMfromScratch/#/rope)
-and [every attention weight](https://padraigobrien08.github.io/LLMfromScratch/attention/) per
+[RoPE's defining property holding as you move two tokens](https://padraigobrien08.github.io/nanogpt-from-scratch/#/rope)
+and [every attention weight](https://padraigobrien08.github.io/nanogpt-from-scratch/attention/) per
 layer and per head.
 
 <!-- Two screenshots of the same page, doing different jobs, so re-shoot both when the front
      page changes: front-page.png is this hero at 1440x1050, and social-preview.png is the
      GitHub card at 1280x640 — that slot is 2:1 and would crop a third off this one. Both are
      captured from the deployed site at twice the size and scaled down, so the type holds. -->
-[![The front page](docs/images/front-page.png)](https://padraigobrien08.github.io/LLMfromScratch/)
+[![The front page](docs/images/front-page.png)](https://padraigobrien08.github.io/nanogpt-from-scratch/)
 
 Every architecture component here (rotary embeddings, RMSNorm, SwiGLU,
 grouped-query attention, the KV cache) is written by hand and covered by tests that
@@ -121,7 +121,7 @@ pytest tests -q
 ## Quickstart
 
 ```bash
-git clone https://github.com/Padraigobrien08/LLMfromScratch.git && cd LLMfromScratch
+git clone https://github.com/Padraigobrien08/nanogpt-from-scratch.git && cd nanogpt-from-scratch
 uv venv && uv pip install -e ".[dev,train]"
 ```
 
@@ -468,13 +468,13 @@ device-algorithm pair.
 
 ## Interactive site
 
-**[padraigobrien08.github.io/LLMfromScratch](https://padraigobrien08.github.io/LLMfromScratch/)**
+**[padraigobrien08.github.io/nanogpt-from-scratch](https://padraigobrien08.github.io/nanogpt-from-scratch/)**
 
 **The site is the paper, not documentation of one.** Each of the four results above is a
 plate built around a single interactive figure, chosen so that the interaction *is* the
 explanation rather than a chart with a tooltip on it:
 
-[![The reproduction plate](docs/images/reproduction-plate.png)](https://padraigobrien08.github.io/LLMfromScratch/#/reproduction)
+[![The reproduction plate](docs/images/reproduction-plate.png)](https://padraigobrien08.github.io/nanogpt-from-scratch/#/reproduction)
 
 
 - **The reproduction**: the loss curve with the pre-registered target drawn across it and
@@ -575,7 +575,7 @@ npm install --prefix web && npm run dev --prefix web
 
 ## Attention explorer
 
-**[padraigobrien08.github.io/LLMfromScratch/attention/](https://padraigobrien08.github.io/LLMfromScratch/attention/)**
+**[padraigobrien08.github.io/nanogpt-from-scratch/attention/](https://padraigobrien08.github.io/nanogpt-from-scratch/attention/)**
 
 Every attention weight in the model, per layer and per head, in a page you can click
 through. Built by CI from a model CI trains, and deployed to GitHub Pages on every
@@ -663,8 +663,8 @@ what is built and verified, and what is designed but not yet run.
 | Quantization + speculative decoding | **Done**: [docs/efficiency.md](docs/efficiency.md), measured on CUDA |
 | Fault-tolerance design doc | **Done**: [docs/fault-tolerance.md](docs/fault-tolerance.md) |
 | Multi-GPU scaling report | **Done**: [docs/scaling.md](docs/scaling.md), 95.1% efficiency on 8 GPUs, 1.54 PFLOP/s |
-| Interactive attention visualization | **Done**: [live](https://padraigobrien08.github.io/LLMfromScratch/attention/), auto-deployed from CI |
-| Interactive site (explainer, four results plates, architecture, tests) | **Done**: [live](https://padraigobrien08.github.io/LLMfromScratch/); every figure reads a generated artifact |
+| Interactive attention visualization | **Done**: [live](https://padraigobrien08.github.io/nanogpt-from-scratch/attention/), auto-deployed from CI |
+| Interactive site (explainer, four results plates, architecture, tests) | **Done**: [live](https://padraigobrien08.github.io/nanogpt-from-scratch/); every figure reads a generated artifact |
 | Deferred work, scoped and costed | [docs/roadmap.md](docs/roadmap.md): fused dequant kernel, flash-compatible verify mask, multi-node |
 
 No results are reported below that have not been measured. Sections describing

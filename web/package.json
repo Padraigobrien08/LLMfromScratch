@@ -3,7 +3,7 @@
   "private": true,
   "version": "0.1.0",
   "type": "module",
-  "description": "Interactive site for LLMfromScratch: results, method, and explorable explanations.",
+  "description": "Interactive site for NanoGPT From Scratch: results, method, and explorable explanations.",
   "scripts": {
     "dev": "vite",
     "build": "tsc --noEmit && vite build",

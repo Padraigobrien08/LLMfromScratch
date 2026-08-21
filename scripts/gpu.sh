@@ -64,13 +64,13 @@ GPU_RATE="${GPU_RATE:-0}"                      # $/hour, for the spend estimate
 RUNPOD_API_KEY="${RUNPOD_API_KEY:-}"
 RUNPOD_POD_ID="${RUNPOD_POD_ID:-}"             # optional; otherwise read from the pod
 GPU_WORKDIR="${GPU_WORKDIR:-/workspace}"       # a network volume, ideally
-GPU_REPO="${GPU_REPO:-https://github.com/Padraigobrien08/LLMfromScratch.git}"
+GPU_REPO="${GPU_REPO:-https://github.com/Padraigobrien08/nanogpt-from-scratch.git}"
 GPU_BRANCH="${GPU_BRANCH:-main}"
 # Where results and the kept checkpoint land. Defaults inside GPU_WORKDIR, but on a
 # pod whose bulk disk is ephemeral this should point at persistent storage.
 GPU_RESULTS="${GPU_RESULTS:-$GPU_WORKDIR/results}"
 
-REMOTE_REPO="$GPU_WORKDIR/LLMfromScratch"
+REMOTE_REPO="$GPU_WORKDIR/nanogpt-from-scratch"
 RUN_LOG="$GPU_WORKDIR/run.log"
 # bootstrap.sh decides whether to use the pod image's python or a fresh venv and
 # records the answer here, so the driver never has to guess.

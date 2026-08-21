@@ -6,7 +6,7 @@ import RopeDial from "../components/RopeDial";
 import { dotRotated, invFreqs, pairAngles, pairContributions, seededVector } from "../lib/rope";
 
 const MAX_POS = 512;
-const REPO = "https://github.com/Padraigobrien08/LLMfromScratch/blob/main";
+const REPO = "https://github.com/Padraigobrien08/nanogpt-from-scratch/blob/main";
 
 type Tracker = { min: number; max: number; count: number };
 

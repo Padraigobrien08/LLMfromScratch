@@ -8,7 +8,7 @@ import Caveat from "../components/Caveat";
 import { MEASURED } from "../content/measured";
 import { plateHeadline, plateKicker } from "../content/path";
 
-const REPO = "https://github.com/Padraigobrien08/LLMfromScratch/blob/main";
+const REPO = "https://github.com/Padraigobrien08/nanogpt-from-scratch/blob/main";
 const CACHE = MEASURED.cache;
 const QUANT = MEASURED.quantization;
 const SPEC = MEASURED.speculative;

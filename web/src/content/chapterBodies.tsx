@@ -23,7 +23,7 @@ import { href } from "../router";
  * own logic, and the only thing a chapter decides is where one sits in the argument.
  */
 
-const REPO = "https://github.com/Padraigobrien08/LLMfromScratch/blob/main";
+const REPO = "https://github.com/Padraigobrien08/nanogpt-from-scratch/blob/main";
 const attentionExplorer = () => `${import.meta.env.BASE_URL}attention/`;
 
 /**

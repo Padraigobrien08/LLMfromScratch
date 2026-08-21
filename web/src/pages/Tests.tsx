@@ -5,7 +5,7 @@ import { PROJECT } from "../content/projectState";
 import { TEST_SHOWCASE } from "../content/testShowcase";
 import { claimHeadline } from "../lib/claim";
 
-const REPO = "https://github.com/Padraigobrien08/LLMfromScratch/blob/main";
+const REPO = "https://github.com/Padraigobrien08/nanogpt-from-scratch/blob/main";
 
 /** `tests/test_kv_cache.py` → `kv cache`, which is what a reader is scanning for. */
 const area = (file: string) =>

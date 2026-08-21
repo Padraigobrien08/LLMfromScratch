@@ -20,7 +20,7 @@ import {
 } from "../lib/ablations";
 import { useResult } from "../lib/resultsData";
 
-const REPO = "https://github.com/Padraigobrien08/LLMfromScratch/blob/main";
+const REPO = "https://github.com/Padraigobrien08/nanogpt-from-scratch/blob/main";
 const A = MEASURED.ablations;
 
 /** The single-axis arms, in the order a reader would want to think about them. */

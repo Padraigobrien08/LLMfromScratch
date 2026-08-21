@@ -8,7 +8,7 @@ import { MEASURED } from "../content/measured";
 import { PROJECT } from "../content/projectState";
 import { formatCount, parameters } from "../lib/modelsize";
 
-const REPO = "https://github.com/Padraigobrien08/LLMfromScratch/blob/main";
+const REPO = "https://github.com/Padraigobrien08/nanogpt-from-scratch/blob/main";
 
 const VARIANTS: Array<{ id: Variant; label: string; note: string }> = [
   { id: "gpt2", label: "GPT-2", note: "the reproduction baseline" },

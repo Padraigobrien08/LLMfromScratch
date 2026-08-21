@@ -9,7 +9,7 @@ import { MEASURED } from "../content/measured";
 import { plateHeadline, plateKicker } from "../content/path";
 import { efficiencyAt, residual } from "../lib/amortisation";
 
-const REPO = "https://github.com/Padraigobrien08/LLMfromScratch/blob/main";
+const REPO = "https://github.com/Padraigobrien08/nanogpt-from-scratch/blob/main";
 const S = MEASURED.scaling;
 const ACC = MEASURED.accumulation;
 const { a, b } = ACC.fit;

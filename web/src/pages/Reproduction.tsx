@@ -9,7 +9,7 @@ import { plateHeadline, plateKicker } from "../content/path";
 import { type Curve, valAt } from "../lib/reproductionCurve";
 import { useResult } from "../lib/resultsData";
 
-const REPO = "https://github.com/Padraigobrien08/LLMfromScratch/blob/main";
+const REPO = "https://github.com/Padraigobrien08/nanogpt-from-scratch/blob/main";
 const R = MEASURED.reproduction;
 
 export default function Reproduction() {

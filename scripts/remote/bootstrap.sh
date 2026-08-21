@@ -16,7 +16,7 @@
 set -euo pipefail
 
 WORKDIR="${GPU_WORKDIR:-/workspace}"
-REPO="$WORKDIR/LLMfromScratch"
+REPO="$WORKDIR/nanogpt-from-scratch"
 CUDA_INDEX="${CUDA_INDEX:-https://download.pytorch.org/whl/cu128}"
 
 cd "$REPO"
