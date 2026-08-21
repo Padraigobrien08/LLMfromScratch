@@ -9,21 +9,21 @@ ablation study, and efficiency benchmarks. Reproducible from one command.
 [![Site](https://github.com/Padraigobrien08/nanogpt-from-scratch/actions/workflows/pages.yml/badge.svg)](https://padraigobrien08.github.io/nanogpt-from-scratch/)
 
 **→ [Open the interactive site](https://padraigobrien08.github.io/nanogpt-from-scratch/)**: the
-results, as figures you can move rather than tables you have to trust. Drag a scrubber along
-[the reproduction](https://padraigobrien08.github.io/nanogpt-from-scratch/#/reproduction) and watch it
-cross a target fixed before the run; put the mask bug back and watch
-[the KV cache](https://padraigobrien08.github.io/nanogpt-from-scratch/#/efficiency) go from losing to
-winning; slide gradient accumulation and watch
-[a two-parameter model](https://padraigobrien08.github.io/nanogpt-from-scratch/#/scaling) land on points
-it was never shown; toggle a design decision in
-[the ablation playground](https://padraigobrien08.github.io/nanogpt-from-scratch/#/ablations) and get a
-paired delta, its per-seed values, and "not a result" when the seeds disagree.
+results, as figures you can move instead of tables you have to trust.
+
+- Drag a scrubber along [the reproduction](https://padraigobrien08.github.io/nanogpt-from-scratch/#/reproduction)
+  and watch it cross a target fixed before the run.
+- Put the mask bug back and watch [the KV cache](https://padraigobrien08.github.io/nanogpt-from-scratch/#/efficiency)
+  go from losing to winning.
+- Slide gradient accumulation and watch [a two-parameter model](https://padraigobrien08.github.io/nanogpt-from-scratch/#/scaling)
+  land on points it was never shown.
+- Toggle a design decision in [the ablation playground](https://padraigobrien08.github.io/nanogpt-from-scratch/#/ablations)
+  and get a paired delta, its per-seed values, and "not a result" when the seeds disagree.
 
 It opens with an [explainer that assumes no prior knowledge](https://padraigobrien08.github.io/nanogpt-from-scratch/#/chapter/1)
-(a real tokenizer, a parameter budget you can drag, a sampler you can turn up) and ends with
-[RoPE's defining property holding as you move two tokens](https://padraigobrien08.github.io/nanogpt-from-scratch/#/rope)
-and [every attention weight](https://padraigobrien08.github.io/nanogpt-from-scratch/attention/) per
-layer and per head.
+and ends with [RoPE's defining property holding as you move two tokens](https://padraigobrien08.github.io/nanogpt-from-scratch/#/rope)
+and [every attention weight in the model](https://padraigobrien08.github.io/nanogpt-from-scratch/attention/),
+per layer and per head.
 
 <!-- Two screenshots of the same page, doing different jobs, so re-shoot both when the front
      page changes: front-page.png is this hero at 1440x1050, and social-preview.png is the
@@ -308,13 +308,12 @@ sweep. The list was written for an 80 GiB card, where nothing needed rescuing.
 An earlier version of this README reported that the KV cache gave no speedup, and
 explained it as a property rather than a defect: decode is bound by streaming weights
 from memory, not by attention over the prefix. It also admitted the benchmark ought to
-sweep sequence length, since that is the axis a cache exists for.
-
-The sweep got written. It showed the cache losing at every length: **34% slower** at 128
-tokens, still 18% slower at 1024, and its throughput almost flat, 161–172 tok/s across a
-sweep where the recompute path fell from 254 to 196. Flat throughput is the signature of a
-fixed per-step cost, not of attention. A cache that does
-strictly less arithmetic cannot lose on work; it can only lose on overhead.
+sweep sequence length, since that is the axis a cache exists for. The sweep got
+written, and it showed the cache losing at every length: **34% slower** at 128 tokens,
+still 18% slower at 1024, with its throughput almost flat across a sweep where the
+recompute path fell steadily. Flat throughput is the signature of a fixed per-step
+cost, not of attention. A cache that does strictly less arithmetic cannot lose on
+work; it can only lose on overhead.
 
 The cause was three lines. A decode step has `q_len == 1`, so it took the branch that
 builds an explicit causal mask, and **passing `attn_mask` to SDPA disqualifies it from
@@ -364,8 +363,8 @@ recorded in the results file: no NVLink, and a dual-socket box where GPUs 0–3 
 on different NUMA nodes, so the 8-way all-reduce crosses the inter-socket link. Per-GPU
 throughput still fell only 4.9%.
 
-That is `no_sync` earning its place, and it was *measured* rather than asserted, on the
-machine, rather than argued from the code. Holding the world size at 8 and varying the
+That is `no_sync` earning its place, and it was *measured* on the machine, not argued
+from the code. Holding the world size at 8 and varying the
 batch so accumulation goes 8 → 4 → 2 → 1:
 
 | accum @ 8 GPUs | tokens/step | 8 GPU tok/s | efficiency |
@@ -386,10 +385,8 @@ optimiser step. Deleting `no_sync` costs throughput and nothing else, so without
 a CPU test run has no way to see it go.
 
 The honest reading is therefore **the interconnect matters exactly as much as the batch
-fails to hide it**. At the reproduction's configuration a perfect interconnect could recover
-about 2.8 points, which is why the planned NVLink comparison was dropped in favour of this
-experiment: two machines would have confounded interconnect with architecture, bandwidth and
-NCCL version to chase a three-point effect.
+fails to hide it**: at the reproduction's configuration a perfect interconnect could
+recover about 2.8 points.
 
 **The throughput is the easy half.** The claim worth checking is that eight GPUs still take
 the *same* optimisation steps as one: `tokens_per_step` is fixed in tokens and accumulation
@@ -412,7 +409,7 @@ into the MFU column, the card was benchmarked on the same pod: an 8192³ bf16 ma
 falling to 81.9% at 8, the same 4-point cost as the scaling loss, denominated in the
 hardware's own capability. It also settles why `mfu` is `null` everywhere: the figure most
 often quoted for a 5090 is 209.5 TFLOP/s, and *we measured above it*, so it cannot be the
-peak; entering it would have reported 96% MFU. That column stays absent rather than wrong.
+peak; entering it would have reported 96% MFU. That column stays absent, not wrong.
 
 And **97% of the 8-GPU run was not training**: ~690s of fixed overhead (probably per-bucket
 compile under DDP) against 18.5s of stepping, which is why my own 10-minute estimate for the
@@ -461,7 +458,7 @@ Four findings, each reported against the flattering framing:
 Memory and quality are device-independent; throughput is not, and this section is the
 evidence for that. Moving from MPS to CUDA flipped the sign of the prose speculative
 result (0.76× → 2.73×), so the earlier claim that prompt-lookup "loses on prose" was a
-statement about MPS rather than about the method. Single-device throughput measures a
+statement about MPS, not about the method. Single-device throughput measures a
 device-algorithm pair.
 
 ---
@@ -472,26 +469,11 @@ device-algorithm pair.
 
 **The site is the paper, not documentation of one.** Each of the four results above is a
 plate built around a single interactive figure, chosen so that the interaction *is* the
-explanation rather than a chart with a tooltip on it:
+explanation: the four bullets at the top of this page are those plates. A target hit on
+the last step would be a target chosen to be hit; on the reproduction plate that is a
+difference you can see, at step 6,500, a third of the way in.
 
 [![The reproduction plate](docs/images/reproduction-plate.png)](https://padraigobrien08.github.io/nanogpt-from-scratch/#/reproduction)
-
-
-- **The reproduction**: the loss curve with the pre-registered target drawn across it and
-  a scrubber. Drag it and the readout flips to "target met" at step 6,500, a third of the
-  way in, with two thirds of the run still to go. A target hit on the last step would be a
-  target chosen to be hit, and that is a difference you can see rather than one you have
-  to be told.
-- **The ablations**: toggle a design decision and get its paired delta, its three
-  per-seed values as ticks on a shared axis, and the verdict. The significance rule is
-  drawn rather than asserted: an arm counts only when its ticks do not straddle zero, so
-  RMSNorm's `+0.0007` reads as *not a result* at a glance.
-- **The efficiency plate**: a switch that puts the mask bug back. The cache curve travels
-  from losing at every length to winning at 1,024, and both states are measured, at the
-  commits either side of the fix. The recompute curve barely moves, which is the control.
-- **The scaling plate**: a slider for gradient accumulation, with the `a + b/accum` curve
-  drawn through the two points it was fitted to. Press *reveal* and the other two land on
-  it, within 0.4 and 0.85 points, having been predicted before they were run.
 
 Two pages exist to answer the question a researcher asks next: *is any of this
 actually held down?* **The architecture page** puts the nine blocks of the stack down
@@ -506,53 +488,23 @@ what each test asserts and the bug it exists to catch. Those rows are collected 
 advertising a guarantee the suite no longer provides.
 
 **"How a language model actually works"** is the on-ramp: eight steps from a sentence
-you type to a model that predicts what comes next, assuming no prior knowledge, with
-something to poke at rather than take on faith at each one. Type text and watch the
-real GPT-2 vocabulary cut it into tokens. Drag `n_layer` and `n_embd` and watch 31% of
-a 124M model turn out to be the embedding table before any computation happens. Sample
-from a real next-token distribution and see what temperature, top-k and top-p actually
-do. Read a validation loss as "how many equally likely options is it choosing between?"
+you type to a model that predicts what comes next, with something to poke at instead of
+something to take on faith at each one. The three things that run in the browser and
+would normally be hand-waved (the **BPE tokenizer**, the **parameter accounting**, the
+**sampler**) are each pinned by test to the Python that produced them, down to the
+off-by-one that makes `top_p = 0` sample from nothing. The sampling distribution is a
+bigram model counted from `data/wizard_of_oz.txt`: real statistics, and the model this
+project began as (public domain; see [data/README.md](data/README.md)).
 
-Three things run in the browser that would normally be hand-waved, and each is pinned
-to the Python that produced it: the **BPE tokenizer** (the real merges, exact on all 14
-fixture cases including emoji, newlines and leading spaces), the **parameter
-accounting** (exact against the real `Transformer` for twelve configurations), and the
-**sampler** (same temperature → top-k → top-p order as `Transformer.generate`,
-including the off-by-one that makes `top_p = 0` sample from nothing).
-
-The sampling distribution is a bigram model counted from `data/wizard_of_oz.txt`: real
-statistics rather than invented logits, and the model this project began as. (Baum's
-*Dorothy and the Wizard in Oz*, public domain; see [data/README.md](data/README.md).) It also
-sets up the next step honestly: draw a few tokens and the text wanders, because it can
-only see one token back, which is precisely what attention exists to fix.
-
-**The RoPE explorer** puts the property this repository tests for on screen. Drag a
+**The RoPE explorer** puts the property this repository tests for on screen: drag a
 query and a key along a sequence and the attention logit between them does not move,
-as long as the distance between them does not; one dial per dimension pair shows
-every arrow spinning while every angle between them holds. A panel accumulates the
-range the logit actually occupies as you slide, so the page reports its own
-assertion: across ~900 samples spanning positions 0–512, the logit moves by about
-5e-15.
-
-The rotation it draws is a TypeScript port of `src/llmfs/model/rope.py`, and the two
-are pinned together **in both directions**: a fixture generated by the Python
-implementation is asserted by the browser tests, and `tests/test_rope.py` asserts
-that same committed fixture still reproduces the model. Either side changing alone
-fails CI. A visualization that has quietly drifted from the code is worse than none,
-because nothing about it looks wrong.
-
-That pairing surfaced one measured detail worth stating: the cos/sin tables are built
-in float32 while the port uses float64, so the two agree to ~1e-8 early in a sequence
-and ~3e-7 by position 200. That is the same choice HF Llama makes and sits far below
-the resolution of the bf16 activations consuming it, but it is asserted as a bound
-rather than assumed.
-
-**The ablation playground** turns the sweep into something you can interrogate:
-toggle a design decision and get its paired delta, its per-seed values, the error bar,
-and a verdict, including "not a result" when the seeds disagree. Toggle two and it
-says the combination was never measured, rather than adding the individual deltas and
-pretending that is a finding. The analysis mirrors `ablation/report.py`, so the page
-cannot report something the repository's own report would refuse to.
+as long as the distance between them does not. The rotation it draws is a TypeScript
+port of `src/llmfs/model/rope.py`, and the two are pinned together **in both
+directions**: a fixture generated by the Python implementation is asserted by the
+browser tests, and `tests/test_rope.py` asserts that same committed fixture still
+reproduces the model, so either side changing alone fails CI. A visualization that
+has quietly drifted from the code is worse than none, because nothing about it looks
+wrong.
 
 **The site is not allowed to claim more than this repository.** Every measured figure it
 prints (the reproduction, the sweep, the scaling points, the quantization table, the
@@ -579,11 +531,19 @@ npm install --prefix web && npm run dev --prefix web
 
 Every attention weight in the model, per layer and per head, in a page you can click
 through. Built by CI from a model CI trains, and deployed to GitHub Pages on every
-push to `main`, so the hosted page always reflects the current code rather than a
-stale artifact. It carries the same masthead, dateline and typography as the rest of
-the site, restated rather than imported: it stays a single self-contained file, so it
-cannot pull in the site's stylesheet or its webfont, and a test asserts it references
-nothing external at all.
+push to `main`, so the hosted page always reflects the current code. Four views: click
+a token and every other token is shaded by the attention it sent there, so the matrix
+reads as a sentence; one thumbnail per head, so diagonals, sinks and stripes are
+visible across the whole model at a glance; the full token-by-token heatmap; and
+per-head statistics (entropy, mean attention distance, previous-token and sink
+fractions) that make a grid of heads searchable, with the induction-circuit building
+blocks coming straight to the top.
+
+The export is a **single self-contained HTML file** (no build step, no CDN, no
+backend), because a visualisation with a server attached is a URL that will be down
+the day someone looks at it; a test asserts no external resource is ever referenced.
+The hosted demo runs a deliberately small model and its header says so; pointing
+`llmfs-viz` at the 124M checkpoint is the only change needed.
 
 ```bash
 llmfs-viz --checkpoint out/debug/best.pt --out site/attention.html
@@ -592,34 +552,6 @@ llmfs-viz --checkpoint out/debug/best.pt --out site/attention.html
 ```bash
 llmfs-viz-serve --checkpoint out/debug/best.pt   # type your own text
 ```
-
-Four views, each answering a different question:
-
-- **Which tokens attend to which**: click a token to make it the query; every other
-  token is shaded by the attention it received. This is the view the whole tool exists
-  for, and it reads as a sentence rather than a matrix.
-- **All heads**: one thumbnail per head, so structure (diagonals, sinks, stripes) is
-  visible across the whole model at a glance instead of one head at a time.
-- **Focused head**: the full token × token heatmap, hover for exact weights. Masked
-  cells are left as page background, so "structurally impossible" looks different from
-  "attended with weight zero".
-- **Head statistics**: entropy, mean attention distance, previous-token fraction and
-  sink fraction, per head. These turn a grid of 144 heads into something searchable:
-  sort by previous-token fraction and the induction-circuit building blocks come to
-  the top.
-
-Two engineering notes. The export is a **single self-contained HTML file** (no build
-step, no CDN, no backend), because a visualisation with a server attached is a URL
-that will be down the day someone looks at it; a test asserts no external resource is
-ever referenced. And the weights are quantised to uint8 and base64-encoded rather than
-written as JSON numbers: for a 12×12-head model over 64 tokens that is 590k values,
-several megabytes as text, for cells a few pixels wide. Statistics are computed at
-full precision *before* quantisation.
-
-The hosted demo runs a deliberately small model, and the page header states its
-parameter count, step and validation loss so nobody has to guess. It gets more
-interesting the moment the 124M checkpoint exists: pointing `llmfs-viz` at it is the
-only change needed.
 
 ---
 
@@ -639,7 +571,7 @@ it:
   not a fixed amount of wall-clock, and the failure rate it guards against is.
 - **"Atomic write" was over-claimed.** `os.replace` is atomic against interruption but
   not against power loss, since POSIX does not guarantee the data reached disk before
-  the rename became visible. Documented as a gap with the fix, rather than left as a
+  the rename became visible. Documented as a gap with the fix, not left as a
   claim that sounds stronger than it is.
 
 The doc marks every claim **[implemented]**, with the test that pins it, or
@@ -656,7 +588,7 @@ what is built and verified, and what is designed but not yet run.
 
 | Pillar | Status |
 | --- | --- |
-| Package, config system, data pipeline, trainer, CI | **Done**: 412 tests green, end-to-end verified |
+| Package, config system, data pipeline, trainer, CI | **Done**: suite green on 3.10–3.12, end-to-end verified |
 | Modern architecture (RoPE, RMSNorm, SwiGLU, GQA, KV cache) | **Done**: hand-implemented, property-tested |
 | GPT-2 124M reproduction on FineWeb-Edu | **Done**: 3.0503 val loss, [docs/reproduction.md](docs/reproduction.md) |
 | Ablation study (12 arms + baseline, × 3 seeds) | **Done**: [docs/ablations.md](docs/ablations.md), 39 runs, 7.6 GPU-h |
@@ -690,8 +622,8 @@ src/llmfs/
   ablation/   sweep runner, paired-seed analysis, tables and plots
   bench/      training + inference throughput, memory, cost, provenance
 configs/      gpt2-124m, llama-124m, debug, and 11 single-axis ablation arms
-tests/        412 tests: component correctness, config validation, end-to-end training
-web/          the interactive site: explainer, RoPE explorer, ablations (149 tests)
+tests/        the pytest suite: component correctness, config validation, end-to-end training
+web/          the interactive site: explainer, RoPE explorer, ablations, its own vitest suite
 scripts/      GPU pod automation, and the exporters that pin the site to the model
 docs/         index, reproduction protocol, results write-ups, fault-tolerance design
 notebooks/    exploration only; nothing here is the source of truth
@@ -711,6 +643,18 @@ Everything above the `legacy/` directory is a rewrite, not a refactor. The tutor
 code had hard-coded absolute paths, module-level globals, post-norm blocks,
 generation that re-ran the full prefix for every token, and its model living inside a
 notebook. The current codebase shares no logic with it.
+
+### How this was built
+
+Most commits here are co-authored with Claude, and their trailers say so. The
+division of labour: I set the questions, the standard of evidence and the taste,
+rejected what did not meet them, and paid for the GPUs; Claude wrote most of the
+code and prose under that direction. The reason to believe the result is neither of
+us. It is the machinery this repository runs on: a target registered before the run,
+figures generated from artifacts instead of typed, CI that fails when prose drifts
+from measurement, and an adversarial audit ([AUDIT.md](AUDIT.md)) with all fifty
+findings closed. Nothing asks to be taken on faith, which is the only honest way to
+publish work built like this.
 
 ## License
 

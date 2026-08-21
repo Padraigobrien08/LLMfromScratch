@@ -70,6 +70,23 @@ export default function About() {
 
       <div className="rule-hair" />
 
+      <h2 className="section-h2">How it was built</h2>
+      <p className="prose">
+        Most commits in the repository are co-authored with Claude, and their trailers say
+        so. The division of labour: Padraig set the questions, the standard of evidence and
+        the taste, rejected what did not meet them, and paid for the GPUs; Claude wrote most
+        of the code and prose under that direction.
+      </p>
+      <p className="prose">
+        The reason to believe the result is neither of us. It is the machinery above: a
+        target registered before the run, figures read from artifacts instead of typed,
+        CI that fails when prose drifts from measurement, and an adversarial audit whose
+        findings are all closed. Nothing here asks to be taken on faith, which is the only
+        honest way to publish work built like this.
+      </p>
+
+      <div className="rule-hair" />
+
       <h2 className="section-h2">The source</h2>
       <p className="prose">
         The repository is public and MIT licensed:{" "}
