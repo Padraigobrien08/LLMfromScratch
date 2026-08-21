@@ -4,7 +4,7 @@ Three optimisations, all hand-implemented, all measured against the 124M reprodu
 The theme running through the results is that **the headline number and the useful number
 are rarely the same one**: 4-bit quantization is a memory win that costs speed,
 speculative decoding can hit its algorithmic ceiling while still losing on the clock, and
-the KV cache — the one optimisation nobody thinks to question — was for a while making
+the KV cache, the one optimisation nobody thinks to question, was for a while making
 decoding *slower*.
 
 Throughput figures are measured on a rented **RTX 4090** (sm_89, torch 2.4.1+cu124,
@@ -22,8 +22,8 @@ prefix costs almost nothing. It also noted the benchmark should sweep sequence l
 since that is the axis a cache exists for.
 
 Both halves of that turned out to matter. The sweep got written, and it did not show what
-it was supposed to show. The axis is **total sequence length** — a 32-token prompt plus
-96, 224, 480 and 992 generated tokens — because that is what the cache's size and the
+it was supposed to show. The axis is **total sequence length** (a 32-token prompt plus
+96, 224, 480 and 992 generated tokens), because that is what the cache's size and the
 recompute path's cost both scale with, and it is what `block_size` is a bound on:
 
 | Total length | naive (recompute) | KV cache | cache advantage |
@@ -33,7 +33,7 @@ recompute path's cost both scale with, and it is what `block_size` is a bound on
 | 512 | 246 | 172 | **0.70×** |
 | 1024 | 196 | 161 | **0.82×** |
 
-Not merely "no speedup" — the cache was 34% *slower* at the shortest length and 18% slower
+Not merely "no speedup": the cache was 34% *slower* at the shortest length and 18% slower
 at the longest, and the naive path beat it at every length measured. Two features of that table say it is not a fact about hardware. Cache
 throughput is flat, ~161–172 tok/s regardless of length, which is the signature of a
 fixed per-step cost rather than anything to do with attention. And a cache that does
@@ -42,13 +42,13 @@ on overhead.
 
 The cause was three lines in `attention.py`. A decode step has `q_len == 1` and
 `kv_len > 1`, so it fell into the branch that builds an explicit bottom-right aligned
-causal mask — and **passing `attn_mask` to `scaled_dot_product_attention` disqualifies it
+causal mask, and **passing `attn_mask` to `scaled_dot_product_attention` disqualifies it
 from the fused flash and mem-efficient kernels**, dropping it onto the math backend. The
 naive path, where `q_len == kv_len`, passed `is_causal=True` and stayed fused. So the
 benchmark had been comparing a fused kernel against an unfused one and reporting the
 difference as a property of caching.
 
-For `q_len == 1` that mask is all-`True` anyway — every cached key precedes the single
+For `q_len == 1` that mask is all-`True` anyway: every cached key precedes the single
 query, so it encodes no constraint. It cost a mask allocation per layer per token *and*
 the fused kernel, in exchange for nothing. After the fix:
 
@@ -65,7 +65,7 @@ belongs to the cache path specifically and not to machine state.
 
 **What the corrected numbers actually say.** The original explanation was directionally
 right and quantitatively wrong. Decode at this scale really is dominated by per-step
-overhead — 12 layers of kernel launches against a 124M model leave the 4090 mostly idle —
+overhead (12 layers of kernel launches against a 124M model leave the 4090 mostly idle)
 which is why cache throughput stays flat while naive throughput decays with length. The
 crossover is real but late: the cache only overtakes recomputation at **1024 tokens**,
 which is exactly `block_size` for this model. So for this model at its full context, the
@@ -76,7 +76,7 @@ The honest correction is that I wrote "a real result rather than a bug" about a 
 that was both. The reasoning was plausible enough that it stopped me looking, which is the
 actual lesson: **a plausible explanation for a disappointing measurement is the most
 expensive kind of mistake**, because it converts a bug into a finding and closes the
-investigation. What broke it open was the flat-throughput column — an explanation that
+investigation. What broke it open was the flat-throughput column: an explanation that
 fits the headline number but not the shape of the data is not yet an explanation.
 
 Where the cache is unambiguously worth it is batching, because there the cache is what
@@ -92,7 +92,7 @@ makes a batch affordable at all:
 **16.5× throughput from batch 1 to 16** for 216 MiB of cache. The batch-1 `ttft`
 includes allocating the cache, which is why it reads worse than the naive path.
 
-Two tests pin the fix, both mutation-checked — reverting it fails the first, and
+Two tests pin the fix, both mutation-checked: reverting it fails the first, and
 broadening the shortcut to every `q_len` fails the second:
 
 - `test_decode_step_passes_no_attn_mask` records what actually reaches SDPA and asserts
@@ -123,15 +123,15 @@ two per byte, because otherwise "4-bit" still occupies a byte and saves nothing.
 | int4 g32 | 212 MiB | 2.24× | 20.297 | +1.206 | 0.3360 | 91.0 (0.47×) |
 
 Perplexity over 200,000 tokens of held-out English, in 1024-token windows advancing by
-512 — so the windows overlap and the absolute value is not comparable to a published
+512, so the windows overlap and the absolute value is not comparable to a published
 perplexity. Every scheme sees exactly the same windows, which is what the Δ column needs.
 The HellaSwag column is from the
-earlier MPS run over 1,000 examples — it is device-independent, and the section below
+earlier MPS run over 1,000 examples; it is device-independent, and the section below
 explains why it was not worth re-measuring.
 
 ### 8-bit is free, 4-bit is not
 
-int8 costs **+0.013 perplexity** — seven parts in ten thousand. At that magnitude it is
+int8 costs **+0.013 perplexity**, seven parts in ten thousand. At that magnitude it is
 indistinguishable from no change, and per-channel versus per-group scaling makes no
 difference either, because 256 levels are enough to represent a weight distribution
 without help.
@@ -144,10 +144,10 @@ not be presented as such.
 
 The per-channel 4-bit row exists as a control, and it earns its place: **22.664 against
 20.442**, a 2.2-point penalty from nothing more than sharing one scale across a whole
-output channel — all 768 input features of it — instead of one per 128 features.
+output channel (all 768 input features of it) instead of one per 128 features.
 
 The mechanism is outliers. A single large weight sets the scale for everything it shares
-with, and at 4 bits there are only 16 levels to begin with — so every ordinary weight in
+with, and at 4 bits there are only 16 levels to begin with, so every ordinary weight in
 that channel collapses onto two or three of them. Grouping confines the damage to the 128
 features that actually contain the outlier. `tests/test_quant.py` isolates this directly:
 with one weight set to 10.0 among values of ~0.01, the error *outside* the outlier's group
@@ -156,35 +156,35 @@ is more than 5× smaller with grouping than without.
 The coarse rows are per *channel*, not per tensor: `group_size=-1` puts one group on each
 row of the weight, so a 768×768 matrix gets 768 scales rather than one. They were labelled
 "per-tensor" here and in the results files until 2026-08-16, which overstated the
-coarseness by a factor of `out_features` — a genuinely per-tensor scheme, coarser still,
+coarseness by a factor of `out_features`; a genuinely per-tensor scheme, coarser still,
 is not implemented and so is not measured anywhere in this table. Only the labels were
 corrected; every number in the table is the one that was measured.
 
-Going finer still (g32) buys only 0.15 more perplexity and costs 15 MiB in extra scales —
+Going finer still (g32) buys only 0.15 more perplexity and costs 15 MiB in extra scales;
 it is past the point of diminishing returns. **g128 is the right default**, and that is not
 a guess, it is where the measured curve flattens.
 
 ### Why HellaSwag could not answer this
 
 The HellaSwag column is nearly flat: 0.3480 down to 0.3350, and the ordering is not even
-monotonic in bit-width. That is not evidence that quantization is harmless — it is
+monotonic in bit-width. That is not evidence that quantization is harmless; it is
 evidence that the metric is too blunt for the question.
 
 A 4-way accuracy over 1,000 examples has a standard error of **1.5 points**. Every delta in
 that column is inside one standard error, and resolving a 0.5-point difference at 95%
-confidence would need roughly **69,000 examples** — HellaSwag only has 10,042. Perplexity
+confidence would need roughly **69,000 examples**; HellaSwag only has 10,042. Perplexity
 is continuous and computed over every token, so 200,000 tokens resolve differences two
 orders of magnitude smaller for a fraction of the compute.
 
 The lesson generalises: a benchmark good enough to *validate a model* is not automatically
 good enough to *compare two versions of it*. It is also why the CUDA re-run skipped
-HellaSwag entirely — spending GPU minutes to re-measure a column that cannot resolve the
+HellaSwag entirely: spending GPU minutes to re-measure a column that cannot resolve the
 effect would have been buying precision in the wrong place.
 
 ### The memory ceiling is the embedding, and it is architectural
 
 4-bit reaches 2.42×, not the ~8× the bit-width implies. The reason is that **the token
-embedding is 31% of this model** — 147 MiB of the 475 MiB of weights — and it is left in
+embedding is 31% of this model** (147 MiB of the 475 MiB of weights) and it is left in
 fp32.
 
 That is not a lazy default. With `tie_embeddings: true`, `lm_head.weight` *is*
@@ -193,7 +193,7 @@ That is not a lazy default. With `tie_embeddings: true`, `lm_head.weight` *is*
 with the head skipped versus 217 MiB with it "quantized". `quantize_model` now refuses that
 configuration rather than reporting a compression ratio worse than doing nothing.
 
-Getting past this ceiling needs a `QuantEmbedding` sharing one set of codes with the head —
+Getting past this ceiling needs a `QuantEmbedding` sharing one set of codes with the head,
 not implemented. Two things worth noting about the scope of the problem: at 7B the
 embedding is a few percent of the model rather than a third, so this ceiling is a
 small-model artefact; and against bf16, which is what you would actually serve, 4-bit
@@ -205,14 +205,14 @@ blocks plus an fp16 embedding is only **1.94×** (237.4 MiB down to 122.7).
 omitting the column.
 
 `QuantLinear` dequantizes into an fp32 weight and calls `F.linear`. So the bytes read from
-memory go **up**, not down — the packed codes are read *and* a full-size dequantized copy is
+memory go **up**, not down: the packed codes are read *and* a full-size dequantized copy is
 materialised. The memory saving is in what is *stored*; the speed saving would be in what
 is *moved*, and only a fused kernel that dequantizes inside the matmul's inner loop
 achieves that. That is what Marlin, GPTQ's CUDA kernels and bitsandbytes provide, and it is
 the natural home for the Triton kernel this repo does not yet have.
 
 The dequantized weight is deliberately not cached, because caching it would make this fast
-and pointless — an fp32 copy alongside the codes costs more than quantization saves.
+and pointless: an fp32 copy alongside the codes costs more than quantization saves.
 
 CUDA is markedly kinder here than MPS was, and the gap is informative: the same code lost
 **81–86%** of throughput on MPS versus **25–53%** on the 4090. Dequantize-then-matmul is pure
@@ -230,7 +230,7 @@ vocabulary, and prompt-lookup, which copies from the context itself and costs no
 
 ### It is lossless, and that is verified
 
-**All 18 benchmark runs reproduced greedy decoding token-for-token** — three prompts, two
+**All 18 benchmark runs reproduced greedy decoding token-for-token**: three prompts, two
 drafters, three values of `k`. The unit tests assert the same property across `k` ∈
 {1, 2, 4, 8} and four drafters including deliberately adversarial ones.
 
@@ -240,7 +240,7 @@ model.
 
 Two invariants hold it up. Accepting only exact argmax matches means the output cannot
 drift. Appending the target's own token at the rejection point means even a drafter that is
-wrong every single time still produces one real token per iteration — the worst case is
+wrong every single time still produces one real token per iteration, so the worst case is
 ordinary decoding plus the drafter's cost, never a stall.
 `test_a_useless_drafter_still_makes_progress` pins exactly that.
 
@@ -264,8 +264,8 @@ Greedy baselines: prose 219, repetitive 226, code-ish 223 tok/s.
 ### The most instructive row is still the failure
 
 `model-draft` at `k=8` on code-like text achieved **95.8% acceptance and 8.53 tokens per
-target forward pass** — essentially the algorithmic ideal, eight tokens out of one pass of
-the big model — and returned **1.08×**. It spent the entire theoretical win on overhead and
+target forward pass** (essentially the algorithmic ideal, eight tokens out of one pass of
+the big model) and returned **1.08×**. It spent the entire theoretical win on overhead and
 came out level.
 
 Two reasons, and both are the point:
@@ -284,12 +284,12 @@ first and accurate second.**
 
 5.35× on code-like text and 2.38–2.39× on repetitive text. Copying from the context only
 works where the context predicts itself: lists, quotations, code, boilerplate. It is also
-the best speedup-per-effort available, because the drafter is free — no second model to
+the best speedup-per-effort available, because the drafter is free: no second model to
 train, ship or hold in memory.
 
 The prose result is the one that changed. On MPS, prompt-lookup *lost* on prose (0.76× at
 `k=4`, 0.47× at `k=8`); on CUDA it wins (2.32× and 2.73×). Same algorithm, same prompt,
-opposite conclusion — so the earlier claim that lookup "loses on free-form writing" was a
+opposite conclusion, so the earlier claim that lookup "loses on free-form writing" was a
 statement about MPS, not about the method. The mechanism is that a rejected draft wastes
 target compute, and whether that waste is affordable depends on how much of the target
 forward pass is fixed overhead you were paying anyway. On a 4090 with a 124M model, a batch
@@ -301,18 +301,18 @@ argument for not reporting single-device throughput as a property of an algorith
 
 `k=8` beats `k=4` on code-like text (5.35× vs 1.73×) and the two are a coin-flip on
 repetitive text (2.38× vs 2.39×). Larger `k` multiplies both the win when acceptance is
-high and the waste when it is not, so the right `k` depends on the text. An adaptive `k` —
-grow it while proposals are accepted, shrink it after rejections — is the obvious next step
+high and the waste when it is not, so the right `k` depends on the text. An adaptive `k`
+(grow it while proposals are accepted, shrink it after rejections) is the obvious next step
 and is not implemented.
 
 ### The two cache fixes, and why the second lowered these ratios
 
 The verify pass originally re-ran the whole prefix every iteration with no KV cache at all.
-Since the cache is preallocated, rejecting a draft is only a move of the write offset —
-`KVCache.rewind_to` — rather than a reallocation, so there was no good reason for the
+Since the cache is preallocated, rejecting a draft is only a move of the write offset
+(`KVCache.rewind_to`) rather than a reallocation, so there was no good reason for the
 omission. On MPS that was worth 25–30% (code-ish `k=8`: 2.37× → 3.00×).
 
-The mask fix at the top of this document then *reduced* every speculative ratio here —
+The mask fix at the top of this document then *reduced* every speculative ratio here;
 code-ish `k=8` fell from **7.14× to 5.35×**. That is not a regression, and the direction is
 the interesting part: the fix sped up ordinary greedy
 decoding by 27% (176 → 223 tok/s) because greedy decoding is single-token decode, which is
@@ -326,7 +326,7 @@ argument for reporting absolute numbers next to every speedup.
 
 It also identifies the remaining opportunity: speculative verification is stuck on the math
 backend because it needs a bottom-right aligned mask, so it forfeits exactly the kernel the
-decode path just got back. Recovering it needs a masking approach flash tolerates —
+decode path just got back. Recovering it needs a masking approach flash tolerates,
 FlexAttention, or a kernel that takes the alignment as a parameter rather than a tensor.
 Not implemented, and it is the largest single item left in this document.
 
@@ -350,12 +350,12 @@ measured bf16 TFLOP/s, and the git commit. The figures here come from commit `42
 an RTX 4090 (sm_89, 23.5 GiB, driver 580.173.02, torch 2.4.1+cu124, **167.9** measured
 TFLOP/s), except the HellaSwag column, which is from the earlier MPS run. The 168.1 this
 paragraph used to quote is the same probe on the same card at the *previous* commit,
-`6c13dcb`, and is recorded in `benchmarks-cuda-before-mask-fix.json` — a 0.1% difference
+`6c13dcb`, and is recorded in `benchmarks-cuda-before-mask-fix.json`; a 0.1% difference
 between two runs of the probe, attached to the wrong commit.
 
 **Four "before" figures in this document have no committed artifact**: the 2.37× and 7.14×
 speculative ratios, the 176 tok/s greedy baseline, and the 1,259 tok/s best row. Each is
-the pre-fix half of a before/after pair whose "after" is pinned — the cache sweep kept its
+the pre-fix half of a before/after pair whose "after" is pinned: the cache sweep kept its
 before-fix file, and these runs did not. They are internally consistent (1,259 ÷ 176 =
 7.15, and the committed 1,194 ÷ 223.4 = 5.345), which is evidence that they came from a
 real run and not evidence that they came from *that* run. Read them as recollection, not as
@@ -375,7 +375,7 @@ Reproduce the whole thing on a rented GPU with:
 ./scripts/gpu.sh bench && ./scripts/gpu.sh watch
 ```
 
-Roughly 5 minutes of GPU time and about $0.06 at 4090 prices — the benchmark path
+Roughly 5 minutes of GPU time and about $0.06 at 4090 prices; the benchmark path
 deliberately skips corpus preparation, which is what made the earlier full pipeline cost 16
 minutes before it touched the GPU.
 

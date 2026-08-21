@@ -1,14 +1,14 @@
 # LLMfromScratch
 
-A from-scratch decoder-only language model that **reproduces GPT-2 124M** —
-validation loss **3.0503** against a 3.29 target, HellaSwag **0.3043** against the
-reference 0.2955 — extended with modern architecture components, a paired-seed
+A from-scratch decoder-only language model that **reproduces GPT-2 124M**
+(validation loss **3.0503** against a 3.29 target, HellaSwag **0.3043** against the
+reference 0.2955), extended with modern architecture components, a paired-seed
 ablation study, and efficiency benchmarks. Reproducible from one command.
 
 [![CI](https://github.com/Padraigobrien08/LLMfromScratch/actions/workflows/ci.yml/badge.svg)](https://github.com/Padraigobrien08/LLMfromScratch/actions/workflows/ci.yml)
 [![Site](https://github.com/Padraigobrien08/LLMfromScratch/actions/workflows/pages.yml/badge.svg)](https://padraigobrien08.github.io/LLMfromScratch/)
 
-**→ [Open the interactive site](https://padraigobrien08.github.io/LLMfromScratch/)** — the
+**→ [Open the interactive site](https://padraigobrien08.github.io/LLMfromScratch/)**: the
 results, as figures you can move rather than tables you have to trust. Drag a scrubber along
 [the reproduction](https://padraigobrien08.github.io/LLMfromScratch/#/reproduction) and watch it
 cross a target fixed before the run; put the mask bug back and watch
@@ -19,8 +19,8 @@ it was never shown; toggle a design decision in
 [the ablation playground](https://padraigobrien08.github.io/LLMfromScratch/#/ablations) and get a
 paired delta, its per-seed values, and "not a result" when the seeds disagree.
 
-It opens with an [explainer that assumes no prior knowledge](https://padraigobrien08.github.io/LLMfromScratch/#/chapter/1) —
-a real tokenizer, a parameter budget you can drag, a sampler you can turn up — and ends with
+It opens with an [explainer that assumes no prior knowledge](https://padraigobrien08.github.io/LLMfromScratch/#/chapter/1)
+(a real tokenizer, a parameter budget you can drag, a sampler you can turn up) and ends with
 [RoPE's defining property holding as you move two tokens](https://padraigobrien08.github.io/LLMfromScratch/#/rope)
 and [every attention weight](https://padraigobrien08.github.io/LLMfromScratch/attention/) per
 layer and per head.
@@ -31,8 +31,8 @@ layer and per head.
      captured from the deployed site at twice the size and scaled down, so the type holds. -->
 [![The front page](docs/images/front-page.png)](https://padraigobrien08.github.io/LLMfromScratch/)
 
-Every architecture component here — rotary embeddings, RMSNorm, SwiGLU,
-grouped-query attention, the KV cache — is written by hand and covered by tests that
+Every architecture component here (rotary embeddings, RMSNorm, SwiGLU,
+grouped-query attention, the KV cache) is written by hand and covered by tests that
 assert its defining mathematical property, not just its output shape.
 
 ---
@@ -49,7 +49,7 @@ The trust anchor: a documented target, hit within a tolerance fixed *before* the
 
 ![Loss curve](results/reproduction_curve.png)
 
-Crossed the target at step 6,500 — 34% of the run — and kept improving. **44.1% MFU
+Crossed the target at step 6,500 (34% of the run) and kept improving. **44.1% MFU
 held flat for seven hours**, ~401,000 tokens/sec on one H100, ~$23 of GPU time.
 
 **HellaSwag is what makes the loss trustworthy.** Validation loss is measured on a
@@ -66,7 +66,7 @@ Protocol, target provenance, hardware, and sample generations:
 ## Architecture
 
 One `Transformer` class covers both the GPT-2 baseline and the modern Llama-style
-stack; which one you get is decided entirely by config. That is deliberate — an
+stack; which one you get is decided entirely by config. That is deliberate: an
 ablation that swaps LayerNorm for RMSNorm differs from its baseline by one line of
 YAML, so the two cannot silently drift apart.
 
@@ -93,19 +93,19 @@ model = Transformer(ModelConfig(
 Shape checks catch typos; these catch the bugs that would otherwise survive all the
 way into a training run and only show up as a mysteriously worse loss:
 
-- **RoPE** — that `⟨R(q, m), R(k, n)⟩` depends only on `m − n`, to 1e-6, which is the
+- **RoPE**: that `⟨R(q, m), R(k, n)⟩` depends only on `m − n`, to 1e-6, which is the
   entire point of rotary embeddings and is not implied by any shape.
-- **Causality** — perturbing token *t* leaves every position `< t` bitwise unchanged.
+- **Causality**: perturbing token *t* leaves every position `< t` bitwise unchanged.
   Run across all 10 architecture variants. An off-by-one mask makes loss look *better*.
-- **KV cache** — incremental decoding reproduces a full forward pass at every
+- **KV cache**: incremental decoding reproduces a full forward pass at every
   position, for every variant. Training never exercises the cache, so nothing else
   would catch a stale offset or a double-rotated key.
-- **GQA** — with `n_kv_head == n_head`, output is numerically identical to plain MHA.
-- **Eager vs fused** — the attention-weight export path matches the SDPA kernel, so
+- **GQA**: with `n_kv_head == n_head`, output is numerically identical to plain MHA.
+- **Eager vs fused**: the attention-weight export path matches the SDPA kernel, so
   the visualizer cannot show weights the model never used.
-- **Mask alignment** — `build_causal_mask` is bottom-right aligned. PyTorch's
+- **Mask alignment**: `build_causal_mask` is bottom-right aligned. PyTorch's
   `is_causal=True` is top-left aligned and is silently wrong whenever the query block
-  is shorter than the key sequence — i.e. on every decode step.
+  is shorter than the key sequence, i.e. on every decode step.
 - **That the decode step takes the *fast* path**, not merely the correct one: a test
   records what reaches SDPA and asserts no mask arrives on a single-token step, because
   passing one forfeits the fused kernel. Every other test here checks the cache's
@@ -126,7 +126,7 @@ uv venv && uv pip install -e ".[dev,train]"
 ```
 
 Train a small model on the included corpus in a couple of minutes, on CPU, MPS or
-CUDA — no download required. This is the smoke test that every code path a real run
+CUDA, no download required. This is the smoke test that every code path a real run
 takes is exercised before renting a GPU:
 
 ```bash
@@ -151,14 +151,14 @@ llmfs-prepare-data --source fineweb-edu --out-dir data/fineweb-edu-10B
 llmfs-train --config gpt2-124m
 ```
 
-Multi-GPU is the same config — gradient accumulation absorbs the world size, so the
+Multi-GPU is the same config: gradient accumulation absorbs the world size, so the
 optimisation is unchanged and only throughput moves:
 
 ```bash
 torchrun --nproc_per_node=8 -m llmfs.train.cli --config gpt2-124m
 ```
 
-On a rented pod, [`scripts/gpu.sh`](scripts/gpu.sh) drives the whole thing over SSH —
+On a rented pod, [`scripts/gpu.sh`](scripts/gpu.sh) drives the whole thing over SSH:
 setup, data, detached run, monitoring, and fetching results back. Jobs run inside
 tmux so a dropped connection cannot kill something you are paying for.
 [docs/gpu-runbook.md](docs/gpu-runbook.md) is the operational guide.
@@ -199,24 +199,24 @@ llmfs-ablate-report
 **Every arm runs at the same three seeds, and comparisons are paired.** That is the
 point of the design, not a detail. Two runs differing only in seed do not reach the
 same loss, so an unpaired comparison has to clear that entire spread before it can
-claim anything — and most architecture effects are smaller than it. Differencing each
+claim anything, and most architecture effects are smaller than it. Differencing each
 arm against the baseline run that saw its data *in the same order* cancels the
 batch-ordering variance the two share, and resolves effects well below the raw noise
 floor.
 
 An arm counts as a result only when the range of its per-seed deltas does not
 straddle zero: every seed agreed on the direction. A deliberately blunt rule, not a
-p-value — with three seeds nothing stronger would be honest — and it is exactly what
+p-value (with three seeds nothing stronger would be honest), and it is exactly what
 the error bars in the plot show. An ablation table without that check is worse than
 no table: it reads as authoritative while recommending changes that do nothing.
 
 The runner is built for a multi-hour job on rented hardware: it skips arms that
 already have a result, writes after every arm, and records a diverged arm as a
-finding rather than dying on it — the `lr-3e-3` arm is *expected* to blow up.
+finding rather than dying on it: the `lr-3e-3` arm is *expected* to blow up.
 
 ### Results
 
-**[Full write-up: docs/ablations.md](docs/ablations.md)** — 39 runs, 7.6 GPU-hours on
+**[Full write-up: docs/ablations.md](docs/ablations.md)**: 39 runs, 7.6 GPU-hours on
 one H100, ~$25. Baseline 3.9116, seed noise floor **0.0043**.
 
 | Arm | Δ val loss | Δ throughput |
@@ -237,12 +237,12 @@ Three things worth pulling out:
 
 - **The optimiser dominates the architecture.** Learning rate and schedule move loss
   more than every architecture change combined. RMSNorm vs LayerNorm is worth 0.0007;
-  the learning rate is worth 0.1251 — 171× more.
+  the learning rate is worth 0.1251, 171× more.
 - **The components are additive.** Summing the five individual modern-stack parts
   predicts −0.0872; the combined arm measured −0.0886. The 0.0014 gap is 33% of the
   0.0043 noise floor, so they compose without measurably interacting.
 - **Loss is the wrong single metric.** Among the five *architecture* arms the two that
-  improve loss both cost throughput and the three that cost loss all improve it — a
+  improve loss both cost throughput and the three that cost loss all improve it, a
   trade the loss column alone cannot show. It is not a universal law, and the optimiser
   arms are the counter-example: `lr-3e-3` and `sched-wsd` take both. `modern-stack`
   combines the five to −0.0886 for ±0.0%.
@@ -258,7 +258,7 @@ largest caveat and is stated as such in the write-up.
 All at the 124M configuration. Training figures are from the H100 that trained the model
 (measured 808 TFLOP/s dense bf16); inference, quantization and speculative decoding are
 from a rented RTX 4090 (measured 167.9 TFLOP/s, ~$0.06 for the whole benchmark run). Every
-result carries its provenance — GPU, arch, driver, torch build, measured TFLOP/s, and the
+result carries its provenance: GPU, arch, driver, torch build, measured TFLOP/s, and the
 commit that produced it.
 
 ### Training throughput
@@ -274,7 +274,7 @@ commit that produced it.
 
 `torch.compile` is worth **+26.5%** throughput for nothing. Gradient checkpointing is
 the more interesting row: it costs 13% throughput to save 29% of activation memory,
-and on an 80GB card holding a 124M model that trade never pays — the last two rows show
+and on an 80GB card holding a 124M model that trade never pays; the last two rows show
 checkpointing with a 4× batch losing to compile with a 2× batch. Checkpointing is for
 when memory is the binding constraint, and here it is not. Reporting it as a win
 because it saves memory would have been the easy mistake.
@@ -291,16 +291,16 @@ point of running it twice:
 | micro-batch ×2 | **OOM** | — | — |
 | checkpoint + batch ×4 | **OOM** | — | — |
 
-Two things invert. **MFU nearly doubles** — 77.9% against 41.5% for the same code and the
-same compile speedup (+13.4%) — because a 124M model cannot keep an H100 busy; the H100's
+Two things invert. **MFU nearly doubles**, 77.9% against 41.5% for the same code and the
+same compile speedup (+13.4%), because a 124M model cannot keep an H100 busy; the H100's
 low MFU was a statement about the model being too small for the GPU, not about the code.
 And the memory ceiling that "never pays" on 80 GiB binds immediately on 24 GiB: the ×2
 micro-batch that was the *fastest* H100 configuration simply does not fit, while
 checkpointing holds peak memory to 9.9 GiB for 9% throughput. So checkpointing is worth
 exactly what the card makes it worth.
 
-One gap, since it is the obvious question: the variant that would settle it — checkpointing
-*plus* the ×2 batch, the config that might fit only with checkpointing — is not in the
+One gap, since it is the obvious question: the variant that would settle it (checkpointing
+*plus* the ×2 batch, the config that might fit only with checkpointing) is not in the
 sweep. The list was written for an 80 GiB card, where nothing needed rescuing.
 
 ### Inference, and a bug the benchmark found
@@ -310,18 +310,18 @@ explained it as a property rather than a defect: decode is bound by streaming we
 from memory, not by attention over the prefix. It also admitted the benchmark ought to
 sweep sequence length, since that is the axis a cache exists for.
 
-The sweep got written. It showed the cache losing at every length — **34% slower** at 128
-tokens, still 18% slower at 1024 — and its throughput almost flat, 161–172 tok/s across a
+The sweep got written. It showed the cache losing at every length: **34% slower** at 128
+tokens, still 18% slower at 1024, and its throughput almost flat, 161–172 tok/s across a
 sweep where the recompute path fell from 254 to 196. Flat throughput is the signature of a
 fixed per-step cost, not of attention. A cache that does
 strictly less arithmetic cannot lose on work; it can only lose on overhead.
 
 The cause was three lines. A decode step has `q_len == 1`, so it took the branch that
-builds an explicit causal mask — and **passing `attn_mask` to SDPA disqualifies it from
+builds an explicit causal mask, and **passing `attn_mask` to SDPA disqualifies it from
 the fused flash kernels**, dropping it onto the math backend, while the naive path kept
 `is_causal=True` and stayed fused. For a single query every cached key precedes it, so
 that mask was all-`True`: pure cost, no information. Removing it (RTX 4090, sweeping
-total sequence length from 128 to 1024 — a 32-token prompt plus the rest generated):
+total sequence length from 128 to 1024, a 32-token prompt plus the rest generated):
 
 | Total length | naive | KV cache | advantage | gain from the fix |
 | --- | --- | --- | --- | --- |
@@ -329,7 +329,7 @@ total sequence length from 128 to 1024 — a 32-token prompt plus the rest gener
 | 512 | 247 | 223 | 0.90× | **1.30×** |
 | 1024 | 197 | 222 | **1.12×** | **1.38×** |
 
-The naive column moved 0.97–1.01× — the untouched control that makes this a measurement
+The naive column moved 0.97–1.01×, the untouched control that makes this a measurement
 rather than a coincidence. The original explanation was directionally right and
 quantitatively wrong: decode at this scale *is* overhead-bound, which is why the cache
 curve is flat, but the crossover is real and lands at **1024 tokens**, exactly this
@@ -337,10 +337,10 @@ model's `block_size`.
 
 I wrote "a real result rather than a bug" about a number that was both, and the
 plausibility of the explanation is what stopped me looking. **A plausible story for a
-disappointing measurement is the most expensive kind of mistake** — it converts a bug
+disappointing measurement is the most expensive kind of mistake**: it converts a bug
 into a finding and closes the investigation. What broke it open was the shape of the
 data, not the headline: an explanation that fits one number but not the curve is not yet
-an explanation. The gap was in the tests too — every test asserted the cache produced
+an explanation. The gap was in the tests too: every test asserted the cache produced
 the right *answer*, none that it took the fast *path*, so a 30% regression passed a green
 suite. Two now do, both mutation-checked.
 
@@ -350,7 +350,7 @@ affordable at all: **16.5× throughput from batch 1 to 16** (219 → 3,622 tok/s
 
 ### Multi-GPU scaling
 
-**[Full report: docs/scaling.md](docs/scaling.md)** — 8× RTX 5090, no NVLink.
+**[Full report: docs/scaling.md](docs/scaling.md)**: 8× RTX 5090, no NVLink.
 
 | GPUs | grad accum | tokens/sec | efficiency | achieved | max Δloss vs 1 GPU |
 | --- | --- | --- | --- | --- | --- |
@@ -364,7 +364,7 @@ recorded in the results file: no NVLink, and a dual-socket box where GPUs 0–3 
 on different NUMA nodes, so the 8-way all-reduce crosses the inter-socket link. Per-GPU
 throughput still fell only 4.9%.
 
-That is `no_sync` earning its place — and it was *measured* rather than asserted, on the
+That is `no_sync` earning its place, and it was *measured* rather than asserted, on the
 machine, rather than argued from the code. Holding the world size at 8 and varying the
 batch so accumulation goes 8 → 4 → 2 → 1:
 
@@ -376,8 +376,8 @@ batch so accumulation goes 8 → 4 → 2 → 1:
 | 1 | 131,072 | 1,270,772 | **86.0%** |
 
 With one all-reduce per micro-batch, efficiency falls to 86.0%. So communication is exactly
-what the accumulation was hiding. A two-parameter fit to the accum 8 and 4 points —
-`loss = 1.975 + 11.134/accum` percentage points — predicted the other two **before they were
+what the accumulation was hiding. A two-parameter fit to the accum 8 and 4 points
+(`loss = 1.975 + 11.134/accum` percentage points) predicted the other two **before they were
 measured**, to within 0.85 points across a further 4× range.
 
 The mechanism itself is pinned by the suite, not only by the sweep: two gloo processes run
@@ -392,7 +392,7 @@ experiment: two machines would have confounded interconnect with architecture, b
 NCCL version to chase a three-point effect.
 
 **The throughput is the easy half.** The claim worth checking is that eight GPUs still take
-the *same* optimisation steps as one — `tokens_per_step` is fixed in tokens and accumulation
+the *same* optimisation steps as one: `tokens_per_step` is fixed in tokens and accumulation
 is derived from it, which the accum column shows working. The loss at step 1:
 
 ```
@@ -401,7 +401,7 @@ is derived from it, which the accum column shows working. The loss at step 1:
 ```
 
 Identical to sixteen significant figures at 1, 2 and 4 GPUs. Over 50 steps the largest
-divergence is 4.4e-05 against a loss of ~8.6, and it does not grow with world size — that
+divergence is 4.4e-05 against a loss of ~8.6, and it does not grow with world size; that
 is floating-point reduction order, not drift. Verifying it first required all-reducing the
 logged training loss, which had been rank 0's own micro-batches: correct optimisation, but
 a number that described one Nth of the batch and got noisier as the world grew.
@@ -409,10 +409,10 @@ a number that described one Nth of the batch and got noisier as the world grew.
 **A full training step runs at 86% of a bare matmul.** Rather than paste a spec-sheet peak
 into the MFU column, the card was benchmarked on the same pod: an 8192³ bf16 matmul reached
 **234.7 TFLOP/s**. Against that measured ceiling the training step extracts 86.1% at 1 GPU
-falling to 81.9% at 8 — the same 4-point cost as the scaling loss, denominated in the
+falling to 81.9% at 8, the same 4-point cost as the scaling loss, denominated in the
 hardware's own capability. It also settles why `mfu` is `null` everywhere: the figure most
 often quoted for a 5090 is 209.5 TFLOP/s, and *we measured above it*, so it cannot be the
-peak — entering it would have reported 96% MFU. That column stays absent rather than wrong.
+peak; entering it would have reported 96% MFU. That column stays absent rather than wrong.
 
 And **97% of the 8-GPU run was not training**: ~690s of fixed overhead (probably per-bucket
 compile under DDP) against 18.5s of stepping, which is why my own 10-minute estimate for the
@@ -443,19 +443,19 @@ Four findings, each reported against the flattering framing:
   including adversarial ones. An implementation that were merely *close* would not be a
   faster decoder, it would be a different model.
 - **Acceptance rate and speedup are different questions.** The last row is the lesson:
-  95.8% acceptance and 8.53 tokens per target forward pass — essentially the algorithmic
-  ideal — returning 1.08×, level after overhead, because the draft model is the same size
+  95.8% acceptance and 8.53 tokens per target forward pass (essentially the algorithmic
+  ideal), returning 1.08×, level after overhead, because the draft model is the same size
   as the target. A drafter must be cheap first and accurate second.
 - **Grouping is worth 2.2 perplexity points at 4 bits.** One scale shared across a whole
   output channel is set by its largest outlier; per-128-feature groups confine the damage.
-  (The coarse rows are per channel, not per tensor — they were mislabelled until
+  (The coarse rows are per channel, not per tensor; they were mislabelled until
   2026-08-16; see [docs/efficiency.md](docs/efficiency.md#grouping-is-worth-22-perplexity-points-at-4-bits).)
-  And **HellaSwag could not measure any of this** — a 1.5-point standard error at n=1000
+  And **HellaSwag could not measure any of this**: a 1.5-point standard error at n=1000
   swallowed every scheme, which is why the quality column is perplexity.
 - **Every quantized scheme is slower**: −27% at int8, −51% at int4. Dequantize-then-matmul
   materialises a full-size weight, so bytes moved go *up*. The memory saving is in what is
   stored; a fused kernel is what would make it a speed saving. Compression also caps at
-  2.47× — 2.42× for `g128`, the scheme actually worth using — not 8×, because the tied
+  2.47× (2.42× for `g128`, the scheme actually worth using), not 8×, because the tied
   token embedding is 31% of this model.
 
 Memory and quality are device-independent; throughput is not, and this section is the
@@ -477,29 +477,29 @@ explanation rather than a chart with a tooltip on it:
 [![The reproduction plate](docs/images/reproduction-plate.png)](https://padraigobrien08.github.io/LLMfromScratch/#/reproduction)
 
 
-- **The reproduction** — the loss curve with the pre-registered target drawn across it and
+- **The reproduction**: the loss curve with the pre-registered target drawn across it and
   a scrubber. Drag it and the readout flips to "target met" at step 6,500, a third of the
   way in, with two thirds of the run still to go. A target hit on the last step would be a
   target chosen to be hit, and that is a difference you can see rather than one you have
   to be told.
-- **The ablations** — toggle a design decision and get its paired delta, its three
+- **The ablations**: toggle a design decision and get its paired delta, its three
   per-seed values as ticks on a shared axis, and the verdict. The significance rule is
   drawn rather than asserted: an arm counts only when its ticks do not straddle zero, so
   RMSNorm's `+0.0007` reads as *not a result* at a glance.
-- **The efficiency plate** — a switch that puts the mask bug back. The cache curve travels
+- **The efficiency plate**: a switch that puts the mask bug back. The cache curve travels
   from losing at every length to winning at 1,024, and both states are measured, at the
   commits either side of the fix. The recompute curve barely moves, which is the control.
-- **The scaling plate** — a slider for gradient accumulation, with the `a + b/accum` curve
+- **The scaling plate**: a slider for gradient accumulation, with the `a + b/accum` curve
   drawn through the two points it was fitted to. Press *reveal* and the other two land on
   it, within 0.4 and 0.85 points, having been predicted before they were run.
 
-Two pages exist to answer the question a researcher asks next — *is any of this
+Two pages exist to answer the question a researcher asks next: *is any of this
 actually held down?* **The architecture page** puts the nine blocks of the stack down
 one column with a GPT-2 / Llama tab and a detail panel: every parameter count comes
 from a calculator pinned exactly to the real `Transformer` across twelve
 configurations, every config value from resolving the shipped YAML through the
 repository's own loader, and every "what holds it" line names a test that was read
-before it was cited — two blocks say they have no property test, because they do not.
+before it was cited; two blocks say they have no property test, because they do not.
 **The test page** refuses to lead with a test count and shows a dozen claims instead:
 what each test asserts and the bug it exists to catch. Those rows are collected from
 `@pytest.mark.showcase` by pytest itself, so a rename cannot leave the page
@@ -520,7 +520,7 @@ accounting** (exact against the real `Transformer` for twelve configurations), a
 **sampler** (same temperature → top-k → top-p order as `Transformer.generate`,
 including the off-by-one that makes `top_p = 0` sample from nothing).
 
-The sampling distribution is a bigram model counted from `data/wizard_of_oz.txt` — real
+The sampling distribution is a bigram model counted from `data/wizard_of_oz.txt`: real
 statistics rather than invented logits, and the model this project began as. (Baum's
 *Dorothy and the Wizard in Oz*, public domain; see [data/README.md](data/README.md).) It also
 sets up the next step honestly: draw a few tokens and the text wanders, because it can
@@ -528,7 +528,7 @@ only see one token back, which is precisely what attention exists to fix.
 
 **The RoPE explorer** puts the property this repository tests for on screen. Drag a
 query and a key along a sequence and the attention logit between them does not move,
-as long as the distance between them does not — one dial per dimension pair shows
+as long as the distance between them does not; one dial per dimension pair shows
 every arrow spinning while every angle between them holds. A panel accumulates the
 range the logit actually occupies as you slide, so the page reports its own
 assertion: across ~900 samples spanning positions 0–512, the logit moves by about
@@ -544,19 +544,19 @@ because nothing about it looks wrong.
 That pairing surfaced one measured detail worth stating: the cos/sin tables are built
 in float32 while the port uses float64, so the two agree to ~1e-8 early in a sequence
 and ~3e-7 by position 200. That is the same choice HF Llama makes and sits far below
-the resolution of the bf16 activations consuming it — but it is asserted as a bound
+the resolution of the bf16 activations consuming it, but it is asserted as a bound
 rather than assumed.
 
 **The ablation playground** turns the sweep into something you can interrogate:
 toggle a design decision and get its paired delta, its per-seed values, the error bar,
-and a verdict — including "not a result" when the seeds disagree. Toggle two and it
+and a verdict, including "not a result" when the seeds disagree. Toggle two and it
 says the combination was never measured, rather than adding the individual deltas and
 pretending that is a finding. The analysis mirrors `ablation/report.py`, so the page
 cannot report something the repository's own report would refuse to.
 
 **The site is not allowed to claim more than this repository.** Every measured figure it
-prints — the reproduction, the sweep, the scaling points, the quantization table, the
-test counts on the dateline — is generated into `web/src/content/measured.ts` from
+prints (the reproduction, the sweep, the scaling points, the quantization table, the
+test counts on the dateline) is generated into `web/src/content/measured.ts` from
 `results/*.json` and live test collection, and CI asserts the committed module is still
 what the generator emits. The discipline before this was a comment on each figure naming
 what it was read from, which is not the same thing as reading from it: the dateline
@@ -579,7 +579,7 @@ npm install --prefix web && npm run dev --prefix web
 
 Every attention weight in the model, per layer and per head, in a page you can click
 through. Built by CI from a model CI trains, and deployed to GitHub Pages on every
-push to `main` — so the hosted page always reflects the current code rather than a
+push to `main`, so the hosted page always reflects the current code rather than a
 stale artifact. It carries the same masthead, dateline and typography as the rest of
 the site, restated rather than imported: it stays a single self-contained file, so it
 cannot pull in the site's stylesheet or its webfont, and a test asserts it references
@@ -595,21 +595,21 @@ llmfs-viz-serve --checkpoint out/debug/best.pt   # type your own text
 
 Four views, each answering a different question:
 
-- **Which tokens attend to which** — click a token to make it the query; every other
+- **Which tokens attend to which**: click a token to make it the query; every other
   token is shaded by the attention it received. This is the view the whole tool exists
   for, and it reads as a sentence rather than a matrix.
-- **All heads** — one thumbnail per head, so structure (diagonals, sinks, stripes) is
+- **All heads**: one thumbnail per head, so structure (diagonals, sinks, stripes) is
   visible across the whole model at a glance instead of one head at a time.
-- **Focused head** — the full token × token heatmap, hover for exact weights. Masked
+- **Focused head**: the full token × token heatmap, hover for exact weights. Masked
   cells are left as page background, so "structurally impossible" looks different from
   "attended with weight zero".
-- **Head statistics** — entropy, mean attention distance, previous-token fraction and
+- **Head statistics**: entropy, mean attention distance, previous-token fraction and
   sink fraction, per head. These turn a grid of 144 heads into something searchable:
   sort by previous-token fraction and the induction-circuit building blocks come to
   the top.
 
-Two engineering notes. The export is a **single self-contained HTML file** — no build
-step, no CDN, no backend — because a visualisation with a server attached is a URL
+Two engineering notes. The export is a **single self-contained HTML file** (no build
+step, no CDN, no backend), because a visualisation with a server attached is a URL
 that will be down the day someone looks at it; a test asserts no external resource is
 ever referenced. And the weights are quantised to uint8 and base64-encoded rather than
 written as JSON numbers: for a 12×12-head model over 64 tokens that is 590k values,
@@ -618,14 +618,14 @@ full precision *before* quantisation.
 
 The hosted demo runs a deliberately small model, and the page header states its
 parameter count, step and validation loss so nobody has to guess. It gets more
-interesting the moment the 124M checkpoint exists — pointing `llmfs-viz` at it is the
+interesting the moment the 124M checkpoint exists: pointing `llmfs-viz` at it is the
 only change needed.
 
 ---
 
 ## Reliability
 
-[**docs/fault-tolerance.md**](docs/fault-tolerance.md) — the design doc for running a
+[**docs/fault-tolerance.md**](docs/fault-tolerance.md): the design doc for running a
 24-hour job on hardware that fails: failure taxonomy, checkpointing strategy,
 resumption semantics, silent-corruption and straggler detection, and what breaks at
 1,000+ GPUs.
@@ -635,7 +635,7 @@ it:
 
 - **The checkpoint interval is denominated in the wrong unit.** Applying the
   Young/Daly optimum to this run's real step times shows the configured 1000-step
-  default wastes ~16% of a single-GPU spot run — about 3.9 hours — because a *step* is
+  default wastes ~16% of a single-GPU spot run (about 3.9 hours) because a *step* is
   not a fixed amount of wall-clock, and the failure rate it guards against is.
 - **"Atomic write" was over-claimed.** `os.replace` is atomic against interruption but
   not against power loss, since POSIX does not guarantee the data reached disk before
@@ -643,7 +643,7 @@ it:
   claim that sounds stronger than it is.
 
 The doc marks every claim **[implemented]**, with the test that pins it, or
-**[proposed]**, with an effort estimate — and ends with a prioritised gap list where
+**[proposed]**, with an effort estimate, and ends with a prioritised gap list where
 the top five items total under a hundred lines.
 
 ---
@@ -655,17 +655,17 @@ what is built and verified, and what is designed but not yet run.
 
 | Pillar | Status |
 | --- | --- |
-| Package, config system, data pipeline, trainer, CI | **Done** — 412 tests green, end-to-end verified |
-| Modern architecture (RoPE, RMSNorm, SwiGLU, GQA, KV cache) | **Done** — hand-implemented, property-tested |
-| GPT-2 124M reproduction on FineWeb-Edu | **Done** — 3.0503 val loss, [docs/reproduction.md](docs/reproduction.md) |
-| Ablation study (12 arms × 3 seeds) | **Done** — [docs/ablations.md](docs/ablations.md), 39 runs, 7.6 GPU-h |
-| Efficiency benchmarks (throughput, memory, KV cache) | **Done** — H100 training, 4090 inference; the cache sweep found a 30% bug, below |
-| Quantization + speculative decoding | **Done** — [docs/efficiency.md](docs/efficiency.md), measured on CUDA |
-| Fault-tolerance design doc | **Done** — [docs/fault-tolerance.md](docs/fault-tolerance.md) |
-| Multi-GPU scaling report | **Done** — [docs/scaling.md](docs/scaling.md), 95.1% efficiency on 8 GPUs, 1.54 PFLOP/s |
-| Interactive attention visualization | **Done** — [live](https://padraigobrien08.github.io/LLMfromScratch/attention/), auto-deployed from CI |
-| Interactive site (explainer, four results plates, architecture, tests) | **Done** — [live](https://padraigobrien08.github.io/LLMfromScratch/); every figure reads a generated artifact |
-| Deferred work, scoped and costed | [docs/roadmap.md](docs/roadmap.md) — fused dequant kernel, flash-compatible verify mask, multi-node |
+| Package, config system, data pipeline, trainer, CI | **Done**: 412 tests green, end-to-end verified |
+| Modern architecture (RoPE, RMSNorm, SwiGLU, GQA, KV cache) | **Done**: hand-implemented, property-tested |
+| GPT-2 124M reproduction on FineWeb-Edu | **Done**: 3.0503 val loss, [docs/reproduction.md](docs/reproduction.md) |
+| Ablation study (12 arms × 3 seeds) | **Done**: [docs/ablations.md](docs/ablations.md), 39 runs, 7.6 GPU-h |
+| Efficiency benchmarks (throughput, memory, KV cache) | **Done**: H100 training, 4090 inference; the cache sweep found a 30% bug, below |
+| Quantization + speculative decoding | **Done**: [docs/efficiency.md](docs/efficiency.md), measured on CUDA |
+| Fault-tolerance design doc | **Done**: [docs/fault-tolerance.md](docs/fault-tolerance.md) |
+| Multi-GPU scaling report | **Done**: [docs/scaling.md](docs/scaling.md), 95.1% efficiency on 8 GPUs, 1.54 PFLOP/s |
+| Interactive attention visualization | **Done**: [live](https://padraigobrien08.github.io/LLMfromScratch/attention/), auto-deployed from CI |
+| Interactive site (explainer, four results plates, architecture, tests) | **Done**: [live](https://padraigobrien08.github.io/LLMfromScratch/); every figure reads a generated artifact |
+| Deferred work, scoped and costed | [docs/roadmap.md](docs/roadmap.md): fused dequant kernel, flash-compatible verify mask, multi-node |
 
 No results are reported below that have not been measured. Sections describing
 pending work say so.
@@ -684,13 +684,13 @@ src/llmfs/
   ablation/   sweep runner, paired-seed analysis, tables and plots
   bench/      training + inference throughput, memory, cost, provenance
 configs/      gpt2-124m, llama-124m, debug, and 11 single-axis ablation arms
-tests/        412 tests — component correctness, config validation, end-to-end training
+tests/        412 tests: component correctness, config validation, end-to-end training
 web/          the interactive site: explainer, RoPE explorer, ablations (149 tests)
 scripts/      GPU pod automation, and the exporters that pin the site to the model
 docs/         index, reproduction protocol, results write-ups, fault-tolerance design
 notebooks/    exploration only; nothing here is the source of truth
 legacy/       the original tutorial scripts, kept for reference
-data/         the demo corpus and its manifest — provenance in data/README.md
+data/         the demo corpus and its manifest; provenance in data/README.md
 ```
 
 ---

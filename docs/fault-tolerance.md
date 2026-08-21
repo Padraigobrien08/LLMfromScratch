@@ -11,7 +11,7 @@ three orders of magnitude more hardware.
 
 The bar it is written against: **any failure should cost bounded, quantifiable work,
 and no failure should silently corrupt a result.** The second half is the harder one.
-A crash is cheap — you notice it. A run that quietly trains on the wrong data, or on
+A crash is cheap: you notice it. A run that quietly trains on the wrong data, or on
 a GPU with a bad SM, produces a loss curve that looks fine and a number that is wrong,
 and you find out weeks later when it fails to reproduce.
 
@@ -53,7 +53,7 @@ This is the design decision the rest of the document leans on.
 
 The obvious way to make a data loader resumable is to checkpoint its position
 alongside the model. That creates a second source of truth which can disagree with
-the first — the classic version of this bug is a checkpoint written at step *N* while
+the first; the classic version of this bug is a checkpoint written at step *N* while
 the loader had already advanced to *N+1*, so the resumed run silently re-trains on one
 batch and skips another.
 
@@ -69,7 +69,7 @@ is no loader state in the checkpoint, so there is nothing that can go stale, and
 resumption is idempotent by construction: resuming at step *N* twice consumes exactly
 the same tokens both times.
 
-**[implemented]** — `test_set_step_is_the_only_state_needed_to_resume` asserts a
+**[implemented]**: `test_set_step_is_the_only_state_needed_to_resume` asserts a
 fast-forwarded loader yields exactly what an uninterrupted one would have.
 
 Two properties fall out of this for free:
@@ -87,10 +87,10 @@ Two properties fall out of this for free:
 
 [`save_checkpoint`](../src/llmfs/train/checkpoint.py) writes to a temporary file and
 `os.replace`s it into position. A process killed mid-write leaves the previous
-checkpoint intact rather than a truncated file that fails to load — which is the
+checkpoint intact rather than a truncated file that fails to load, which is the
 difference between losing one checkpoint interval and losing the whole run.
 
-**[implemented]** — `test_checkpoint_write_is_atomic`.
+**[implemented]**: `test_checkpoint_write_is_atomic`.
 
 **Known gap:** `os.replace` is atomic with respect to *visibility*, not *durability*.
 On a host that loses power, the rename can be visible in the directory while the file
@@ -107,20 +107,20 @@ into a mismatched architecture fails loudly at `load_state_dict` rather than
 half-succeeding.
 
 Wrappers (`DistributedDataParallel`, `torch.compile`) are stripped before saving, so a
-checkpoint is not tied to the topology or the torch version that produced it — an
+checkpoint is not tied to the topology or the torch version that produced it; an
 8-GPU run's checkpoint loads into a 1-GPU process for evaluation without special
 handling.
 
-**[implemented]** — `test_checkpoint_round_trips_through_its_own_config`.
+**[implemented]**: `test_checkpoint_round_trips_through_its_own_config`.
 
 ### 2.4 Tokenizer and vocabulary mismatches fail at startup
 
-Training on data prepared with a different tokenizer does not crash — it converges
+Training on data prepared with a different tokenizer does not crash; it converges
 badly, and looks like a hyperparameter problem for a day. The trainer compares the
 data directory's `meta.json` against the config and refuses to start on a mismatch,
 and likewise if the tokenizer's vocabulary exceeds the model's.
 
-**[implemented]** — `test_data_tokenizer_mismatch_is_caught`,
+**[implemented]**: `test_data_tokenizer_mismatch_is_caught`,
 `test_vocab_too_small_for_the_data_is_caught`.
 
 ---
@@ -143,7 +143,7 @@ learning rate is wrong for several hundred steps and the loss visibly bumps. A
 "resume" that produces a bump is not a resume, it is a warm restart, and it makes the
 loss curve unusable as evidence.
 
-### 3.2 How often — and why the current default is wrong
+### 3.2 How often, and why the current default is wrong
 
 Checkpointing trades a known cost against an unknown one. Writing costs `C` seconds
 every interval; a failure costs, on average, half an interval of lost work. With
@@ -162,7 +162,7 @@ rather than the disk write, and **should be replaced with a measurement** on the
 real run.
 
 The step times below assume an A100, which turned out not to be available from the
-provider in use — see [gpu-runbook.md](gpu-runbook.md) for the hardware actually on
+provider in use; see [gpu-runbook.md](gpu-runbook.md) for the hardware actually on
 offer. Nothing about the method changes, and neither does the conclusion: an H100 is
 roughly 3× faster per step, which moves the optimal interval in *steps* by 3× while
 leaving it unchanged in *seconds*. That is precisely the argument for denominating it
@@ -176,7 +176,7 @@ in time.
 
 The configured default of 1000 steps is well-tuned for exactly one of these cases and
 badly wrong for the other two. On a single spot A100 it throws away about **16% of a
-24-hour run** — roughly 3.9 hours of GPU time, for no benefit.
+24-hour run**, roughly 3.9 hours of GPU time, for no benefit.
 
 **The underlying problem is that the interval is expressed in steps.** A step is not a
 fixed amount of time; it varies by an order of magnitude across these scenarios, so a
@@ -205,14 +205,14 @@ coverage today.
 
 ### 4.1 What it looks like
 
-Silent data corruption — a GPU that computes a wrong result without raising an error —
+Silent data corruption (a GPU that computes a wrong result without raising an error)
 is rare per device-hour and unavoidable at fleet scale; both Meta and Google have
 published on encountering it in production. At a few hundred GPU-hours it is a tail
 risk worth a cheap check. At a million it is a scheduled event.
 
 The insidious property is that a corrupted gradient does not usually produce a NaN. It
 produces a slightly wrong update, the loss curve stays smooth, and the final number is
-quietly worse than it should be — indistinguishable from a hyperparameter being
+quietly worse than it should be, indistinguishable from a hyperparameter being
 slightly off.
 
 ### 4.2 Detection, cheapest first
@@ -236,7 +236,7 @@ hardware-fault signal.
 
 **[proposed] Canary batch, ~50 lines.** Every *N* steps, run one fixed batch through
 the model in eval mode and record the loss. It is deterministic given the weights, so
-a mismatch on re-execution — same weights, same batch, different answer — is direct
+a mismatch on re-execution (same weights, same batch, different answer) is direct
 evidence of nondeterministic hardware. Cost is one extra forward pass per *N* steps.
 This is the only proposal here that detects SDC rather than inferring it.
 
@@ -260,15 +260,15 @@ whole job 30% more expensive, indefinitely, with no error anywhere.
 Common causes on rented hardware: thermal throttling, a degraded NIC, a noisy
 neighbour on a shared host, or a GPU stuck in a lower clock state.
 
-As noted in §2.1, data-induced imbalance is designed out — every rank processes
-exactly the same number of tokens per step — so any imbalance that does appear is a
+As noted in §2.1, data-induced imbalance is designed out (every rank processes
+exactly the same number of tokens per step), so any imbalance that does appear is a
 hardware or network problem. That is a useful diagnostic property: it removes the most
 common false explanation before you start looking.
 
 **[proposed] Per-rank step-time telemetry, ~40 lines.** Each rank records its own
 step time; all-gather periodically, log the median and the spread, and warn when any
 rank exceeds ~1.2× the median consistently. Currently only rank 0 reports throughput,
-so a slow rank 5 is invisible — it shows up as "the job is slower than expected" with
+so a slow rank 5 is invisible; it shows up as "the job is slower than expected" with
 nothing to point at.
 
 **[proposed] Watchdog on the collective.** A hung rank is worse than a slow one: NCCL
@@ -282,7 +282,7 @@ mode #3's unbounded cost into a bounded one.
 
 ## 6. Prioritised gaps
 
-Ordered by expected value — probability of occurring, times cost when it does, divided
+Ordered by expected value: probability of occurring, times cost when it does, divided
 by effort.
 
 | Priority | Gap | Why it matters | Effort |
@@ -303,7 +303,7 @@ before any run long enough that a wasted week matters.
 ### 6.1 Note on the `fsync` gap
 
 Worth stating precisely because "atomic write" is easy to over-claim. `os.replace` is
-atomic against *interruption* — no reader ever sees a half-renamed file, so a killed
+atomic against *interruption*: no reader ever sees a half-renamed file, so a killed
 process is handled correctly, which is the common case and the one the test covers. It
 is not atomic against *power loss*, because POSIX does not guarantee the file's data
 reached stable storage before the rename became visible. The fix is `f.flush()`,
@@ -339,8 +339,8 @@ shared storage at once will saturate it. The responses:
 
 **3D parallelism changes what a checkpoint *is*.** With data, tensor and pipeline
 parallelism combined, model state is partitioned across ranks and a checkpoint is
-inherently topology-dependent. The §2.3 property — that a checkpoint reloads into a
-bare model independent of topology — stops holding for free and has to be engineered,
+inherently topology-dependent. The §2.3 property (that a checkpoint reloads into a
+bare model independent of topology) stops holding for free and has to be engineered,
 via a canonical serialisation format plus resharding on load.
 
 **Elasticity replaces restart.** Waiting for a replacement node wastes the other 999.
@@ -349,7 +349,7 @@ reduced world size and reincorporates capacity when it returns. This interacts
 directly with §2.1: because the token stream position is derived from the step number
 and the world size, a world-size change mid-run alters which rank reads what. The
 current derivation keeps the *global* token span per step correct across world sizes,
-which is the property that matters — but it is worth stating that this is the
+which is the property that matters, but it is worth stating that this is the
 assumption elasticity would be built on, and it deserves an explicit test before
 anyone relies on it.
 
@@ -372,7 +372,7 @@ Four things transfer directly:
 
 1. **Design for the failure you cannot see.** A crash is self-reporting and therefore
    cheap. The expensive failures are the ones where the system keeps running and keeps
-   producing output that looks fine — a stale cache serving correct-looking data, a
+   producing output that looks fine: a stale cache serving correct-looking data, a
    training run on a GPU with a bad SM. Effort belongs where the feedback loop is
    broken, which is why §4 is the longest section here despite covering the rarest
    failure.
@@ -380,7 +380,7 @@ Four things transfer directly:
 2. **Make the recovery path the normal path.** A restore procedure exercised only
    during incidents is a procedure that does not work. Resumption here is covered by
    a test on every commit (`test_resume_continues_from_the_recorded_step`), and the
-   CI end-to-end job trains, stops, and resumes from the checkpoint — so the recovery
+   CI end-to-end job trains, stops, and resumes from the checkpoint, so the recovery
    path is exercised more often than the failure it exists for. It is a clean shutdown
    rather than a kill, so it does not yet cover recovery from a *mid-write*
    interruption; that is what gap #2 in §6 is about.
@@ -400,8 +400,8 @@ Four things transfer directly:
 ## References
 
 - Daly, "A higher order estimate of the optimum checkpoint interval for restart
-  dumps" (2006) — the `sqrt(2CM)` result used in §3.2.
+  dumps" (2006): the `sqrt(2CM)` result used in §3.2.
 - Dixit et al., "Silent Data Corruptions at Scale" (Meta, 2021).
 - Hochschild et al., "Cores that don't count" (Google, 2021).
-- Google, "Site Reliability Engineering" — the failure-domain and blast-radius
+- Google, "Site Reliability Engineering": the failure-domain and blast-radius
   framing in §8.

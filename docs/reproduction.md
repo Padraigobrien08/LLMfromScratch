@@ -7,7 +7,7 @@ pipeline is correct end to end.
 
 **Status: reproduced.** Final validation loss **3.0503** against a target of ≤ 3.29,
 and HellaSwag `acc_norm` **0.3043** against GPT-2 124M's 0.2955. The protocol below was
-fixed *before* the run — the tolerance was not chosen after seeing the result.
+fixed *before* the run; the tolerance was not chosen after seeing the result.
 
 ## Results
 
@@ -20,7 +20,7 @@ fixed *before* the run — the tolerance was not chosen after seeing the result.
 
 ![Loss curve](../results/reproduction_curve.png)
 
-Validation loss crossed the 3.29 target at **step 6,500 — 34% of the run** — and kept
+Validation loss crossed the 3.29 target at **step 6,500, 34% of the run**, and kept
 improving to the end. The curve shows no instability: no spikes, no plateau, and a
 clean cosine tail.
 
@@ -28,7 +28,7 @@ clean cosine tail.
 
 Validation loss is measured on a split we chose, with a tokenizer we configured. It can
 look correct while a mismatch in either quietly invalidates the comparison to the
-published figure — and such a mistake moves the loss without producing anything a
+published figure, and such a mistake moves the loss without producing anything a
 reader would recognise as wrong.
 
 HellaSwag is measured on a fixed public set of 10,042 examples against a number
@@ -44,16 +44,16 @@ loss would have meant nothing however good it looked.
 | GPU | NVIDIA H100 80GB HBM3 (sm_90), driver 580.126.09 |
 | Software | torch 2.4.1+cu124, measured 808 TFLOP/s dense bf16 |
 | Commit | `fb1b615` (clean tree) |
-| Wall-clock | **6.99 h** — 25,167 s for the `repro` stage in [`results/run-stages.log`](../results/run-stages.log). 19,073 steps at ~1,305 ms/step is 6.91 h of stepping; the rest is compile and periodic evaluation |
+| Wall-clock | **6.99 h**: 25,167 s for the `repro` stage in [`results/run-stages.log`](../results/run-stages.log). 19,073 steps at ~1,305 ms/step is 6.91 h of stepping; the rest is compile and periodic evaluation |
 | Throughput | ~401,000 tokens/sec sustained |
-| **MFU** | **44.1% mean** — flat across the whole run |
+| **MFU** | **44.1% mean**, flat across the whole run |
 | Cost | ~$23 of H100 time at $3.29/hr |
 
 MFU of 44.1% held constant for seven hours with no drift, which says the run was
 compute-bound throughout rather than intermittently starved by the data loader.
 
 Two numbers came in better than budgeted. MFU was estimated at 35% and measured 44.1%,
-and micro-batch size was tuned by measurement before launching rather than guessed —
+and micro-batch size was tuned by measurement before launching rather than guessed;
 raising it from the config's default cut about an hour off the run.
 
 ### Sample generations
@@ -65,7 +65,7 @@ From `results/samples.txt`, greedy-ish sampling at temperature 0.8:
 > Oslo. It's called Oslo, which means the town of the house.
 
 Worth reading honestly: the grammar is fluent, the format is right, and the facts are
-unreliable — Paris correct, Copenhagen wrong then self-corrected to Oslo, and it
+unreliable: Paris correct, Copenhagen wrong then self-corrected to Oslo, and it
 repeats itself. That is exactly what a 124M model trained on 10B tokens should look
 like. A model this size has learned the shape of English and very little reliable world
 knowledge, and samples that looked better than this would be more suspicious than
@@ -97,7 +97,7 @@ Two caveats that matter for honesty:
 1. **The number is corpus-specific.** Validation loss is per-token and depends on the
    tokenizer and the evaluation set. 3.29 on FineWeb-Edu is not comparable to a loss
    on OpenWebText, WikiText or anything else. The tokenizer and the split are *named*
-   here for exactly that reason — and naming is what the original run pinned, no more:
+   here for exactly that reason, and naming is what the original run pinned, no more:
    "gpt2" is fetched by tiktoken at runtime and the FineWeb-Edu load followed the hub's
    default branch, so neither input's exact version was recorded when the corpus was
    built. Preparations made since record the resolved dataset revision and a content
@@ -113,7 +113,7 @@ GPT-2 124M scores ≈0.2955. Loss can be gamed by a tokenizer or evaluation-set
 mismatch; a downstream task is much less forgiving.
 
 That 0.2955 carries the same caveat as the 3.29, and one more. It is a third-party
-figure — reported by nanoGPT and widely restated — not something measured here, and it is
+figure (reported by nanoGPT and widely restated), not something measured here, and it is
 a constant in `llmfs/eval/hellaswag.py` that gets copied into every `hellaswag.json` the
 evaluator writes. So the tests comparing our accuracy to the reference are reading that
 constant back out of the file it was written into: they check we beat it, never that it
@@ -150,7 +150,7 @@ The parameters that matter:
 | Weight decay | 0.1, on matmul weights only | Decaying norm gains and biases penalises the parameters whose job is to set a scale |
 | Grad clip | 1.0 | |
 | Batch | 524,288 tokens/step | GPT-2's 0.5M, reached by gradient accumulation so the value is hardware-independent |
-| Dropout | 0.0 | One epoch over 10B tokens — no repetition to regularise against |
+| Dropout | 0.0 | One epoch over 10B tokens, so no repetition to regularise against |
 | Precision | bf16 autocast | Matches fp32's exponent range, so no loss scaler and no silent overflow divergence |
 
 `vocab_size` is padded from 50,257 to 50,304 (a multiple of 64) for tensor-core
@@ -169,7 +169,7 @@ llmfs-prepare-data --source fineweb-edu --out-dir data/fineweb-edu-10B
 llmfs-train --config gpt2-124m
 ```
 
-On 8 GPUs — same config, same optimisation, gradient accumulation drops from 32 to 4
+On 8 GPUs (same config, same optimisation) gradient accumulation drops from 32 to 4
 to hold the effective batch fixed:
 
 ```bash
@@ -184,7 +184,7 @@ llmfs-eval --checkpoint out/gpt2-124m-repro/best.pt --out results/reproduction.j
 
 ### Interruptions
 
-The run is resumable and expected to be resumed — spot instances get reclaimed.
+The run is resumable and expected to be resumed: spot instances get reclaimed.
 
 ```bash
 llmfs-train --config gpt2-124m --resume auto
@@ -214,7 +214,7 @@ H100 SXM. [gpu-runbook.md](gpu-runbook.md) has the full table across the pods on
 offer, and the MFU figure above is an estimate to be replaced with the measured
 value from the run itself.
 
-The naive `6N` rule gives 7.4e18 and would put this at 16 GPU-hours — a 1.5×
+The naive `6N` rule gives 7.4e18 and would put this at 16 GPU-hours, a 1.5×
 underestimate. Two terms it omits: the tied output head is a real 50,304 × 768 matmul
 even though weight tying counts the matrix only once in the parameter total, and
 attention contributes a sequence-length-dependent `12 · n_layer · n_embd · block_size`
@@ -225,7 +225,7 @@ MFU is logged every `log_interval` steps from the first step, so the assumption
 behind this estimate is visible while the run is in progress rather than after it.
 
 Checkpointing overhead and expected work lost to spot preemption are analysed
-separately in [fault-tolerance.md](fault-tolerance.md) §3.2 — on a single spot
+separately in [fault-tolerance.md](fault-tolerance.md) §3.2: on a single spot
 instance the currently-configured checkpoint interval adds roughly 16% on top of the
 figures above, which is a larger effect than most of the training-efficiency work.
 
@@ -233,11 +233,11 @@ figures above, which is a larger effect than most of the training-efficiency wor
 
 ## What gets published
 
-- `results/reproduction.json` — final loss, perplexity, step, tokens evaluated. The
+- `results/reproduction.json`: final loss, perplexity, step, tokens evaluated. The
   committed artifact predates `llmfs-eval` recording provenance, so it carries no
   commit, GPU or seed of its own; the GPU is attested by `results/hellaswag.json`,
   written on the same pod. Re-running the eval today records the full provenance block.
-- `out/gpt2-124m-repro/metrics.jsonl` — the full training trace
+- `out/gpt2-124m-repro/metrics.jsonl`: the full training trace
 - Loss curve, and the target drawn on the same axes
 - Hardware, wall-clock, measured MFU, and total cost
 - The final checkpoint

@@ -13,14 +13,14 @@ GPU, and tmux.
 
 **There is no A100 available**, so the earlier A100 estimates elsewhere in these docs
 do not apply. The table below is computed from the model's own
-`Transformer.flops_per_token` — not the `6N` rule of thumb — across the pods on offer.
+`Transformer.flops_per_token` (not the `6N` rule of thumb) across the pods on offer.
 
 The MFU column is an **estimate, not a measurement**, and it is where the uncertainty
 lives. A 51M-parameter model at 512 context does not come close to saturating an
 H100: the GPU spends much of its time waiting on memory and kernel launches, so the
 big cards look far worse per dollar than their peak FLOPs suggest. The reproduction,
 being 124M at 1024 context with a 0.5M-token batch, uses them much better. MFU is
-logged from step one of every run — replace these numbers with the real ones after
+logged from step one of every run; replace these numbers with the real ones after
 the first hour and re-decide.
 
 ### Sweep sizing: seeds versus tokens
@@ -46,14 +46,14 @@ SWEEP_EXTRA="--set train.max_steps=4000"
 
 The shipped setting takes each arm from 20 tokens/parameter (Chinchilla-optimal) to 10
 (undertrained). For *relative* comparisons between architectures this is usually the
-better trade — replication is what makes an effect visible, and run length mostly is
-not — but it is a trade, and the write-up should say which was used.
+better trade (replication is what makes an effect visible, and run length mostly is
+not), but it is a trade, and the write-up should say which was used.
 
 (The hours above are estimates from the MFU column, and the sweep beat them: 7.6 H100
 hours actually, against 16 estimated. The estimate was pessimistic about a 51M model on
 an H100, which is the uncertainty this section opens by naming.)
 
-### Ablation sweep — per-run cost, 7.6e18 FLOPs for 15 runs
+### Ablation sweep: per-run cost, 7.6e18 FLOPs for 15 runs
 
 | GPU | $/hr | est. MFU | est. hours | est. cost |
 | --- | --- | --- | --- | --- |
@@ -64,7 +64,7 @@ an H100, which is the uncertainty this section opens by naming.)
 | H100 PCIe | 2.89 | 20% | 14.0 | $41 |
 | B200 | 6.79 | 12% | 7.9 | $53 |
 
-### Reproduction — 124M, 10B tokens, 1.09e19 FLOPs
+### Reproduction: 124M, 10B tokens, 1.09e19 FLOPs
 
 | GPU | $/hr | est. MFU | est. hours | est. cost |
 | --- | --- | --- | --- | --- |
@@ -77,7 +77,7 @@ an H100, which is the uncertainty this section opens by naming.)
 ### Recommendation
 
 **H100 SXM for both, ~21 hours and ~$68 total.** It is not the cheapest way to run
-the sweep — a 4090 saves about $12 — but it is three times faster there and it is
+the sweep (a 4090 saves about $12), but it is three times faster there and it is
 clearly the right choice for the reproduction, so one pod does everything and there
 is one environment to get right instead of two.
 
@@ -87,7 +87,7 @@ roughly $25.
 
 ### RTX 5090 vs H100: the argument is wall-clock, not cost
 
-At $0.99/hr against $3.29 the 5090 looks obviously cheaper. It is not, quite — but
+At $0.99/hr against $3.29 the 5090 looks obviously cheaper. It is not, quite, but
 the gap is smaller than a first pass suggests.
 
 The planning figure for a 5090 is **~210 TFLOP/s dense bf16**. Consumer NVIDIA quotes
@@ -103,7 +103,7 @@ accumulation mode.
 
 **The costs are within the error bars of these estimates; the wall-clock is not.**
 Depending on how well a 51M-parameter model fills an H100, its total lands anywhere
-between $57 and $99 — so "the H100 is cheaper" is not a claim worth defending. "The
+between $57 and $99, so "the H100 is cheaper" is not a claim worth defending. "The
 H100 finishes in a day instead of three and a half" is.
 
 Pick the H100 if you want results tomorrow. Pick the 5090 if the runs can sit in the
@@ -117,7 +117,7 @@ starts.
 
 VRAM is not the constraint on either: 32GB comfortably holds the 124M reproduction at
 `micro_batch_size: 16` (the logits tensor is the largest single allocation, at
-1.5 GiB). If it does OOM, halve it to 8 — gradient accumulation doubles automatically
+1.5 GiB). If it does OOM, halve it to 8; gradient accumulation doubles automatically
 and the optimisation is unchanged.
 
 ---
@@ -127,19 +127,19 @@ and the optimisation is unchanged.
 | Setting | Value | Why |
 | --- | --- | --- |
 | Template | **PyTorch 2.8+ with cu128** | Blackwell cards (RTX 5090 = sm_120) have no kernels in older builds. The bootstrap keeps the image's torch rather than replacing it, precisely so this stays matched. |
-| **Network volume** | **required, ≥100GB at `/workspace`** | See below — this is the one that costs real money to get wrong. |
+| **Network volume** | **required, ≥100GB at `/workspace`** | See below; this is the one that costs real money to get wrong. |
 | Container disk | 50GB | Only holds the image and the venv; nothing durable. |
 | SSH terminal access | **on** | Everything here runs over SSH. |
 | Jupyter notebook | off | Nothing uses it. |
-| Instance pricing | On-Demand | Interruptible is cheaper, and both jobs resume cleanly — but on-demand removes preemption from the list of things to think about. |
+| Instance pricing | On-Demand | Interruptible is cheaper, and both jobs resume cleanly, but on-demand removes preemption from the list of things to think about. |
 
 ### The network volume is not optional
 
 RunPod offers two kinds of persistent storage at `/workspace`, and they are easy to
 confuse:
 
-- **Volume disk** — persistent, but *"will be deleted when Pod is terminated"*.
-- **Network volume** — independent of the pod's lifecycle, survives termination,
+- **Volume disk**: persistent, but *"will be deleted when Pod is terminated"*.
+- **Network volume**: independent of the pod's lifecycle, survives termination,
   and can be mounted by a later pod.
 
 Only the second one protects the corpus. Preparing FineWeb-Edu is ~20GB written after
@@ -158,7 +158,7 @@ is terminated, and has to be paid for again. If the storage panel is still offer
 | Reproduction checkpoints | 1.4 GB each |
 
 Three seeds means **39 run directories, not 13**. At the default `keep_last_n: 2`
-that is ~109 GB of checkpoints — more than the corpus and more than the volume. The
+that is ~109 GB of checkpoints, more than the corpus and more than the volume. The
 pipeline therefore runs the sweep with `keep_last_n=0`, which keeps no rolling
 checkpoints; `best.pt` and `final.pt` are never pruned, so every arm stays
 recoverable and its best model intact. That brings the sweep to ~45 GB, and the
@@ -168,7 +168,7 @@ total to ~65 GB.
 
 ## Benchmarks only (no training)
 
-For measuring rather than training — quantization decode throughput, speculative
+For measuring rather than training: quantization decode throughput, speculative
 decoding wall-clock, the KV-cache-vs-sequence-length sweep. These need CUDA but not a
 corpus, so the full pipeline's 16 minutes of tokenisation would be most of the bill.
 
@@ -211,14 +211,14 @@ are not equally trustworthy.
 
 | | Runs on | Trust |
 | --- | --- | --- |
-| RunPod console idle timeout | RunPod's infrastructure | **Highest** — survives anything happening to the pod or your laptop |
-| `gpu.sh stop` | Your machine | **High** — works even if the pod's own networking is broken |
-| `gpu.sh autostop N` | Inside the container | **Best-effort** — needs the pod healthy enough to reach the API |
+| RunPod console idle timeout | RunPod's infrastructure | **Highest**: survives anything happening to the pod or your laptop |
+| `gpu.sh stop` | Your machine | **High**: works even if the pod's own networking is broken |
+| `gpu.sh autostop N` | Inside the container | **Best-effort**: needs the pod healthy enough to reach the API |
 
 `autostop` puts a watchdog in a tmux session on the pod; when the job's session ends it
 waits `N` minutes and calls the RunPod API to stop the pod. That is convenient, and it is
 the wrong thing to *rely* on, for a reason worth stating plainly: **it is the thing being
-shut down.** A container restart, an empty `/etc/resolv.conf`, a wedged network — any of
+shut down.** A container restart, an empty `/etc/resolv.conf`, a wedged network: any of
 these leave the watchdog alive but unable to stop anything, and the meter keeps running.
 
 Two failures found the hard way, both now fixed, both worth knowing about because the
@@ -230,11 +230,11 @@ shape of them recurs:
   watchdog instead. Every session target in `gpu.sh` is now exact (`-t =llmfs`).
 - **The original stop mechanism could not stop a pod at all.** It avoided credentials by
   sending `SIGTERM` to the container's init, on the belief that exiting init is what RunPod
-  treats as the pod finishing. It is not: `kill -TERM 1` *restarts* the container — init
+  treats as the pod finishing. It is not: `kill -TERM 1` *restarts* the container; init
   returns with a fresh PID, tmux and everything under it is destroyed, and the pod keeps
   billing. It also destroyed the watchdog's own log through a `tee` that block-buffers, so
   the log ended before the line explaining what happened. The stop now goes through the
-  API, the log is written directly, and there is **no fallback to signalling init** — a
+  API, the log is written directly, and there is **no fallback to signalling init**, because a
   fallback that logs "sent shutdown" while the meter runs is worse than no fallback.
 
 So for anything unattended: **set an idle timeout in the RunPod console.** It is enforced
@@ -242,10 +242,10 @@ platform-side and is the only mechanism that does not depend on the pod, or on y
 in a good state. `autostop` is a convenience on top of it, not a substitute.
 
 `gpu.sh stop` needs `RUNPOD_API_KEY` in `.gpu.env`, which is gitignored and stays on your
-machine — the key is never copied to the rented box, because a key that can stop pods can
+machine; the key is never copied to the rented box, because a key that can stop pods can
 also create them. Pressing **Stop** in the console does the same job and needs no key.
 
-Two notes. No network volume is needed — nothing here is expensive to regenerate, and
+Two notes. No network volume is needed: nothing here is expensive to regenerate, and
 `fetch` pulls the results to your laptop. And `--hellaswag-limit 0` is passed to the
 quantization sweep deliberately: memory and quality are device-independent and already
 measured locally, so paying GPU rates to re-measure them would be waste. The only
@@ -274,7 +274,7 @@ Reports the GPU, disk, and whether `/workspace` persists.
 ```
 
 Clones the repo at `main` and installs with **CUDA** torch. The bootstrap then runs a
-real bf16 matmul and prints measured TFLOP/s — this catches a broken driver/toolkit
+real bf16 matmul and prints measured TFLOP/s, which catches a broken driver/toolkit
 pairing now, rather than at step 1 of a paid run. It aborts if torch cannot see the
 GPU, because the failure mode otherwise is a job that runs to completion on the CPU,
 slowly, while `nvidia-smi` still shows a healthy card.
@@ -294,7 +294,7 @@ expensive version of this.
 ./scripts/gpu.sh data ablation
 ```
 
-This is CPU-bound tokenisation — it does not need the GPU, and paying H100 rates for
+This is CPU-bound tokenisation: it does not need the GPU, and paying H100 rates for
 it is pure waste. If you are cost-sensitive, do this step on a cheap CPU pod attached
 to the same network volume, then start the GPU pod.
 
@@ -318,14 +318,14 @@ One detached pipeline, capturing everything this pod session can:
 | attention explorer | rebuilt from the real model |
 
 Training also writes **milestone checkpoints** at 10/25/50/75% of the run. Those are
-the one artifact that cannot be recovered afterwards — reconstructing step 5,000 of a
-finished run means paying for the run again — and they cost a few GB. Each
+the one artifact that cannot be recovered afterwards (reconstructing step 5,000 of a
+finished run means paying for the run again) and they cost a few GB. Each
 stage is marker-guarded on the pod, so re-running `all` after a crash, a preemption
 or a pod restart resumes at the first unfinished stage rather than redoing hours of
 work. Within a stage recovery is finer still: the sweep skips completed arms and
 training resumes from its last checkpoint.
 
-A failed stage stops the pipeline rather than pressing on — otherwise the
+A failed stage stops the pipeline rather than pressing on; otherwise the
 reproduction would run against a corpus that failed to prepare, and bill for it.
 
 To run just one piece:
@@ -367,7 +367,7 @@ Then terminate the pod in the console. A *stopped* pod still bills for storage; 
 
 ## What comes back, and what does not
 
-`fetch` pulls **only** metrics, configs and results — a few hundred KB. Those are
+`fetch` pulls **only** metrics, configs and results, a few hundred KB. Those are
 small, they are the artifacts every claim rests on, and they belong in git:
 
 ```bash
@@ -385,7 +385,7 @@ pull one deliberately when you want it:
 
 ## When it goes wrong
 
-**SSH dropped.** Nothing happened to the job — it is in tmux. `gpu.sh status`, or
+**SSH dropped.** Nothing happened to the job; it is in tmux. `gpu.sh status`, or
 `gpu.sh attach` to watch it live.
 
 **Pod was preempted.** Both jobs resume. The sweep skips arms that already have a
@@ -398,7 +398,7 @@ stored, a resumed run consumes exactly the tokens it would have. See
 continues.
 
 **Throughput is far below the table.** Check `perf/mfu` in the logs. Most often the
-micro-batch is too small to fill the GPU — raise `data.micro_batch_size` via
+micro-batch is too small to fill the GPU; raise `data.micro_batch_size` via
 `SWEEP_EXTRA`; gradient accumulation adjusts automatically and the optimisation is
 unchanged, so this is a free knob.
 
