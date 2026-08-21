@@ -670,6 +670,11 @@ what is built and verified, and what is designed but not yet run.
 No results are reported below that have not been measured. Sections describing
 pending work say so.
 
+The repository has also been audited adversarially, end to end, once:
+[AUDIT.md](AUDIT.md) is the record. Fifty findings, every one closed the same day,
+and the classes of drift it caught are now pinned in CI rather than waiting for a
+second audit.
+
 ---
 
 ## Repository layout

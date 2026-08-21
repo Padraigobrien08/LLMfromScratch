@@ -2,7 +2,8 @@
 
 Full-repo audit: claim integrity, model/numerical correctness, test strength,
 reproducibility, web app, hygiene. Every Critical/High was independently re-verified
-before inclusion. Findings ranked by severity; tick items off as they're resolved.
+before inclusion. Findings ranked by severity; all 50 were resolved the same day and
+are ticked below. This file is the record of that pass, kept as it closed.
 
 **Bottom line:** the headline reproduction (3.0503 / 21.12 / 0.3043), every ablation
 delta, both scaling tables, and the hand-written model math all survived recomputation
@@ -12,7 +13,7 @@ and execution. Failures cluster exactly where artifact-pinning stops.
 
 ## Resolution — 2026-08-16
 
-Every item above is closed. What changed, beyond the individual fixes:
+Every item below is closed. What changed, beyond the individual fixes:
 
 - **Two real defects, both reproduced and both now regression-tested.** H1 (the
   rank-0-only final evaluation deadlocking a multi-GPU run) was fixed with a
@@ -37,8 +38,10 @@ Every item above is closed. What changed, beyond the individual fixes:
   job installs from `uv.lock` and runs the suite, `pages.yml` cannot deploy past a red
   suite, and both workflows declare their permissions.
 
-Suite: 381 Python tests, 149 browser tests, all green; `ruff` clean; site builds; every
-generated artifact still regenerates byte-identically.
+Suite as this audit closed on 2026-08-16: 381 Python tests, 149 browser tests, all
+green; `ruff` clean; site builds; every generated artifact still regenerates
+byte-identically. (The suite has grown since; the README's count is generated from
+live collection, so this file's numbers date themselves rather than drift.)
 
 ---
 
@@ -282,8 +285,9 @@ Recomputed from artifacts or executed, not read:
   predictions, both cache sweep tables vs their respective artifacts, full quantization
   and speculative tables, H100/4090 training tables incl. both OOMs, Young/Daly
   arithmetic in fault-tolerance.md.
-- **Suites**: pytest 346 passed / 0 failed / 0 skipped locally; npm build clean;
-  npm test 137/137; check-counts passes; measured.ts/testShowcase.ts regenerate exactly.
+- **Suites**: pytest 346 passed / 0 failed / 0 skipped locally, as the audit began;
+  npm build clean; npm test 137/137; check-counts passes; measured.ts/testShowcase.ts
+  regenerate exactly. (The fixes below grew the suite to 381 by close.)
 - **Web pinning**: TS↔Python ablations math bit-identical on the real artifact; RoPE
   convention/theta/rotation identical; all five web/src/data fixtures + model-sizes +
   reproduction-curve regenerate byte-identically; all 16 web/public/data JSONs
@@ -297,8 +301,6 @@ Recomputed from artifacts or executed, not read:
 - **Strong tests confirmed strong**: causality-by-perturbation with positive control
   across 10 variants, eager-vs-SDPA cross-check, SDPA-dispatch spy, chunked-verify
   interior-queries test, arange-corpus loader tests, doc-pinning suites.
-
-Correction to the audit brief: tests/ is ~3,785 lines, not ~12k.
 
 ## Not checked, and why
 
