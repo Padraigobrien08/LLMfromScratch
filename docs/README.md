@@ -51,7 +51,6 @@ each page compresses. [The repository README](../README.md) carries the honest s
 | [fault-tolerance.md](fault-tolerance.md) | What happens when the hardware fails? Design doc: failure taxonomy, checkpointing, resumption, silent corruption, and what breaks at 1,000+ GPUs. |
 | [gpu-runbook.md](gpu-runbook.md) | How do you actually run this on rented hardware without wasting money? Which GPU, what it costs, and the `scripts/gpu.sh` workflow. |
 | [roadmap.md](roadmap.md) | What was deliberately *not* built? Seven scoped items (fused dequant kernel, flash-compatible verify mask, multi-node), each with what to learn first and how you would know it worked. |
-| [front-page-hierarchy.md](front-page-hierarchy.md) | What is still wrong with the front page, after the type scale was fixed? Six ranked items (the loudest element is a footnote, the same figures printed twice, three route buttons pointing at the same hrefs as three nav items), plus the fit constraints any change has to respect and the one containment measurement I could not settle. |
 
 **Start with [reproduction.md](reproduction.md)** if you want the trust anchor, or
 [scaling.md](scaling.md) if you want the most recent work and the best single example of the

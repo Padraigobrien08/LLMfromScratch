@@ -60,3 +60,6 @@ results/run.log
 # and committed by accident.
 docs/completion-plan.md
 docs/design-audit-plan.md
+
+# Design-review scratch from the impeccable sessions: working notes, not published docs.
+.impeccable/
