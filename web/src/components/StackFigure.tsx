@@ -142,7 +142,7 @@ export default function StackFigure({ attentionHref }: { attentionHref: string }
           <div
             className="stack-fig-panel-body"
             role="region"
-            aria-label={`${panel.name} — detail`}
+            aria-label={`${panel.name} detail`}
             tabIndex={0}
           >
             <p className="eyebrow">{selected === "whole" ? "The model" : "Selected block"}</p>
@@ -216,7 +216,7 @@ export default function StackFigure({ attentionHref }: { attentionHref: string }
               ) : (
                 <p className="stack-fig-pin stack-fig-unpinned">
                   No property test of its own. The suite exercises this wherever it runs a
-                  forward pass, but nothing asserts an invariant about it — and saying so beats
+                  forward pass, but nothing asserts an invariant about it, and saying so beats
                   borrowing a neighbour's test to fill the row.
                 </p>
               )}

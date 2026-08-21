@@ -14,7 +14,7 @@ export const TEST_SHOWCASE = [
     "file": "tests/test_attention.py",
     "name": "test_build_causal_mask_is_bottom_right_aligned",
     "pins": "that the causal mask is bottom-right aligned, not top-left",
-    "why": "torch's is_causal=True is top-left aligned, which is silently wrong whenever the query block is shorter than the key sequence \u2014 that is, on every single decode step. It would let the newest token see only the oldest keys.",
+    "why": "torch's is_causal=True is top-left aligned, which is silently wrong whenever the query block is shorter than the key sequence, that is, on every single decode step. It would let the newest token see only the oldest keys.",
     "cases": 1
   },
   {
@@ -28,14 +28,14 @@ export const TEST_SHOWCASE = [
     "file": "tests/test_attention.py",
     "name": "test_eager_matches_sdpa",
     "pins": "that the weight-exporting eager path computes what the fused kernel computes",
-    "why": "The attention visualizer reads its maps from the eager path. If the two ever disagreed it would be drawing weights the model never used \u2014 and a picture that has quietly drifted from the code is worse than no picture, because nothing about it looks wrong.",
+    "why": "The attention visualizer reads its maps from the eager path. If the two ever disagreed it would be drawing weights the model never used, and a picture that has quietly drifted from the code is worse than no picture, because nothing about it looks wrong.",
     "cases": 3
   },
   {
     "file": "tests/test_attention.py",
     "name": "test_gqa_reduces_to_mha",
     "pins": "that with n_kv_head == n_head, grouped-query attention is numerically identical to plain multi-head attention",
-    "why": "Same weights, same inputs, so the grouping code is the only difference. It turns the repeat/interleave logic \u2014 the easiest thing in GQA to get subtly wrong \u2014 into a difference that has to be exactly zero.",
+    "why": "Same weights, same inputs, so the grouping code is the only difference. It turns the repeat/interleave logic (the easiest thing in GQA to get subtly wrong) into a difference that has to be exactly zero.",
     "cases": 1
   },
   {
@@ -63,7 +63,7 @@ export const TEST_SHOWCASE = [
     "file": "tests/test_kv_cache.py",
     "name": "test_multi_token_verify_step_still_masks",
     "pins": "that a multi-token block against a filled cache still gets a real mask, and its *interior* queries agree with a full forward pass",
-    "why": "The speculative-verification shape. The q_len == 1 fast path must not swallow it \u2014 and checking only the final position would pass regardless, because that one query is correct even with no mask at all.",
+    "why": "The speculative-verification shape. The q_len == 1 fast path must not swallow it, and checking only the final position would pass regardless, because that one query is correct even with no mask at all.",
     "cases": 1
   },
   {
@@ -84,14 +84,14 @@ export const TEST_SHOWCASE = [
     "file": "tests/test_rope.py",
     "name": "test_relative_position_property",
     "pins": "that <R(q, m), R(k, n)> depends only on m - n, to 1e-6",
-    "why": "It is the entire point of rotary embeddings and no shape check implies it. A rotation applied to the wrong axis still produces the right-shaped tensor and a model that trains \u2014 just one with no usable notion of distance.",
+    "why": "It is the entire point of rotary embeddings and no shape check implies it. A rotation applied to the wrong axis still produces the right-shaped tensor and a model that trains, just one with no usable notion of distance.",
     "cases": 1
   },
   {
     "file": "tests/test_speculative.py",
     "name": "test_output_is_identical_to_greedy_decoding",
     "pins": "that speculative decoding reproduces greedy decoding token for token",
-    "why": "The whole contract. An implementation that merely came *close* would not be a faster decoder \u2014 it would be a different model, and every benchmark measuring it would be measuring the wrong thing.",
+    "why": "The whole contract. An implementation that merely came *close* would not be a faster decoder; it would be a different model, and every benchmark measuring it would be measuring the wrong thing.",
     "cases": 4
   }
 ] as const;

@@ -20,7 +20,7 @@ export default function Tests() {
       <h1 className="page-headline">A test count is not evidence. This is what the tests check.</h1>
       <p className="page-standfirst">
         {PROJECT.pythonTests.toLocaleString()} tests pass on every push, and that sentence is worth
-        almost nothing on its own — it is a claim about effort, and no reader can check it. What is
+        almost nothing on its own: it is a claim about effort, and no reader can check it. What is
         worth showing is a handful of the tests themselves: what each one asserts, and the specific
         bug it exists to catch. Most of these describe mistakes that would otherwise survive all
         the way into a training run and surface only as a mysteriously worse loss.
@@ -89,7 +89,7 @@ export default function Tests() {
           Curation stays deliberate: only marked tests appear, so this is a chosen argument rather
           than a directory listing. The other{" "}
           {(PROJECT.pythonTests - cases).toLocaleString()} cases are config validation, end-to-end
-          training, serialisation round-trips and the rest of the ordinary work — necessary, and
+          training, serialisation round-trips and the rest of the ordinary work; necessary, and
           not what anyone came here to read.
         </p>
       </div>

@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Attention explorer — llmfs</title>
+<title>Attention explorer · llmfs</title>
 <style>
   /* Broadsheet's palette and proportions, restated rather than imported.
      This page is a single self-contained file with no build step, no CDN and no
@@ -231,7 +231,7 @@
   <div class="panel">
     <h2>Which tokens attend to which</h2>
     <p class="hint">
-      Click a token to make it the <b>query</b> — the position the model is predicting from.
+      Click a token to make it the <b>query</b>: the position the model is predicting from.
       Every token is then shaded by how much attention that query sent to it, in the
       selected head. Causal masking means a query can only see itself and what came before.
     </p>
@@ -265,7 +265,7 @@
     <p class="hint">
       Computed from full-precision weights before display quantisation. Click a column to
       sort, a row to focus that head. These are summary statistics, not claims about a
-      head's role — they exist to make an interesting head easy to find among many.
+      head's role; they exist to make an interesting head easy to find among many.
     </p>
     <div class="stats-scroll">
       <table class="stats" id="statsTable"></table>
@@ -495,7 +495,7 @@
 
     const s = current.stats.find(x => x.layer === sel.layer && x.head === sel.head) || {};
     $("focusHint").innerHTML =
-      `<b>Layer ${sel.layer}, head ${sel.head}</b> — entropy ${fmt(s.entropy)}, ` +
+      `<b>Layer ${sel.layer}, head ${sel.head}</b> · entropy ${fmt(s.entropy)}, ` +
       `mean distance ${fmt(s.mean_distance)}, prev-token ${fmt(s.prev_token_fraction)}, ` +
       `sink ${fmt(s.sink_fraction)}. Click a row to set the query token.`;
   }

@@ -83,8 +83,8 @@ export default function Ablations() {
       <p className="kicker">{plateKicker("ablations")}</p>
       <h1 className="page-headline">{plateHeadline("ablations")}</h1>
       <p className="page-standfirst">
-        {A.arms} arms — eleven varying a single design decision, one combining all five modern
-        components — each run against a shared baseline at the same {A.seeds} seeds. The finding
+        {A.arms} arms (eleven varying a single design decision, one combining all five modern
+        components), each run against a shared baseline at the same {A.seeds} seeds. The finding
         is not the one the architecture literature would lead you to
         expect: <b>the optimiser dominates the architecture</b>. Learning rate and schedule move
         validation loss more than every architecture change in the study combined.
@@ -107,7 +107,7 @@ export default function Ablations() {
         <figure>
           <PlateNumeral value={A.noiseFloor.toFixed(4)} />
           <figcaption>
-            the noise floor: seed-to-seed spread on the baseline — the bar an unpaired claim
+            the noise floor: seed-to-seed spread on the baseline, the bar an unpaired claim
             would have to clear
           </figcaption>
         </figure>
@@ -138,11 +138,11 @@ export default function Ablations() {
         </div>
         <p className="fig-note">
           {selection.kind === "baseline"
-            ? "Nothing changed — this is the baseline: LayerNorm, learned positions, GELU, tied embeddings, bias, 8 KV heads."
+            ? "Nothing changed. This is the baseline: LayerNorm, learned positions, GELU, tied embeddings, bias, 8 KV heads."
             : selection.kind === "arm"
               ? AXIS[selection.name]
               : selection.kind === "combination"
-                ? "All five modern components at once — the one combination the sweep actually ran."
+                ? "All five modern components at once: the one combination the sweep actually ran."
                 : "More than one axis at a time."}
         </p>
 
@@ -162,7 +162,7 @@ export default function Ablations() {
           <Caveat style={{ marginTop: "var(--space-3)" }}>
             <b>That combination was never measured.</b> The sweep varies <i>one</i> axis at a time,
             so there is no run for {selection.names.map((n) => AXIS[n] ?? n).join(" + ")}. Predicting
-            it by adding the individual deltas assumes the components do not interact — which is an
+            it by adding the individual deltas assumes the components do not interact, which is an
             assumption, not a result. The one combination that <i>was</i> run is{" "}
             <button className="btn btn-ghost btn-sm" onClick={() => setSelected([...MODERN_STACK])}>
               modern-stack
@@ -202,7 +202,7 @@ export default function Ablations() {
                     {row.significant ? (
                       <b>Every seed agreed on the direction.</b>
                     ) : (
-                      <b>Not a result — the per-seed deltas straddle zero.</b>
+                      <b>Not a result: the per-seed deltas straddle zero.</b>
                     )}{" "}
                     {row.paired ? "Paired" : "Unpaired"} over {row.nSeeds}{" "}
                     {row.nSeeds === 1 ? "seed" : "seeds"}
@@ -226,7 +226,7 @@ export default function Ablations() {
               <p className="eyebrow">Noise floor across {analysis.baseline.n} baseline seeds</p>
               <div className="readout-xl">{analysis.baseline.spread.toFixed(4)}</div>
               <p className="tracker-sentence">
-                The full range two runs differing <i>only</i> in seed can occupy — the spread any
+                The full range two runs differing <i>only</i> in seed can occupy, and the spread any
                 unpaired claim would first have to clear. Most architecture effects in this study are
                 smaller than it, which is why the comparisons are paired and why an unpaired table
                 would have found almost nothing.
@@ -310,7 +310,7 @@ export default function Ablations() {
         </p>
         <p className="prose">
           <b>The components are additive.</b> Summing the five individual modern-stack parts predicts
-          almost exactly what the combined arm measured — the gap is a third of the noise floor — so
+          almost exactly what the combined arm measured (the gap is a third of the noise floor), so
           they compose without measurably interacting. That is a real finding and it is also why the playground
           refuses to add deltas for any <i>other</i> combination: this one was checked, and the rest
           were not.
@@ -318,7 +318,7 @@ export default function Ablations() {
       </div>
       <Caveat>
         <b>The largest effect in the study was a prediction that turned out wrong.</b> The{" "}
-        <code>lr-3e-3</code> arm was expected to diverge. It won — which means every other arm was
+        <code>lr-3e-3</code> arm was expected to diverge. It won, which means every other arm was
         measured at a learning rate now known to be suboptimal. That does not invalidate the paired
         comparisons, since every arm shares the same baseline, but it does mean the absolute losses
         are all worse than they needed to be, and it is stated as such in the write-up rather than

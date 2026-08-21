@@ -25,7 +25,7 @@ export default function Efficiency() {
         Three optimisations, all hand-implemented, all measured. The theme running through them is
         that the headline number and the useful number are rarely the same one: 4-bit quantization
         is a memory win that costs speed, speculative decoding can hit its algorithmic ceiling and
-        still lose on the clock, and the KV cache — the one optimisation nobody thinks to question —
+        still lose on the clock, and the KV cache, the one optimisation nobody thinks to question,
         was for a while making decoding <i>slower</i>.
       </p>
 
@@ -44,7 +44,7 @@ export default function Efficiency() {
             value={`${Math.max(...QUANT.schemes.map((s) => s.compression)).toFixed(2)}×`}
           />
           <figcaption>
-            the compression ceiling, not 8× — the tied embedding stays in fp32
+            the compression ceiling, not 8×: the tied embedding stays in fp32
           </figcaption>
         </figure>
         <figure>
@@ -71,7 +71,7 @@ export default function Efficiency() {
           strictly less arithmetic cannot lose on work; it can only lose on overhead. Throughput
           flat at ~170 tok/s regardless of length is the signature of a fixed per-step cost, not of
           attention. The cause was three lines: a decode step has one query, so it took the branch
-          that builds an explicit causal mask — and passing a mask to SDPA disqualifies it from the
+          that builds an explicit causal mask, and passing a mask to SDPA disqualifies it from the
           fused flash kernels. For a single query every cached key precedes it, so that mask was
           all-true. Pure cost, no information.
         </p>
@@ -81,7 +81,7 @@ export default function Efficiency() {
         <h3 className="figure-title">Decode throughput against sequence length, {CACHE.gpu}</h3>
         <p className="fig-note" style={{ margin: "0 0 var(--space-3)" }}>
           Both curves are measured. Untick the box to remove the mask and watch the cache travel
-          from losing at every length to winning at the longest — the same code, one branch apart.
+          from losing at every length to winning at the longest: the same code, one branch apart.
         </p>
         <CacheSweep masked={masked} onMasked={setMasked} />
 
@@ -117,7 +117,7 @@ export default function Efficiency() {
         <p className="fig-note">
           The recompute column moves {Math.min(...CACHE.points.map((p) => p.naive / p.naiveBefore)).toFixed(2)}–
           {Math.max(...CACHE.points.map((p) => p.naive / p.naiveBefore)).toFixed(2)}× between the two
-          runs — the untouched control that makes this a measurement rather than a coincidence.
+          runs, the untouched control that makes this a measurement rather than a coincidence.
           Measured at <code className="mono">{CACHE.commitBefore.slice(0, 8)}</code> and{" "}
           <code className="mono">{CACHE.commitAfter.slice(0, 8)}</code>.
         </p>
@@ -125,7 +125,7 @@ export default function Efficiency() {
 
       <Caveat columns>
         The original explanation was directionally right and quantitatively wrong: decode at this
-        scale <i>is</i> overhead-bound, which is why the cache curve is flat — but the crossover is
+        scale <i>is</i> overhead-bound, which is why the cache curve is flat. But the crossover is
         real and lands at {longest.totalLen} tokens, exactly this model's context length. What broke
         the story open was the shape of the data rather than the headline, and{" "}
         <b>a plausible story for a disappointing measurement is the most expensive kind of mistake</b>,
@@ -167,7 +167,7 @@ export default function Efficiency() {
         Grouping is worth two perplexity points at four bits: one scale per tensor is set by its
         largest outlier, and per-128-feature groups confine the damage. Every scheme is{" "}
         <i>slower</i> than fp32, because dequantize-then-matmul materialises a full-size weight, so
-        bytes moved go up — the saving is in what is stored, not in what is moved. A fused kernel is
+        bytes moved go up: the saving is in what is stored, not in what is moved. A fused kernel is
         what would turn one into the other, and it is the first item in{" "}
         <a href={`${REPO}/docs/roadmap.md`}>the roadmap</a>. Compression also caps at{" "}
         {Math.max(...QUANT.schemes.map((s) => s.compression)).toFixed(2)}×, not 8×, because the tied
@@ -209,7 +209,7 @@ export default function Efficiency() {
       </DataTable>
       <Caveat columns>
         All {SPEC.losslessRuns} benchmark runs reproduced greedy decoding token for token, and{" "}
-        {SPEC.divergedRuns === 0 ? "none diverged" : `${SPEC.divergedRuns} diverged`} — without
+        {SPEC.divergedRuns === 0 ? "none diverged" : `${SPEC.divergedRuns} diverged`}. Without
         that, a speedup would just be a different model running faster. The row worth reading twice
         is the model drafter: essentially the algorithmic ideal, nearly every proposal accepted, and
         barely any speedup at all, because the drafter is the same size as the target.{" "}

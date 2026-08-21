@@ -82,7 +82,7 @@ export default function SamplingDemo() {
       </div>
 
       <p className="sampler-stage">
-        <span className="sampler-stage-num">2</span> Then cut it down — both off until you move them
+        <span className="sampler-stage-num">2</span> Then cut it down: both off until you move them
       </p>
       <div className="fig-grid fig-grid-narrow" style={{ marginBottom: "var(--space-2)" }}>
         <label className="field">

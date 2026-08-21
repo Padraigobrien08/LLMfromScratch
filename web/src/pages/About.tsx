@@ -20,8 +20,8 @@ export default function About() {
       <h1 className="page-headline">A rewrite of a tutorial, and what that is worth</h1>
       <p className="page-standfirst">
         This project began as a tutorial reproduction of a small character-level GPT. What is
-        here now is not that tutorial — it is a decoder-only transformer written from nothing
-        and reproduced at GPT-2 124M scale — but the starting point is worth printing rather
+        here now is not that tutorial (it is a decoder-only transformer written from nothing
+        and reproduced at GPT-2 124M scale), but the starting point is worth printing rather
         than quietly leaving behind.
       </p>
 
@@ -47,7 +47,7 @@ export default function About() {
       <p className="prose">
         The scripts from that reproduction are preserved unmodified in the repository's{" "}
         <code>legacy/</code> directory. Everything above it is a rewrite rather than a
-        refactor, and shares no logic with it — the two can be read side by side, which is
+        refactor, and shares no logic with it; the two can be read side by side, which is
         the only reason to keep the old one at all.
       </p>
 
@@ -57,7 +57,7 @@ export default function About() {
       <p className="prose">
         Every number printed on this site is read from a run or from arithmetic you can check.
         The validation loss, the parameter count, the ablation deltas and the benchmark figures
-        are pulled from the JSON a run wrote, not typed into the page — and where a figure is
+        are pulled from the JSON a run wrote, not typed into the page, and where a figure is
         derived rather than measured, the page says which arithmetic produced it.
       </p>
       <p className="prose">

@@ -83,7 +83,7 @@ def prompt():
 @pytest.mark.showcase(
     pins="that speculative decoding reproduces greedy decoding token for token",
     why="The whole contract. An implementation that merely came *close* would not be a "
-    "faster decoder — it would be a different model, and every benchmark measuring "
+    "faster decoder; it would be a different model, and every benchmark measuring "
     "it would be measuring the wrong thing.",
 )
 @pytest.mark.parametrize("k", [1, 2, 4, 8])

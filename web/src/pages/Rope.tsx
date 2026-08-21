@@ -87,7 +87,7 @@ export default function Rope() {
       <p className="page-standfirst">
         RoPE encodes a token's position by <i>rotating</i> its query and key vectors by an angle
         proportional to that position. The payoff is that the attention logit between them ends up
-        depending only on how far apart they are — never on where either one sits. That claim is
+        depending only on how far apart they are, never on where either one sits. That claim is
         easy to write and hard to believe. So move them and watch.
       </p>
 
@@ -184,7 +184,7 @@ export default function Rope() {
       <h2 className="section-h2">The mechanism, one dial per dimension pair</h2>
       <p className="note-wide">
         The head dimension is split in half and dimension <code>i</code> is paired with{" "}
-        <code>i + headDim/2</code> — the split-half convention from GPT-NeoX, which is what this
+        <code>i + headDim/2</code>: the split-half convention from GPT-NeoX, which is what this
         repository implements. Each pair is rotated by its own angle. Cyan is <b>q</b>, magenta is{" "}
         <b>k</b>; the shaded wedge is the angle between them. Slide the pair and every arrow spins
         while every wedge holds.
@@ -228,7 +228,7 @@ export default function Rope() {
       </div>
       <DecayPlot q={q} k={k} theta={theta} d={d} maxD={plotRange} />
       <p className="caveat-wide" style={{ margin: "var(--space-3) 0 var(--space-8)" }}>
-        This curve is computed from the offset directly, without ever forming an absolute position —
+        This curve is computed from the offset directly, without ever forming an absolute position:
         the closed form in <code>dotRelative</code>. The marker is your current offset. Note that it
         oscillates rather than decaying smoothly: it is a sum of cosines at {headDim / 2} different
         rates, which is also why raising θ to 500,000 stretches the whole picture out and buys
@@ -243,13 +243,13 @@ export default function Rope() {
             <code>src/llmfs/model/rope.py</code>
           </a>
           , and a fixture generated from the Python implementation pins the two together in both
-          directions — the browser tests assert the port reproduces it, and the Python suite asserts
+          directions: the browser tests assert the port reproduces it, and the Python suite asserts
           the fixture still reproduces the model. Either side changing alone fails CI.
         </p>
         <p className="closing-note">
           One measured caveat, since the page invites you to read small numbers: the Python builds
           its cos/sin tables in float32 while this port uses float64, so the two agree to about 1e-8
-          near the start of a sequence and 3e-7 by position 200 — far below the ~1e-2 resolution of
+          near the start of a sequence and 3e-7 by position 200, far below the ~1e-2 resolution of
           the bf16 activations that consume them, and the same choice Hugging Face's Llama makes.
         </p>
       </div>

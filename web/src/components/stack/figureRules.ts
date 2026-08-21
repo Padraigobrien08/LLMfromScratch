@@ -128,7 +128,7 @@ export const SIDES: Record<Side, readonly string[]> = {
 
 /** The three tiers, and what each is for. */
 export const TIERS: Record<Tier, string> = {
-  region: "the parts a reader should take in first — whole regions of the stack",
+  region: "the parts a reader should take in first: whole regions of the stack",
   part: "the sub-parts inside the block",
   flow: "markers that are not layers: what enters, what leaves, what runs through",
 };
@@ -173,16 +173,16 @@ export type LabelSpec = { key: string; blockId: string; tier: Tier; side?: Side 
 export function validate(labels: readonly LabelSpec[], blockIds: readonly string[]): void {
   const warn = (m: string) => console.warn(`[figure V] ${m}`);
   labels.forEach((L) => {
-    if (!TIERS[L.tier]) warn(`label "${L.key}" has no tier — see TIERS`);
+    if (!TIERS[L.tier]) warn(`label "${L.key}" has no tier; see TIERS`);
     const side: Side = L.side === "left" ? "left" : "right";
     if (!SIDES[side].includes(L.key)) {
-      warn(`label "${L.key}" is not assigned to the ${side} margin — see SIDES`);
+      warn(`label "${L.key}" is not assigned to the ${side} margin; see SIDES`);
     }
     if (!ROLE_INK[L.blockId]) {
-      warn(`block "${L.blockId}" has no role ink — add it to ROLE_INK, do not add a hue`);
+      warn(`block "${L.blockId}" has no role ink; add it to ROLE_INK, do not add a hue`);
     }
   });
   blockIds.forEach((b) => {
-    if (b !== "whole" && !ROLE_INK[b]) warn(`block "${b}" is drawn with no role ink — see ROLE_INK`);
+    if (b !== "whole" && !ROLE_INK[b]) warn(`block "${b}" is drawn with no role ink; see ROLE_INK`);
   });
 }

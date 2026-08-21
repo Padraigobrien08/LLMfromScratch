@@ -63,7 +63,7 @@ export const CHAPTERS: Chapter[] = [
     title: "Each token becomes a list of numbers",
     question: "Why do words have to become numbers?",
     storySoFar:
-      "Text is now a list of ids — but an id is an index, and an index cannot be added, scaled or compared.",
+      "Text is now a list of ids. But an id is an index, and an index cannot be added, scaled or compared.",
   },
   {
     n: 3,
@@ -87,7 +87,7 @@ export const CHAPTERS: Chapter[] = [
     title: "The model knows where each token sits",
     question: "How does the model know which word came first?",
     storySoFar:
-      "Attention lets every token look at every earlier one — but a weighted average has no inherent notion of order.",
+      "Attention lets every token look at every earlier one, but a weighted average has no inherent notion of order.",
   },
   {
     n: 6,
@@ -111,7 +111,7 @@ export const CHAPTERS: Chapter[] = [
     title: "The optimiser mattered more than the architecture",
     question: "Do the design choices actually change anything?",
     storySoFar:
-      "Every chapter above settled a design decision and the papers all report improvements — none of which is evidence until it survives being measured.",
+      "Every chapter above settled a design decision and the papers all report improvements, none of which is evidence until it survives being measured.",
   },
 ];
 
