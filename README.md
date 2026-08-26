@@ -6,22 +6,22 @@ reference 0.2955), extended with modern architecture components, a paired-seed
 ablation study, and efficiency benchmarks. Reproducible from one command.
 
 [![CI](https://github.com/Padraigobrien08/nanogpt-from-scratch/actions/workflows/ci.yml/badge.svg)](https://github.com/Padraigobrien08/nanogpt-from-scratch/actions/workflows/ci.yml)
-[![Site](https://github.com/Padraigobrien08/nanogpt-from-scratch/actions/workflows/pages.yml/badge.svg)](https://padraigobrien08.github.io/nanogpt-from-scratch/)
+[![Site](https://github.com/Padraigobrien08/nanogpt-from-scratch/actions/workflows/pages.yml/badge.svg)](https://www.nanogpt-pob.dev/)
 
-**→ [Open the interactive site](https://padraigobrien08.github.io/nanogpt-from-scratch/)**: the
+**→ [Open the interactive site](https://www.nanogpt-pob.dev/)**: the
 results, as figures you can move instead of tables you have to trust.
 
-- Drag a scrubber along [the reproduction](https://padraigobrien08.github.io/nanogpt-from-scratch/#/reproduction)
+- Drag a scrubber along [the reproduction](https://www.nanogpt-pob.dev/#/reproduction)
   and watch it cross a target fixed before the run.
-- Put the mask bug back and watch [the KV cache](https://padraigobrien08.github.io/nanogpt-from-scratch/#/efficiency)
+- Put the mask bug back and watch [the KV cache](https://www.nanogpt-pob.dev/#/efficiency)
   go from losing to winning.
-- Slide gradient accumulation and watch [a two-parameter model](https://padraigobrien08.github.io/nanogpt-from-scratch/#/scaling)
+- Slide gradient accumulation and watch [a two-parameter model](https://www.nanogpt-pob.dev/#/scaling)
   land on points it was never shown.
-- Toggle a design decision in [the ablation playground](https://padraigobrien08.github.io/nanogpt-from-scratch/#/ablations)
+- Toggle a design decision in [the ablation playground](https://www.nanogpt-pob.dev/#/ablations)
   and get a paired delta, its per-seed values, and "not a result" when the seeds disagree.
 
-It opens with an [explainer that assumes no prior knowledge](https://padraigobrien08.github.io/nanogpt-from-scratch/#/chapter/1)
-and ends with [RoPE's defining property holding as you move two tokens](https://padraigobrien08.github.io/nanogpt-from-scratch/#/rope)
+It opens with an [explainer that assumes no prior knowledge](https://www.nanogpt-pob.dev/#/chapter/1)
+and ends with [RoPE's defining property holding as you move two tokens](https://www.nanogpt-pob.dev/#/rope)
 and [every attention weight in the model](https://padraigobrien08.github.io/nanogpt-from-scratch/attention/),
 per layer and per head.
 
@@ -29,7 +29,7 @@ per layer and per head.
      page changes: front-page.png is this hero at 1440x1050, and social-preview.png is the
      GitHub card at 1280x640 — that slot is 2:1 and would crop a third off this one. Both are
      captured from the deployed site at twice the size and scaled down, so the type holds. -->
-[![The front page](docs/images/front-page.png)](https://padraigobrien08.github.io/nanogpt-from-scratch/)
+[![The front page](docs/images/front-page.png)](https://www.nanogpt-pob.dev/)
 
 Every architecture component here (rotary embeddings, RMSNorm, SwiGLU,
 grouped-query attention, the KV cache) is written by hand and covered by tests that
@@ -465,7 +465,7 @@ device-algorithm pair.
 
 ## Interactive site
 
-**[padraigobrien08.github.io/nanogpt-from-scratch](https://padraigobrien08.github.io/nanogpt-from-scratch/)**
+**[www.nanogpt-pob.dev](https://www.nanogpt-pob.dev/)**
 
 **The site is the paper, not documentation of one.** Each of the four results above is a
 plate built around a single interactive figure, chosen so that the interaction *is* the
@@ -473,7 +473,7 @@ explanation: the four bullets at the top of this page are those plates. A target
 the last step would be a target chosen to be hit; on the reproduction plate that is a
 difference you can see, at step 6,500, a third of the way in.
 
-[![The reproduction plate](docs/images/reproduction-plate.png)](https://padraigobrien08.github.io/nanogpt-from-scratch/#/reproduction)
+[![The reproduction plate](docs/images/reproduction-plate.png)](https://www.nanogpt-pob.dev/#/reproduction)
 
 Two pages exist to answer the question a researcher asks next: *is any of this
 actually held down?* **The architecture page** puts the nine blocks of the stack down
@@ -597,7 +597,7 @@ what is built and verified, and what is designed but not yet run.
 | Fault-tolerance design doc | **Done**: [docs/fault-tolerance.md](docs/fault-tolerance.md) |
 | Multi-GPU scaling report | **Done**: [docs/scaling.md](docs/scaling.md), 95.1% efficiency on 8 GPUs, 1.54 PFLOP/s |
 | Interactive attention visualization | **Done**: [live](https://padraigobrien08.github.io/nanogpt-from-scratch/attention/), auto-deployed from CI |
-| Interactive site (explainer, four results plates, architecture, tests) | **Done**: [live](https://padraigobrien08.github.io/nanogpt-from-scratch/); every figure reads a generated artifact |
+| Interactive site (explainer, four results plates, architecture, tests) | **Done**: [live](https://www.nanogpt-pob.dev/); every figure reads a generated artifact |
 | Deferred work, scoped and costed | [docs/roadmap.md](docs/roadmap.md): fused dequant kernel, flash-compatible verify mask, multi-node |
 
 No results are reported below that have not been measured. Sections describing

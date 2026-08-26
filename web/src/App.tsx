@@ -1,7 +1,9 @@
+import { Analytics } from "@vercel/analytics/react";
 import { Suspense, lazy } from "react";
 
 import Footer from "./components/Footer";
 import Masthead from "./components/Masthead";
+import { analyticsEnabled, pageviewFor } from "./lib/analytics";
 import About from "./pages/About";
 import Front from "./pages/Front";
 import { type Route, useRoute } from "./router";
@@ -79,9 +81,13 @@ function Page({ route }: { route: Route }) {
 
 export default function App() {
   const route = useRoute();
+  const view = pageviewFor(route);
 
   return (
     <>
+      {analyticsEnabled(window.location.hostname) && (
+        <Analytics route={view.route} path={view.path} />
+      )}
       <a className="skip-link" href="#main">
         Skip to content
       </a>

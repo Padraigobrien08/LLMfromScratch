@@ -6,6 +6,11 @@
   "outputDirectory": "web/dist",
   "redirects": [
     {
+      "source": "/attention/",
+      "destination": "https://padraigobrien08.github.io/nanogpt-from-scratch/attention/",
+      "permanent": false
+    },
+    {
       "source": "/attention/:path*",
       "destination": "https://padraigobrien08.github.io/nanogpt-from-scratch/attention/",
       "permanent": false
